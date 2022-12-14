@@ -68,17 +68,6 @@ def apply_control_n_gate(q0, op, ind_control_set, ind_target):
     tmp0 = q0.reshape(shape0)[index_tuple0]
     ret.reshape(shape0)[index_tuple0] = apply_gate(tmp0.reshape(-1), op, ind_target_new).reshape(tmp0.shape)
     return ret
-    # tmp0 = [x for x in range(num_qubit) if x not in ind_control_set]
-    # index_map = {y:x for x,y in enumerate(tmp0)}
-    # index_list = [None]*num_qubit
-    # for x in ind_control_set:
-    #     index_list[x] = 1
-    # shape0,index_tuple0 = reduce_shape_index_list((2,)*num_qubit, tuple(index_list))
-    # ret = q0.copy()
-    # tmp0 = ret.reshape(shape0)[index_tuple0]
-    # tmp1 = [index_map[x] for x in ind_target]
-    # ret.reshape(shape0)[index_tuple0] = apply_gate(tmp0.copy().reshape(-1), op, tmp1).reshape(tmp0.shape)
-    # return ret
 
 
 def apply_control_n_gate_grad(q0_conj, q0_grad, op, ind_control_set, ind_target, tag_op_grad=True):
@@ -93,7 +82,7 @@ def apply_control_n_gate_grad(q0_conj, q0_grad, op, ind_control_set, ind_target,
         tmp3 = list(range(num_qubit_new))
         for x,y in enumerate(ind_target_new):
             tmp3[y] = num_qubit_new + x
-        tmp4 = list(ind_target_new) + list(range(num_qubit,num_qubit+len(ind_target_new)))
+        tmp4 = list(ind_target_new) + list(range(num_qubit_new,num_qubit_new+len(ind_target_new)))
         op_grad = opt_einsum.contract(tmp0, tmp1, tmp2, tmp3, tmp4).reshape(op.shape)
     else:
         op_grad = None

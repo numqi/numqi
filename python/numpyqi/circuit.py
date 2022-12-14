@@ -31,7 +31,6 @@ def circuit_apply_state_grad(q0_conj, q0_grad, gate_index_list):
     op_grad_list = []
     for gate_i,index_i in reversed(gate_index_list):
         if gate_i.kind=='control':
-
             q0_conj, q0_grad, op_grad = numpyqi.state.apply_control_n_gate_grad(
                     q0_conj, q0_grad, gate_i.array, index_i[0], index_i[1], tag_op_grad=gate_i.requires_grad)
         elif gate_i.kind=='unitary':
@@ -141,18 +140,38 @@ class Circuit:
                 'hf0': pgate.hf0,
             }
 
-    def single_qubit_gate(self, np0, ind0, name='single'):
+    def single_qubit_gate(self, np0, ind0, requires_grad=False, name='single'):
         assert np0.shape==(2,2)
-        gate = numpyqi.gate.Gate('unitary', np0, name=name)
+        gate = numpyqi.gate.Gate('unitary', np0, requires_grad, name=name)
         index = int(ind0),
         self.gate_index_list.append((gate, index))
         return gate
 
-    def double_qubit_gate(self, np0, ind0, ind1, name='double'):
+    def double_qubit_gate(self, np0, ind0, ind1, requires_grad=False, name='double'):
         assert np0.shape==(4,4)
-        gate = numpyqi.gate.Gate('unitary', np0, name=name)
+        gate = numpyqi.gate.Gate('unitary', np0, requires_grad, name=name)
         index = int(ind0),int(ind1)
         self.gate_index_list.append((gate, index))
+        return gate
+
+    def controlled_single_qubit_gate(self, np0, ind_control_set, ind_target, requires_grad=False, name='control'):
+        ind_control_set = set(sorted(hf_tuple_of_int(ind_control_set)))
+        ind_target = hf_tuple_of_int(ind_target)
+        assert len(ind_target)==1
+        assert all((x not in ind_control_set) for x in ind_target) and len(ind_target)==len(set(ind_target))
+        assert np0.shape==(2,2)
+        gate = numpyqi.gate.Gate('control', np0, requires_grad, name=name)
+        self.gate_index_list.append((gate, (ind_control_set, ind_target)))
+        return gate
+
+    def controlled_double_qubit_gate(self, np0, ind_control_set, ind_target, requires_grad=False, name='control'):
+        ind_control_set = set(sorted(hf_tuple_of_int(ind_control_set)))
+        ind_target = hf_tuple_of_int(ind_target)
+        assert len(ind_target)==2
+        assert all((x not in ind_control_set) for x in ind_target) and len(ind_target)==len(set(ind_target))
+        assert np0.shape==(4,4)
+        gate = numpyqi.gate.Gate('control', np0, requires_grad, name=name)
+        self.gate_index_list.append((gate, (ind_control_set, ind_target)))
         return gate
 
     X = _unitary_gate('X', numpyqi.gate.pauli.sx, 1)
@@ -171,13 +190,13 @@ class Circuit:
     rx = _unitary_parameter_gate('rx', numpyqi.gate.rx, 1)
     ry = _unitary_parameter_gate('ry', numpyqi.gate.ry, 1)
     rz = _unitary_parameter_gate('rz', numpyqi.gate.rz, 1)
-    u = _unitary_parameter_gate('u', numpyqi.gate.u, 1)
+    u3 = _unitary_parameter_gate('u3', numpyqi.gate.u3, 1)
     rzz = _unitary_parameter_gate('rzz', numpyqi.gate.rzz, 2)
 
     crx = _control_parameter_gate('crx', numpyqi.gate.rx)
     cry = _control_parameter_gate('cry', numpyqi.gate.rx)
     crz = _control_parameter_gate('crz', numpyqi.gate.rx)
-    cu = _control_parameter_gate('cu', numpyqi.gate.u)
+    cu3 = _control_parameter_gate('cu3', numpyqi.gate.u3)
 
     dephasing = _kraus_gate('dephasing', numpyqi.channel.hf_dephasing_kraus_op)
     depolarizing = _kraus_gate('depolarizing', numpyqi.channel.hf_depolarizing_kraus_op)
@@ -213,13 +232,14 @@ class Circuit:
                     if gate_i.kind!='control':
                         self.gate_index_list[ind0] = gate_i, tuple(x+delta for x in index_i)
                     else:
-                        self.gate_index_list[ind0] = gate_i, ({(x+delta) for x in index_i[0]},index_i[1]+delta)
+                        self.gate_index_list[ind0] = gate_i, ({(x+delta) for x in index_i[0]}, tuple((x+delta) for x in index_i[1]))
 
     # TODO replace theta_torch with theta
     def init_theta_torch(self, min_=0, max_=2*np.pi, seed=None, force=False):
         ret = force or any((len(x['grad_index'])>0) and ('theta_torch' not in x)
                         for x in self.name_to_pgate.values())
         if ret:
+            # TODO collect theta from pgate, not randomly generate new one
             np_rng = np.random.default_rng(seed)
             for key,value in self.name_to_pgate.items():
                 if len(value['grad_index'])==0:
@@ -279,3 +299,6 @@ class Circuit:
         self._gate_grad()
         q0 = np.conj(q0_conj)
         return q0, q0_grad, op_grad_list
+
+# TODO ch see qiskit
+# TODO when should we use torch, when should we use numpy only

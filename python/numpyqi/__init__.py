@@ -7,3 +7,4 @@ from . import gellmann
 from . import channel
 from . import circuit
 from . import param
+from . import qec

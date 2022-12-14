@@ -67,7 +67,8 @@ def pauli_exponential(a, theta, phi):
         tmp3 = ca - 1j*sa*ct
         tmp1 = sa*st*(sp + 1j*cp)
         tmp2 = sa*st*(-sp + 1j*cp)
-        ret = torch.stack([tmp0,tmp1,tmp2,tmp3], axis=-1).reshape(*a.shape, 2, 2)
+        tmp4 = [x.view(-1,1) for x in (tmp0,tmp1,tmp2,tmp3)] #torch.stack error for float/complex mix input
+        ret = torch.concat(tmp4, axis=-1).reshape(*a.shape, 2, 2)
     else:
         ca = np.cos(a)
         sa = np.sin(a)
@@ -83,7 +84,7 @@ def pauli_exponential(a, theta, phi):
     return ret
 
 
-def u(theta, phi, lambda_):
+def u3(theta, phi, lambda_):
     r'''
     $$ R_z( \phi ) R_y( \theta ) R_z( \lambda ) e^{0.5j (\phi+\lambda)} $$
 
@@ -94,7 +95,8 @@ def u(theta, phi, lambda_):
         st = torch.sin(theta/2)
         tmp0 = torch.exp(1j*lambda_)
         tmp1 = torch.exp(1j*phi)
-        ret = torch.stack([ct,-st*tmp0,st*tmp1,ct*tmp0*tmp1], axis=-1).view(*ct.shape, 2, 2)
+        tmp2 = [ct,-st*tmp0,st*tmp1,ct*tmp0*tmp1]
+        ret = torch.concat([x.view(-1,1) for x in tmp2], axis=-1).view(*ct.shape, 2, 2)
     else:
         ct = np.cos(theta/2)
         st = np.sin(theta/2)
@@ -111,13 +113,14 @@ def rx(theta):
     if is_torch(theta):
         # TODO maybe fixed at some release for pytorch
         # error when back-propagation without multiplying 1. I have no idea why
-        if theta.dtype==torch.float32:
-            theta = theta*torch.tensor(1, dtype=torch.complex64)
-        elif theta.dtype==torch.float64:
-            theta = theta*torch.tensor(1, dtype=torch.complex128)
+        # if theta.dtype==torch.float32:
+        #     theta = theta*torch.tensor(1, dtype=torch.complex64)
+        # elif theta.dtype==torch.float64:
+        #     theta = theta*torch.tensor(1, dtype=torch.complex128)
         ca = torch.cos(theta/2)
         isa = 1j*torch.sin(theta/2)
-        ret = torch.stack([ca,-isa,-isa,ca], axis=-1).view(*theta.shape,2,2)
+        tmp0 = [ca,-isa,-isa,ca]
+        ret = torch.concat([x.view(-1,1) for x in tmp0], axis=-1).view(*theta.shape,2,2)
     else:
         ca = np.cos(theta/2)
         isa = 1j*np.sin(theta/2)
@@ -131,12 +134,13 @@ def ry(theta):
     '''
     if is_torch(theta):
         if theta.dtype==torch.float32:
-            theta = theta*torch.tensor(1, dtype=torch.complex64)
+            theta = theta*torch.tensor(1, dtype=torch.complex64) #if not to(complex), error in the torch.stack later
         elif theta.dtype==torch.float64:
             theta = theta*torch.tensor(1, dtype=torch.complex128)
         ca = torch.cos(theta/2)
         sa = torch.sin(theta/2)
-        ret = torch.stack([ca,-sa,sa,ca], dim=-1).view(*theta.shape,2,2)
+        tmp0 = [ca,-sa,sa,ca]
+        ret = torch.concat([x.view(-1,1) for x in tmp0], dim=-1).view(*theta.shape,2,2)
     else:
         ca = np.cos(theta/2)
         sa = np.sin(theta/2)
@@ -152,7 +156,8 @@ def rz(theta):
         ca = torch.cos(theta/2)
         isa = 1j*torch.sin(theta/2)
         zero = torch.zeros_like(ca)
-        ret = torch.stack([ca-isa,zero,zero,ca+isa], dim=-1).view(*theta.shape,2,2)
+        tmp0 = [ca-isa,zero,zero,ca+isa]
+        ret = torch.concat([x.view(-1,1) for x in tmp0], dim=-1).view(*theta.shape,2,2)
     else:
         ca = np.cos(theta/2)
         isa = 1j*np.sin(theta/2)
@@ -170,7 +175,7 @@ def rzz(theta):
         isa = 1j*torch.sin(theta/2)
         zero = torch.zeros_like(ca)
         tmp0 = [ca-isa,zero,zero,zero, zero,ca+isa,zero,zero, zero,zero,ca+isa,zero, zero,zero,zero,ca-isa]
-        ret = torch.stack(tmp0, dim=-1).view(*theta.shape,4,4)
+        ret = torch.concat([x.view(-1,1) for x in tmp0], dim=-1).view(*theta.shape,4,4)
     else:
         ca = np.cos(theta/2)
         isa = 1j*np.sin(theta/2)

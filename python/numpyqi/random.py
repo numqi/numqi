@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 
 
 # TODO merge with pyqet
@@ -84,4 +85,19 @@ def rand_kraus_operator(num_term, dim0, dim1=None, tag_complex=True, seed=None):
     EVL,EVC = np.linalg.eigh(z0.reshape(-1,dim0).T.conj() @ z0.reshape(-1,dim0))
     assert all(EVL>=0)
     ret = z0 @ np.linalg.inv(EVC*np.sqrt(EVL)).T.conj()
+    return ret
+
+
+def rand_choi_op(dim_in, dim_out, seed=None):
+    # ret(dim_in*dim_out, dim_in*dim_out)
+    np_rng = get_numpy_rng(seed)
+    N0 = dim_in*dim_out
+    tmp0 = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
+    np0 = scipy.linalg.expm(tmp0 + tmp0.T.conj())
+    tmp1 = np.einsum(np0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2], optimize=True)
+    # matrix square root should be the same
+    tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1))
+    # tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
+    ret = np.einsum(np0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
+            tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(N0,N0)
     return ret

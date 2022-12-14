@@ -10,5 +10,6 @@ setup(
         'numpy',
         'opt_einsum',
         'scipy',
+        'tqdm',
     ], #torch
 )

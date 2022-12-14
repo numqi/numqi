@@ -50,12 +50,12 @@ def test_rz():
     assert hfe(ret_, ret0) < 1e-7
 
 
-def test_u():
+def test_u3():
     parameter = np.random.randn(3, 5)
     ret_ = []
     for theta,phi,lambda_ in parameter.T:
         tmp0 = np.exp(0.5j*(phi+lambda_))
         ret_.append(tmp0*numpyqi.gate.rz(phi) @ numpyqi.gate.ry(theta) @ numpyqi.gate.rz(lambda_))
     ret_ = np.stack(ret_)
-    ret0 = numpyqi.gate.u(*parameter)
+    ret0 = numpyqi.gate.u3(*parameter)
     assert hfe(ret_, ret0) < 1e-7
