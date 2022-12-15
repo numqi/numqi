@@ -5,7 +5,7 @@ A Basic Quantum Information toolbox implemented in numpy
 1. A numpy based quantum simulator, for quick development only, not performance-optimized
    * `.state`, `.dm`, `.gate`, `.utils` module
 2. quantum information related function
-   * `.random`, `.utils`, `.param`
+   * `.random`, `.utils`, `.param`, `.gellmann`, `.channel`
 3. Pytorch is an optional requirement, most functions should work for non `torch.Tensor` input.
    * pytorch and cvxpy  should be put in `pyqet` package
 

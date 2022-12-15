@@ -74,7 +74,8 @@ def rand_density_matrix(N0, k=None, kind='haar', seed=None):
     return ret
 
 
-def rand_kraus_operator(num_term, dim0, dim1=None, tag_complex=True, seed=None):
+# rand_kraus_operator
+def rand_kraus_op(num_term, dim0, dim1=None, tag_complex=True, seed=None):
     if dim1 is None:
         dim1 = dim0
     np_rng = get_numpy_rng(seed)
@@ -100,4 +101,42 @@ def rand_choi_op(dim_in, dim_out, seed=None):
     # tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
     ret = np.einsum(np0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
             tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(N0,N0)
+    return ret
+
+
+def rand_bipartitle_state(N0, N1=None, k=None, seed=None, return_dm=False):
+    # http://www.qetlab.com/RandomStateVector
+    np_rng = get_numpy_rng(seed)
+    if N1 is None:
+        N1 = N0
+    if k is None:
+        ret = rand_haar_state(N0, np_rng)
+    else:
+        assert (0<k) and (k<=N0) and (k<=N1)
+        tmp0 = np.linalg.qr(_random_complex(N0, N0, seed=np_rng), mode='complete')[0][:,:k]
+        tmp1 = np.linalg.qr(_random_complex(N1, N1, seed=np_rng), mode='complete')[0][:,:k]
+        tmp2 = _random_complex(k, seed=np_rng)
+        tmp2 /= np.linalg.norm(tmp2)
+        ret = ((tmp0*tmp2) @ tmp1.T).reshape(-1)
+    if return_dm:
+        ret = ret[:,np.newaxis] * ret.conj()
+    return ret
+
+
+def rand_separable_dm(N0, N1=None, k=2, seed=None):
+    np_rng = get_numpy_rng(seed)
+    probability = np_rng.uniform(0, 1, size=k)
+    probability /= probability.sum()
+    ret = 0
+    for ind0 in range(k):
+        tmp0 = rand_density_matrix(N0, kind='haar', seed=np_rng)
+        tmp1 = rand_density_matrix(N1, kind='haar', seed=np_rng)
+        ret = ret + probability[ind0] * np.kron(tmp0, tmp1)
+    return ret
+
+
+def rand_hermite_matrix(dim, seed=None):
+    np_rng = get_numpy_rng(seed)
+    tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
+    ret = (tmp0 + tmp0.T.conj())/2
     return ret
