@@ -2,8 +2,6 @@ import numpy as np
 import scipy.linalg
 
 
-# TODO merge with pyqet
-
 def get_numpy_rng(np_rng_or_seed_or_none):
     if np_rng_or_seed_or_none is None:
         ret = np.random.default_rng()
@@ -27,11 +25,12 @@ def rand_haar_state(N0, seed=None):
     ret /= np.linalg.norm(ret)
     return ret
 
-def rand_state(num_qubit, tag_complex=True, seed=None):
+# warning change from rand_state(num_qubit)
+def rand_state(N0, tag_complex=True, seed=None):
     np_rng = get_numpy_rng(seed)
-    ret = np_rng.normal(size=2**num_qubit)
+    ret = np_rng.normal(size=N0)
     if tag_complex:
-        ret = ret + np_rng.normal(size=2**num_qubit)*1j
+        ret = ret + np_rng.normal(size=N0)*1j
     ret = ret / np.sqrt(np.vdot(ret, ret))
     return ret
 

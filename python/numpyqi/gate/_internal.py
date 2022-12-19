@@ -40,6 +40,7 @@ def _make_pauli():
     return ret
 
 pauli = _make_pauli()
+I = pauli.s0
 X = pauli.sx
 Y = pauli.sy
 Z = pauli.sz
