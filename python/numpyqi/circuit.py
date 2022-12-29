@@ -234,17 +234,15 @@ class Circuit:
                     else:
                         self.gate_index_list[ind0] = gate_i, ({(x+delta) for x in index_i[0]}, tuple((x+delta) for x in index_i[1]))
 
-    # TODO replace theta_torch with theta
-    def init_theta_torch(self, min_=0, max_=2*np.pi, seed=None, force=False):
+    def init_theta_torch(self, force=False):
         ret = force or any((len(x['grad_index'])>0) and ('theta_torch' not in x)
                         for x in self.name_to_pgate.values())
         if ret:
-            # TODO collect theta from pgate, not randomly generate new one
-            np_rng = np.random.default_rng(seed)
             for key,value in self.name_to_pgate.items():
                 if len(value['grad_index'])==0:
                     continue
-                tmp1 = np_rng.uniform(min_, max_, size=(len(value['grad_index']),value['num_parameter']))
+                tmp1 = np.array([self.gate_index_list[x][0].args for x in value['index']])
+                # tmp1 = np_rng.uniform(min_, max_, size=(len(value['grad_index']),value['num_parameter']))
                 if 'theta_torch' in self.name_to_pgate[key]:
                     self.name_to_pgate[key]['theta_torch'].data[:] = torch.tensor(tmp1, dtype=torch.float64, requires_grad=True)
                 else:

@@ -2,7 +2,7 @@ import types
 import collections
 import numpy as np
 
-from ..utils import is_torch, hf_tuple_of_int
+from ..utils import is_torch, hf_tuple_of_int, hf_tuple_of_any
 
 try:
     import torch
@@ -208,7 +208,7 @@ class Gate:
 
 class ParameterGate(Gate):
     def __init__(self, kind, hf0, args, name=None, requires_grad=True):
-        args = [(np.asarray(x)) for x in args]
+        args = hf_tuple_of_any(args, float)
         array = hf0(*args)
         super().__init__(kind, array, requires_grad=requires_grad, name=name)
         self.args = args
@@ -216,7 +216,7 @@ class ParameterGate(Gate):
         self.grad = np.zeros(array.shape, dtype=np.complex128) #WARNING do NOT do in-place operation
 
     def set_args(self, args, array=None):
-        self.args = [(np.asarray(x)) for x in args]
+        self.args = hf_tuple_of_any(args, float)
         self.array = self.hf0(*self.args)
         if array is None:
             self.array = self.hf0(*args)

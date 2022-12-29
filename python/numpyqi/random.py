@@ -2,7 +2,7 @@ import numpy as np
 import scipy.linalg
 
 
-def get_numpy_rng(np_rng_or_seed_or_none):
+def get_numpy_rng(np_rng_or_seed_or_none=None):
     if np_rng_or_seed_or_none is None:
         ret = np.random.default_rng()
     elif isinstance(np_rng_or_seed_or_none, np.random.Generator):
