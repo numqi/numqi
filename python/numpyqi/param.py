@@ -9,23 +9,56 @@ except ImportError:
 
 from .utils import is_torch
 
-def real_matrix_to_PSD(matA, shift_max_eig=True):
+
+def _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     N0 = len(matA)
     if is_torch(matA):
-        tmp0 = torch.tril(matA, -1)
+        if tag_real:
+            tmp0 = torch.tril(matA)
+        else:
+            tmp0 = torch.tril(matA) + 1j*(torch.triu(matA, 1).transpose(1,2))
+        ret = tmp0 @ tmp0.transpose(1,2).conj()
+        if shift_max_eig:
+            ret = ret / torch.linalg.norm(matA, dim=(1,2), keepdims=True)**2
+    else:
+        if tag_real:
+            tmp0 = np.tril(matA)
+        else:
+            tmp0 = np.tril(matA) + 1j*(np.triu(matA, 1).transpose(0,2,1))
+        ret = tmp0 @ tmp0.transpose(0,2,1).conj()
+        if shift_max_eig:
+            ret = ret / np.linalg.norm(matA, axis=(1,2), keepdims=True)**2
+    ret = ret.reshape(*shape)
+    return ret
+
+
+def real_matrix_to_PSD(matA, shift_max_eig=True, tag_real=False, use_cholesky=False):
+    if use_cholesky:
+        ret = _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real)
+    shape = matA.shape
+    matA = matA.reshape(-1, shape[-1], shape[-1])
+    N0 = len(matA)
+    if is_torch(matA):
         tmp1 = torch.triu(matA)
-        tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
+        if tag_real:
+            tmp2 = (tmp1 + tmp1.transpose(1,2))
+        else:
+            tmp0 = torch.tril(matA, -1)
+            tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
         if shift_max_eig:
             tmp3 = tmp2.detach().cpu().numpy()
             EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
             eye_mat = torch.eye(tmp2.shape[1], device=matA.device)
             ret = torch.stack([torch.linalg.matrix_exp(tmp2[x]-EVL[x]*eye_mat) for x in range(N0)])
     else:
-        tmp0 = np.tril(matA, -1)
         tmp1 = np.triu(matA)
-        tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
+        if tag_real:
+            tmp2 = (tmp1 + tmp1.transpose(0,2,1))
+        else:
+            tmp0 = np.tril(matA, -1)
+            tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
         if shift_max_eig:
             EVL = [scipy.sparse.linalg.eigsh(tmp2[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
             eye_mat = np.eye(tmp2.shape[1])
@@ -79,6 +112,7 @@ def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
 
 
 def real_matrix_to_orthogonal(matA):
+    # TODO merge into real_matrix_to_unitary
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     if isinstance(matA, torch.Tensor):
@@ -94,7 +128,10 @@ def real_matrix_to_orthogonal(matA):
     return ret
 
 
-def real_matrix_to_unitary(matA, with_phase=False):
+def real_matrix_to_unitary(matA, with_phase=False, tag_real=False):
+    if tag_real: #Special Orthogonal
+        ret = real_matrix_to_choi_op(matA)
+        return ret
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     if is_torch(matA):
