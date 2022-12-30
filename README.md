@@ -1,5 +1,7 @@
 # numpyqi: a quantum information toolbox implemented in numpy
 
+WARNING: no backward compatibility guarantee until version `1.0.0`
+
 A Basic Quantum Information toolbox implemented in numpy
 
 1. A numpy based quantum simulator, for quick development only, not performance-optimized
