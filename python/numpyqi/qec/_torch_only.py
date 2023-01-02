@@ -1,11 +1,8 @@
 import numpy as np
-import scipy.optimize
 import torch
 
 import numpyqi.utils
 import numpyqi.param
-
-import torch_wrapper
 
 class QECCEqualModel(torch.nn.Module):
     def __init__(self, code0, code1, device='cpu'):
@@ -28,19 +25,6 @@ class QECCEqualModel(torch.nn.Module):
             code0 = torch.einsum(tmp0, [0,1,2], unitary[ind0], [1,3], [0,3,2]).reshape(N0, -1)
         loss = torch.sum(1-torch.linalg.norm(code0.conj() @ self.code1.T, dim=1)**2)
         return loss
-
-    def minimize(self, theta0=None, print_freq=-1, tol=1e-10, maxiter=None, seed=None):
-        hf_model = torch_wrapper.hf_model_wrapper(self)
-        if theta0 is None:
-            num_parameter = len(torch_wrapper.get_model_flat_parameter(self))
-            theta0 = np.random.default_rng(seed).uniform(-1, 1, size=num_parameter)
-        hf_callback = torch_wrapper.hf_callback_wrapper(hf_model, print_freq=print_freq)
-        options = dict() if maxiter is None else {'maxiter':maxiter}
-        theta_optim = scipy.optimize.minimize(hf_model, theta0, method='L-BFGS-B', jac=True,
-                callback=hf_callback, tol=tol, options=options)
-        torch_wrapper.set_model_flat_parameter(self, theta_optim.x)
-        return theta_optim
-
 
 class VarQECUnitary(torch.nn.Module):
     def __init__(self, num_qubit, num_logical_dim, error_list, device='cpu', loss_type='L2'):
@@ -70,19 +54,6 @@ class VarQECUnitary(torch.nn.Module):
         self()
         ret = self.q0_torch.detach().cpu()[:self.num_logical_dim].numpy().reshape(-1, 2**self.num_qubit).copy()
         return ret
-
-    def minimize(self, theta0=None, print_freq=-1, tol=1e-10, maxiter=None, seed=None):
-        hf_model = torch_wrapper.hf_model_wrapper(self)
-        if theta0 is None:
-            num_parameter = len(torch_wrapper.get_model_flat_parameter(self))
-            theta0 = np.random.default_rng(seed).uniform(-1, 1, size=num_parameter)
-        hf_callback = torch_wrapper.hf_callback_wrapper(hf_model, print_freq=print_freq)
-        options = dict() if maxiter is None else {'maxiter':maxiter}
-        theta_optim = scipy.optimize.minimize(hf_model, theta0, method='L-BFGS-B', jac=True,
-                callback=hf_callback, tol=tol, options=options)
-        torch_wrapper.set_model_flat_parameter(self, theta_optim.x)
-        return theta_optim
-
 
 class VarQEC(torch.nn.Module):
     def __init__(self, circuit, num_logical_dim, error_list, loss_type='L2'):
@@ -128,15 +99,3 @@ class VarQEC(torch.nn.Module):
         tmp0 = self.circuit.apply_state_grad(self.q0.reshape(-1), q0_grad.reshape(-1))
         # self.q0, q0_grad, op_grad_list
         self.q0 = tmp0[0].reshape(self.q0.shape)
-
-    def minimize(self, theta0=None, print_freq=-1, tol=1e-10, maxiter=None, seed=None):
-        hf_model = torch_wrapper.hf_model_wrapper(self)
-        if theta0 is None:
-            num_parameter = len(torch_wrapper.get_model_flat_parameter(self))
-            theta0 = np.random.default_rng(seed).uniform(0, 2*np.pi, size=num_parameter)
-        hf_callback = torch_wrapper.hf_callback_wrapper(hf_model, print_freq=print_freq)
-        options = dict() if maxiter is None else {'maxiter':maxiter}
-        theta_optim = scipy.optimize.minimize(hf_model, theta0, method='L-BFGS-B', jac=True,
-                callback=hf_callback, tol=tol, options=options)
-        torch_wrapper.set_model_flat_parameter(self, theta_optim.x)
-        return theta_optim

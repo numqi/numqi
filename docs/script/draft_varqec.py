@@ -1,8 +1,8 @@
 import numpy as np
 import torch
-import scipy.optimize
 
 import numpyqi
+import torch_wrapper
 
 np_rng = np.random.default_rng()
 
@@ -39,17 +39,17 @@ else:
 
 circuit = build_circuit(num_layer, num_qubit)
 model = numpyqi.qec.VarQEC(circuit, num_logical_dim, error_list, loss_type='L2')
-theta_optim = model.minimize(print_freq=10)
+theta_optim = torch_wrapper.minimize(model, ('uniform',0,2*np.pi), num_repeat=1, tol=1e-10, print_freq=20)
 code0 = model.get_code()
-theta_optim = model.minimize(print_freq=10)
+theta_optim = torch_wrapper.minimize(model, ('uniform',0,2*np.pi), num_repeat=1, tol=1e-10, print_freq=20)
 code1 = model.get_code()
 
 model1 = numpyqi.qec.QECCEqualModel(code0, code1)
-tmp0 = model1.minimize(print_freq=10)
+tmp0 = torch_wrapper.minimize(model, ('uniform',-1,1), num_repeat=1, tol=1e-10, print_freq=20)
 if tmp0.fun<1e-5:
     print('equivalent QECC')
 
-# model = numpyqi.qec.VarQECUnitary(num_qubit, num_logical_dim, error_list)
-# theta_optim = model.minimize(print_freq=10)
-# z0 = model.get_code()
-# numpyqi.qec.degeneracy(z0[0])
+model = numpyqi.qec.VarQECUnitary(num_qubit, num_logical_dim, error_list)
+theta_optim = torch_wrapper.minimize(model, ('uniform',-1,1), num_repeat=1, tol=1e-10, print_freq=20)
+z0 = model.get_code()
+numpyqi.qec.degeneracy(z0[0])
