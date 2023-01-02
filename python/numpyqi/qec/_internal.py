@@ -15,6 +15,9 @@ try:
     from .._torch_op import KnillLaflammeInnerProduct
 except ImportError:
     torch = None
+    QECCEqualModel = None
+    VarQECUnitary = None
+    VarQEC = None
 
 def make_error_list(num_qubit, distance, op_list=None, tag_full=False):
     assert distance>1
