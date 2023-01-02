@@ -116,3 +116,16 @@ def apply_super_op(op, rho):
     assert op.shape[0]==dim1*dim1
     ret = (op @ rho.reshape(-1)).reshape(dim1, dim1)
     return ret
+
+
+# bad performance
+def hf_channel_to_kraus_op(hf_channel, dim_in):
+    super_op = []
+    for ind0 in range(dim_in):
+        for ind1 in range(dim_in):
+            tmp0 = np.zeros((dim_in,dim_in))
+            tmp0[ind0,ind1] = 1
+            super_op.append(hf_channel(tmp0))
+    super_op = np.stack(super_op, axis=2).reshape(-1,dim_in*dim_in)
+    kraus_op = super_op_to_kraus_op(super_op)
+    return kraus_op
