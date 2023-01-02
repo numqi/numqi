@@ -139,3 +139,13 @@ def rand_hermite_matrix(dim, seed=None):
     tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
     ret = (tmp0 + tmp0.T.conj())/2
     return ret
+
+
+def rand_channel_matrix_space(dim_in, num_term, seed=None):
+    np_rng = get_numpy_rng(seed)
+    ret = [np.eye(dim_in)]
+    for _ in range(num_term-1):
+        tmp0 = np_rng.normal(size=(dim_in,dim_in))+1j*np_rng.normal(size=(dim_in,dim_in))
+        ret.append(tmp0 + tmp0.T.conj())
+    ret = np.stack(ret)
+    return ret
