@@ -28,3 +28,18 @@ QECC
    * [github/pymatching](https://github.com/oscarhiggott/PyMatching)
    * [github/qsurface](https://github.com/watermarkhu/qsurface)
    * [encoding-circuits](https://markus-grassl.de/QECC/circuits/index.html)
+
+## documentation
+
+package requried for building the documentation
+
+```bash
+pip install mkdocs mkdocs-material pymdown-extensions
+```
+
+Build and Serve the documentation locally, then brower the website `127.0.0.1:23333`
+
+```bash
+mkdocs serve --dev-addr=127.0.0.1:23333
+# --dev-addr=0.0.0.0:23333
+```
