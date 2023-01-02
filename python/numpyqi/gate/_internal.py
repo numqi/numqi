@@ -1,5 +1,4 @@
 import types
-import collections
 import numpy as np
 
 from ..utils import is_torch, hf_tuple_of_int, hf_tuple_of_any
