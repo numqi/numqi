@@ -6,6 +6,7 @@ try:
     from ._torch_op import TorchPSDMatrixSqrtm
 except ImportError:
     torch = None
+    TorchPSDMatrixSqrtm = None
 
 from .utils import is_torch
 
