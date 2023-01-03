@@ -120,6 +120,24 @@ class Circuit:
         self.default_requires_grad = default_requires_grad
         self.name_to_pgate = dict()
 
+    def register_custom_gate(self, name, gate_class):
+        # gate_class could not be child of cupysim.gate.Gate if not is_pgate
+        # gate_class must be child of cupysim.gate.ParameterGate if is_pgate
+        is_pgate = issubclass(gate_class, numpyqi.gate.ParameterGate)
+        def hf0(self, *args, **kwargs):
+            gate = gate_class(*args, **kwargs)
+            if is_pgate:
+                # TODO WARNING default_requires_grad is not checked here
+                self.check_parameter_gate(gate)
+            index = gate.index if (gate.kind in CANONICAL_GATE_KIND) else ()
+            #leave index to empty for unkown gate
+            self.gate_index_list.append((gate,index))
+            return gate
+        assert not hasattr(self, name)
+        # https://stackoverflow.com/a/1015405
+        tmp0 = hf0.__get__(self, self.__class__)
+        setattr(self, name, tmp0)
+
     def check_parameter_gate(self, pgate):
         index = len(self.gate_index_list)
         num_parameter = len(pgate.args)

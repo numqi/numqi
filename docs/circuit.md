@@ -81,3 +81,9 @@ fig.tight_layout()
 ```
 
 ![circuit-basic-pgate](data/circuit_basic_pgate.png)
+
+## custom gate
+
+see `script/draft_custom_gate.py`
+
+*TODO* custom parameterized gate
