@@ -8,4 +8,3 @@ from . import channel
 from . import circuit
 from . import param
 from . import qec
-from . import matrix_space
