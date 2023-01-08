@@ -134,10 +134,21 @@ def rand_separable_dm(N0, N1=None, k=2, seed=None):
     return ret
 
 
-def rand_hermite_matrix(dim, seed=None):
+def rand_hermite_matrix(N0, eig=None, tag_complex=True, seed=None):
     np_rng = get_numpy_rng(seed)
-    tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
-    ret = (tmp0 + tmp0.T.conj())/2
+    if eig is None:
+        if tag_complex:
+            tmp0 = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
+            ret = tmp0 + tmp0.T.conj()
+        else:
+            tmp0 = np_rng.normal(size=(N0,N0))
+            ret = tmp0 + tmp0.T
+    else:
+        min_eig,max_eig = eig
+        EVL = np_rng.uniform(min_eig, max_eig, size=(N0,))
+        EVC = rand_unitary_matrix(N0, tag_complex, seed=np_rng)
+        tmp0 = EVC.T.conj() if tag_complex else EVC.T
+        ret = (EVC * EVL) @ tmp0
     return ret
 
 
