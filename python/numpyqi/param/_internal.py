@@ -3,12 +3,13 @@ import scipy.sparse.linalg
 
 try:
     import torch
-    from ._torch_op import TorchPSDMatrixSqrtm
+    from .._torch_op import TorchPSDMatrixSqrtm
 except ImportError:
     torch = None
     TorchPSDMatrixSqrtm = None
 
-from .utils import is_torch
+
+from ..utils import is_torch
 
 
 def _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real):
