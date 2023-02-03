@@ -9,5 +9,5 @@ from . import circuit
 from . import param
 from . import qec
 
-from ._internal import _package_info
-__version__ = _package_info['version']
+from ._internal import _package
+__version__ = _package['version']
