@@ -68,6 +68,7 @@ def real_matrix_to_hermitian(matA, tag_real=False):
 _hf_trace1_np = lambda x: x/np.trace(x)
 _hf_trace1_torch = lambda x: x/torch.trace(x)
 
+# TODO renamve to hermitian_matrix_to_trace1_PSD
 def hermitian_matrix_to_PSD(matA, shift_max_eig=True):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
