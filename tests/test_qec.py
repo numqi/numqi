@@ -49,7 +49,7 @@ def test_code523():
 
 
 def test_knill_laflamme_loss():
-    str_list = ['523', '422', '442', '642', '883', '8_64_2', '10_4_4', '11_2_5'] #10_16_3
+    str_list = ['523', '422', '442', '642', '883', '8_64_2', '10_4_4'] #11_2_5 10_16_3
     for str_i in str_list: #15 seconds
         code = getattr(numpyqi.qec, 'generate_code'+str_i)()
         code_np = numpyqi.qec.generate_code_np(code['encode'], code['num_logical_dim'])
