@@ -76,19 +76,23 @@ hf_tuple_of_int = lambda x: hf_tuple_of_any(x, type_=int)
 
 
 def hf_complex_to_real(x):
+    dim0,dim1 = x.shape[-2:]
+    shape = x.shape[:-2]
+    x = x.reshape(-1, dim0, dim1)
     # ret = np.block([[x.real,-x.imag],[x.imag,x.real]])
     if is_torch(x):
-        tmp0 = torch.concat([x.real, -x.imag], dim=1)
-        tmp1 = torch.concat([x.imag, x.real], dim=1)
-        ret = torch.concat([tmp0,tmp1], dim=0)
+        tmp0 = torch.concat([x.real, -x.imag], dim=2)
+        tmp1 = torch.concat([x.imag, x.real], dim=2)
+        ret = torch.concat([tmp0,tmp1], dim=1)
     else:
         ret = np.block([[x.real,-x.imag],[x.imag,x.real]])
+    ret = ret.reshape(shape+(2*dim0,2*dim1))
     return ret
 
 
 def hf_real_to_complex(x):
-    assert (x.shape[0]%2==0) and (x.shape[1]%2==0)
-    N0 = x.shape[0]//2
-    N1 = x.shape[1]//2
-    ret = x[:N0,:N1] + 1j*x[N0:,:N1]
+    assert (x.shape[-2]%2==0) and (x.shape[-1]%2==0)
+    dim0 = x.shape[-2]//2
+    dim1 = x.shape[-1]//2
+    ret = x[...,:dim0,:dim1] + 1j*x[...,dim0:,:dim1]
     return ret
