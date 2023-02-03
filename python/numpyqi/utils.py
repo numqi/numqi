@@ -3,6 +3,11 @@ import collections
 import itertools
 import numpy as np
 
+try:
+    import torch
+except ImportError:
+    torch = None
+
 @functools.lru_cache(maxsize=128)
 def hf_num_state_to_num_qubit(num_state:int, kind:str='exact'):
     assert kind in {'exact','ceil','floor'}
@@ -68,3 +73,22 @@ def hf_tuple_of_any(x, type_=None):
     return ret
 
 hf_tuple_of_int = lambda x: hf_tuple_of_any(x, type_=int)
+
+
+def hf_complex_to_real(x):
+    # ret = np.block([[x.real,-x.imag],[x.imag,x.real]])
+    if is_torch(x):
+        tmp0 = torch.concat([x.real, -x.imag], dim=1)
+        tmp1 = torch.concat([x.imag, x.real], dim=1)
+        ret = torch.concat([tmp0,tmp1], dim=0)
+    else:
+        ret = np.block([[x.real,-x.imag],[x.imag,x.real]])
+    return ret
+
+
+def hf_real_to_complex(x):
+    assert (x.shape[0]%2==0) and (x.shape[1]%2==0)
+    N0 = x.shape[0]//2
+    N1 = x.shape[1]//2
+    ret = x[:N0,:N1] + 1j*x[N0:,:N1]
+    return ret
