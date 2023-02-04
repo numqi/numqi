@@ -135,48 +135,36 @@ def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
     return ret
 
 
-def real_matrix_to_orthogonal(matA):
-    # TODO merge into real_matrix_to_unitary
-    shape = matA.shape
-    matA = matA.reshape(-1, shape[-1], shape[-1])
-    if isinstance(matA, torch.Tensor):
-        tmp0 = torch.triu(matA, 1)
-        tmp1 = tmp0 - tmp0.transpose(1,2)
-        ret = torch.stack([torch.linalg.matrix_exp(x) for x in tmp1])
-    else:
-        tmp0 = np.triu(matA, 1)
-        tmp1 = tmp0 - tmp0.transpose(0,2,1)
-        # ret = np.stack([scipy.linalg.expm(x) for x in tmp1])
-        ret = scipy.linalg.expm(tmp1) #TODO scipy-v1.9
-    ret = ret.reshape(*shape)
-    return ret
-
-
-def real_matrix_to_unitary(matA, with_phase=False, tag_real=False):
-    if tag_real: #Special Orthogonal
-        ret = real_matrix_to_choi_op(matA)
-        return ret
+def real_matrix_to_special_unitary(matA, tag_real=False):
+    assert matA.shape[-1]==matA.shape[-2]
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     if is_torch(matA):
-        tmp0 = torch.tril(matA, -1)
-        tmp1 = torch.triu(matA)
-        if with_phase:
-            tmp3 = tmp1
+        if tag_real:
+            tmp0 = torch.triu(matA, 1)
+            tmp1 = tmp0 - tmp0.transpose(1,2)
+            ret = torch.stack([torch.linalg.matrix_exp(tmp1[x]) for x in range(len(tmp1))])
         else:
-            tmp2 = torch.diagonal(tmp1, dim1=-2, dim2=-1).sum(dim=1).reshape(-1,1,1)/shape[-1]
+            tmp0 = torch.tril(matA, -1)
+            tmp1 = torch.triu(matA)
+            tmp2 = torch.diagonal(tmp1, dim1=-2, dim2=-1).mean(dim=1).reshape(-1,1,1)
             tmp3 = tmp1 - tmp2*torch.eye(shape[-1], device=matA.device)
-        tmp4 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp3 + tmp3.transpose(1,2))
-        ret = torch.linalg.matrix_exp(1j*tmp4)
+            tmp4 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp3 + tmp3.transpose(1,2))
+            ret = torch.stack([torch.linalg.matrix_exp(1j*tmp4[x]) for x in range(len(tmp4))])
     else:
-        tmp0 = np.tril(matA, -1)
-        tmp1 = np.triu(matA)
-        if not with_phase:
-            tmp1 = tmp1 - np.trace(tmp1, axis1=-2, axis2=-1).reshape(-1,1,1)/shape[-1]*np.eye(shape[-1])
-        tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
-        ret = np.stack([scipy.linalg.expm(1j*x) for x in tmp2])
-        # ret = scipy.linalg.expm(1j*tmp2) #TODO scipy-v1.9
-    ret = ret.reshape(*shape)
+        if tag_real:
+            tmp0 = np.triu(matA, 1)
+            tmp1 = tmp0 - tmp0.transpose(0,2,1)
+            ret = np.stack([scipy.linalg.expm(x) for x in tmp1])
+            # ret = scipy.linalg.expm(tmp1) #TODO scipy-v1.9
+        else:
+            tmp0 = np.tril(matA, -1)
+            tmp1 = np.triu(matA)
+            tmp1 = tmp1 - (np.trace(tmp1, axis1=-2, axis2=-1).reshape(-1,1,1)/shape[-1])*np.eye(shape[-1])
+            tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
+            ret = np.stack([scipy.linalg.expm(1j*x) for x in tmp2])
+            # ret = scipy.linalg.expm(1j*tmp2) #TODO scipy-v1.9
+    ret = ret.reshape(shape)
     return ret
 
 
@@ -184,7 +172,7 @@ def real_to_kraus_op(mat, dim_in, dim_out):
     # this method is in-efficient
     # batched version might have memory issue
     assert (mat.ndim==2) and (mat.shape[0]==mat.shape[1]) and (mat.shape[0]%(dim_in*dim_out)==0)
-    matU = real_matrix_to_unitary(mat, with_phase=True)
+    matU = real_matrix_to_special_unitary(mat)
     ret = matU[:,:dim_in].reshape(-1, dim_out, dim_in)
     return ret
 

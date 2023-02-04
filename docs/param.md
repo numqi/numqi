@@ -1,26 +1,28 @@
 # Parameterization
 
-## unitary matrix
+## special unitary matrix
 
-`numpyqi.param.real_matrix_to_unitary(x)`
+`numpyqi.param.real_matrix_to_special_unitary(x)`
 
 $$
 x\in \mathbb{R} ^{d\times d}
 $$
 
 $$
-y=x_l+x_{l}^{T}+i\left( x_u-x_{u}^{T} \right)
+y=x_l+x_{l}^{T}+i\left( x_u-x_{u}^{T} \right) - \frac{2\mathrm{tr}(x)}{d}I
 $$
 
 $$
 z=\mathrm{e}^{iy}
 $$
 
-where $x_l$ denotes the lower triangle matrix with diagonal elements, and $x_u$ denotes the upper triagnle matrix without diagonal elements
+where $x_l$ denotes the lower triangle matrix with diagonal elements, and $x_u$ denotes the upper triagnle matrix without diagonal elements. The traceless matrix $y$ make sure that $det(z)=1$
 
-## orthogonal matrix
+Usually, the unitary matrix is unnecessary. But still, one can still parameterize a general unitary matrix as $e^{ir}e^{iy}$ where $r$ is a real number and $e^{iy}$ is a special unitary matrix as above
 
-`numpyqi.param.real_matrix_to_orthogonal(x)`
+## special orthogonal matrix
+
+`numpyqi.param.real_matrix_to_special_unitary(x, tag_real=True)`
 
 $$
 x\in \mathbb{R} ^{d\times d}

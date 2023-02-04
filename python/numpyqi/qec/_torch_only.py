@@ -18,7 +18,7 @@ class QECCEqualModel(torch.nn.Module):
 
     def forward(self):
         N0 = len(self.code0)
-        unitary = numpyqi.param.real_matrix_to_unitary(self.theta)
+        unitary = numpyqi.param.real_matrix_to_special_unitary(self.theta)
         code0 = self.code0
         for ind0 in range(self.num_qubit):
             tmp0 = code0.reshape(N0*(2**ind0), 2, 2**(self.num_qubit-ind0-1))
@@ -44,7 +44,7 @@ class VarQECUnitary(torch.nn.Module):
         self.q0_torch = None
 
     def forward(self):
-        self.q0_torch = numpyqi.param.real_matrix_to_unitary(self.theta)[:self.num_logical_dim_ceil]
+        self.q0_torch = numpyqi.param.real_matrix_to_special_unitary(self.theta)[:self.num_logical_dim_ceil]
         tmp0 = numpyqi.qec.knill_laflamme_inner_product(self.q0_torch, self.error_list_torch)
         inner_product = tmp0[:,:self.num_logical_dim,:self.num_logical_dim]
         loss = numpyqi.qec.knill_laflamme_loss(inner_product, self.loss_type)
