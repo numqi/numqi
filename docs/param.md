@@ -34,7 +34,7 @@ $$
 
 ## Positive Semi-definite matrix
 
-`numpyqi.param.real_matrix_to_PSD(x)`
+`numpyqi.param.real_matrix_to_trace1_PSD(x)`
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -47,6 +47,8 @@ $$
 $$
 z=\mathrm{e}^y
 $$
+
+for numerical stability, this function only produce trace one PSD matrices. To generate matrix with different trace, you may multiply the trace-1 matrix with another trace parameter.
 
 ## quantum channel
 

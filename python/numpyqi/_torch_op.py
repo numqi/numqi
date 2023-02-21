@@ -2,8 +2,6 @@ import torch
 import numpy as np
 import scipy.linalg
 
-import numpyqi.state
-
 class TorchMatrixSqrtm(torch.autograd.Function):
     @staticmethod
     def forward(ctx, matA):
@@ -104,45 +102,6 @@ class PartPSDMatrixLogarithm(torch.autograd.Function):
         tmp0 = ctx.saved_tensors
         ret = _torch_psd_sqrtm_backward_repeat(grad_output, tmp0[:-1], repeat=tmp0[-1].item())
         return ret,None
-
-
-class KnillLaflammeInnerProduct(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, q0, op_list):
-        num_logical_dim = q0.shape[0]
-        num_logical_qubit = numpyqi.utils.hf_num_state_to_num_qubit(num_logical_dim, kind='exact')
-        ret = []
-        q0_conj = q0.conj()
-        for op_sequence in op_list:
-            q1 = q0.reshape(-1)
-            for (ind1,op_i) in op_sequence:
-                q1 = numpyqi.state.apply_gate(q1, op_i, [x+num_logical_qubit for x in ind1])
-            ret.append(q0_conj @ q1.reshape(num_logical_dim,-1).T)
-        ret = torch.stack(ret)
-        ctx.save_for_backward(q0)
-        ctx._numpyqi_op_list = op_list
-        return ret
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        q0, = ctx.saved_tensors
-        op_list = ctx._numpyqi_op_list
-        num_logical_dim = q0.shape[0]
-        num_logical_qubit = numpyqi.utils.hf_num_state_to_num_qubit(num_logical_dim, kind='exact')
-        q0_grad = torch.zeros_like(q0)
-        hf0 = lambda x: x.reshape(num_logical_dim, -1)
-        for ind0 in range(len(op_list)):
-            q1 = q0.reshape(-1)
-            for ind1,op_i in op_list[ind0]:
-                q1 = numpyqi.state.apply_gate(q1, op_i, [x+num_logical_qubit for x in ind1])
-            q0_grad += grad_output[ind0].conj() @ hf0(q1)
-
-            q1 = q0.reshape(-1)
-            for ind1,op_i in reversed(op_list[ind0]):
-                q1 = numpyqi.state.apply_gate(q1, op_i.T.conj(), [x+num_logical_qubit for x in ind1])
-            q0_grad += grad_output[ind0].T @ hf0(q1)
-        return q0_grad,None
-
 
 
 class TorchMatrixLogm(torch.nn.Module):

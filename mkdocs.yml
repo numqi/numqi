@@ -19,7 +19,6 @@ nav:
   - Parameterization: param.md
   - Quantum Gate: gate.md
   - Quantum Circuit: circuit.md
-  - Quantum Error Correction: qec.md
   - VarQEC: varqec.md
   - TODO:
     - TODO: todo.md

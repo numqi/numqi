@@ -11,25 +11,32 @@ import numpyqi
 np_rng = np.random.default_rng()
 
 @pytest.mark.skipif(torch==None, reason="requires torch")
-def test_hermitian_matrix_to_PSD_shift_max_eig():
+def test_real_matrix_to_trace1_PSD():
     np_rng = np.random.default_rng()
-    dim = 5
-    tmp0 = np_rng.uniform(-1, 1, size=(dim,dim)) + 1j*np_rng.uniform(-1, 1, size=(dim,dim))
-    matA = (tmp0 + tmp0.T.conj())/2
-    z0 = numpyqi.param.hermitian_matrix_to_PSD(matA, shift_max_eig=True)
+    N0 = 5
+    zero_eps = 1e-4
+    matA = np_rng.normal(size=(N0,N0))
+    grad_coeff = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
 
-    tmp0 = torch.tensor(matA, dtype=torch.complex128, requires_grad=True)
-    z1 = numpyqi.param.hermitian_matrix_to_PSD(tmp0, shift_max_eig=True)
-    torch.abs(z1).sum().backward()
-    z1_grad = tmp0.grad.detach().numpy().copy()
+    for use_cholesky in [True, False]:
+        torch0 = torch.tensor(matA, requires_grad=True, dtype=torch.float64)
+        tmp0 = numpyqi.param.real_matrix_to_trace1_PSD(torch0, use_cholesky=use_cholesky)
+        loss = (tmp0 * torch.tensor(grad_coeff, dtype=torch.complex128)).sum().real
+        loss.backward()
+        grad = torch0.grad.detach().numpy().copy()
 
-    tmp0 = torch.tensor(matA, dtype=torch.complex128, requires_grad=True)
-    tmp1 = numpyqi.param.hermitian_matrix_to_PSD(tmp0, shift_max_eig=False)
-    z2 = tmp1 / torch.trace(tmp1)
-    torch.abs(z2).sum().backward()
-    z2_grad = tmp0.grad.detach().numpy().copy()
-    assert np.abs(z1.detach().numpy()-z0).max() < 1e-10
-    assert np.abs(z1_grad-z2_grad).max() < 1e-10
+        hf0 = lambda x: (numpyqi.param.real_matrix_to_trace1_PSD(x, use_cholesky=use_cholesky)*grad_coeff).sum().real
+        loss_ = hf0(matA)
+        grad_ = np.zeros((N0,N0), dtype=np.float64)
+        tmp0 = ((x,y) for x in range(N0) for y in range(N0))
+        for ind0 in range(N0):
+            for ind1 in range(N0):
+                tmp0,tmp1 = [matA.copy() for _ in range(2)]
+                tmp0[ind0,ind1] += zero_eps
+                tmp1[ind0,ind1] -= zero_eps
+                grad_[ind0,ind1] = (hf0(tmp0)-hf0(tmp1))/(2*zero_eps)
+        assert np.abs(loss.item()-loss_).max() < 1e-10
+        assert np.abs(grad-grad_).max() < 1e-6
 
 
 def test_real_matrix_to_special_unitary():

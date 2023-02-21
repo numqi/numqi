@@ -6,20 +6,44 @@ try:
 except ImportError:
     torch = None
 
-import numpyqi.state
 import numpyqi.gate
 import numpyqi.channel
+import numpyqi.sim.state
+from numpyqi.utils import hf_tuple_of_int, hf_tuple_of_any
 
-from .utils import hf_tuple_of_int, hf_tuple_of_any
+from ._internal import Gate, ParameterGate
 
-CANONICAL_GATE_KIND = {'unitary','control'}
+CANONICAL_GATE_KIND = {'unitary','control','measure'}
+# TODO kraus
+
+
+class MeasureGate:
+    def __init__(self, index, seed=None, name='measure'):
+        self.kind = 'measure'
+        self.name = name
+        self.requires_grad = False
+        index = numpyqi.utils.hf_tuple_of_int(index)
+        assert all(x==y for x,y in zip(sorted(index),index)), 'index must be sorted'
+        self.index = index
+        self.np_rng = numpyqi.random.get_numpy_rng(seed)
+
+        self.bitstr = None
+        self.probability = None
+
+    def forward(self, q0):
+        self.bitstr,self.probability,q1 = numpyqi.sim.state.measure_quantum_vector(q0, self.index, self.np_rng)
+        return q1
+
+    # def grad_backward():
 
 def circuit_apply_state(q0, gate_index_list):
     for gate_i,index_i in gate_index_list:
         if gate_i.kind=='unitary':
-            q0 = numpyqi.state.apply_gate(q0, gate_i.array, index_i)
+            q0 = numpyqi.sim.state.apply_gate(q0, gate_i.array, index_i)
         elif gate_i.kind=='control':
-            q0 = numpyqi.state.apply_control_n_gate(q0, gate_i.array, index_i[0], index_i[1])
+            q0 = numpyqi.sim.state.apply_control_n_gate(q0, gate_i.array, index_i[0], index_i[1])
+        elif gate_i.kind=='measure':
+            q0 = gate_i.forward(q0)
         elif gate_i.kind=='custom':
             q0 = gate_i.forward(q0)
         else:
@@ -30,11 +54,12 @@ def circuit_apply_state(q0, gate_index_list):
 def circuit_apply_state_grad(q0_conj, q0_grad, gate_index_list):
     op_grad_list = []
     for gate_i,index_i in reversed(gate_index_list):
+        assert gate_i.kind!='measure', 'not support measure in gradient backward yet'
         if gate_i.kind=='control':
-            q0_conj, q0_grad, op_grad = numpyqi.state.apply_control_n_gate_grad(
+            q0_conj, q0_grad, op_grad = numpyqi.sim.state.apply_control_n_gate_grad(
                     q0_conj, q0_grad, gate_i.array, index_i[0], index_i[1], tag_op_grad=gate_i.requires_grad)
         elif gate_i.kind=='unitary':
-            q0_conj, q0_grad, op_grad = numpyqi.state.apply_gate_grad(q0_conj,
+            q0_conj, q0_grad, op_grad = numpyqi.sim.state.apply_gate_grad(q0_conj,
                     q0_grad, gate_i.array, index_i, tag_op_grad=gate_i.requires_grad)
         elif gate_i.kind=='custom':
             q0_conj, q0_grad, op_grad = gate_i.grad_backward(q0_conj, q0_grad)#TODO
@@ -48,7 +73,7 @@ def circuit_apply_state_grad(q0_conj, q0_grad, gate_index_list):
 
 def _unitary_gate(name_, array, num_index):
     def hf0(self, /, *index, name=name_):
-        gate = numpyqi.gate.Gate('unitary', array, name=name)
+        gate = Gate('unitary', array, name=name)
         index = hf_tuple_of_int(index)
         assert len(index)==num_index
         self.gate_index_list.append((gate, hf_tuple_of_int(index)))
@@ -61,7 +86,7 @@ def _control_gate(name_, array):
         control_qubit = set(sorted(hf_tuple_of_int(control_qubit)))
         target_qubit = hf_tuple_of_int(target_qubit)
         assert all((x not in control_qubit) for x in target_qubit) and len(target_qubit)==len(set(target_qubit))
-        gate = numpyqi.gate.Gate('control', array, name=name)
+        gate = Gate('control', array, name=name)
         self.gate_index_list.append((gate, (control_qubit,target_qubit)))
         return gate
     return hf0
@@ -76,7 +101,7 @@ def _unitary_parameter_gate(name_, hf0, num_index):
             args = (0.,)*num_parameter #initialize to zero
         else:
             args = hf_tuple_of_any(args, type_=float) #convert float/int into tuple
-        gate = numpyqi.gate.ParameterGate('unitary', hf0, args, name=name, requires_grad=requires_grad)
+        gate = ParameterGate('unitary', hf0, args, name=name, requires_grad=requires_grad)
         self.check_parameter_gate(gate)
         index = hf_tuple_of_int(index)
         assert len(index)==num_index
@@ -96,7 +121,7 @@ def _control_parameter_gate(name_, hf0):
         control_qubit = set(sorted(hf_tuple_of_int(control_qubit)))
         target_qubit = hf_tuple_of_int(target_qubit)
         assert all((x not in control_qubit) for x in target_qubit) and len(target_qubit)==len(set(target_qubit))
-        gate = numpyqi.gate.ParameterGate('control', hf0, args, name=name, requires_grad=requires_grad)
+        gate = ParameterGate('control', hf0, args, name=name, requires_grad=requires_grad)
         self.check_parameter_gate(gate)
         self.gate_index_list.append((gate, (control_qubit,target_qubit)))
         return gate
@@ -106,7 +131,7 @@ def _control_parameter_gate(name_, hf0):
 def _kraus_gate(name_, hf0):
     def hf1(self, index, args, name=name_):
         kop = hf0(*args)
-        gate = numpyqi.gate.Gate('kraus', kop, requires_grad=False, name=name)
+        gate = Gate('kraus', kop, requires_grad=False, name=name)
         self.gate_index_list.append((gate, hf_tuple_of_int(index)))
         return gate
     return hf1
@@ -121,9 +146,9 @@ class Circuit:
         self.name_to_pgate = dict()
 
     def register_custom_gate(self, name, gate_class):
-        # gate_class could not be child of cupysim.gate.Gate if not is_pgate
-        # gate_class must be child of cupysim.gate.ParameterGate if is_pgate
-        is_pgate = issubclass(gate_class, numpyqi.gate.ParameterGate)
+        # gate_class could not be child of Gate if not is_pgate
+        # gate_class must be child of ParameterGate if is_pgate
+        is_pgate = issubclass(gate_class, ParameterGate)
         def hf0(self, *args, **kwargs):
             gate = gate_class(*args, **kwargs)
             if is_pgate:
@@ -160,14 +185,14 @@ class Circuit:
 
     def single_qubit_gate(self, np0, ind0, requires_grad=False, name='single'):
         assert np0.shape==(2,2)
-        gate = numpyqi.gate.Gate('unitary', np0, requires_grad, name=name)
+        gate = Gate('unitary', np0, requires_grad, name=name)
         index = int(ind0),
         self.gate_index_list.append((gate, index))
         return gate
 
     def double_qubit_gate(self, np0, ind0, ind1, requires_grad=False, name='double'):
         assert np0.shape==(4,4)
-        gate = numpyqi.gate.Gate('unitary', np0, requires_grad, name=name)
+        gate = Gate('unitary', np0, requires_grad, name=name)
         index = int(ind0),int(ind1)
         self.gate_index_list.append((gate, index))
         return gate
@@ -178,7 +203,7 @@ class Circuit:
         assert len(ind_target)==1
         assert all((x not in ind_control_set) for x in ind_target) and len(ind_target)==len(set(ind_target))
         assert np0.shape==(2,2)
-        gate = numpyqi.gate.Gate('control', np0, requires_grad, name=name)
+        gate = Gate('control', np0, requires_grad, name=name)
         self.gate_index_list.append((gate, (ind_control_set, ind_target)))
         return gate
 
@@ -188,7 +213,7 @@ class Circuit:
         assert len(ind_target)==2
         assert all((x not in ind_control_set) for x in ind_target) and len(ind_target)==len(set(ind_target))
         assert np0.shape==(4,4)
-        gate = numpyqi.gate.Gate('control', np0, requires_grad, name=name)
+        gate = Gate('control', np0, requires_grad, name=name)
         self.gate_index_list.append((gate, (ind_control_set, ind_target)))
         return gate
 
@@ -220,7 +245,13 @@ class Circuit:
     depolarizing = _kraus_gate('depolarizing', numpyqi.channel.hf_depolarizing_kraus_op)
     amplitude_damping = _kraus_gate('amplitude_damping', numpyqi.channel.hf_amplitude_damping_kraus_op)
 
+    def measure(self, index, seed=None, name='measure'):
+        gate = MeasureGate(index, seed, name)
+        self.gate_index_list.append((gate,gate.index))
+        return gate
+
     def to_unitary(self):
+        assert all(x[0].kind!='measure' for x in self.gate_index_list)
         num_qubit = self.num_qubit
         num_state = 2**num_qubit
         ret = np.eye(num_state, dtype=np.complex128)
@@ -247,10 +278,15 @@ class Circuit:
             for ind0 in range(len(self.gate_index_list)):
                 gate_i,index_i = self.gate_index_list[ind0]
                 if gate_i.kind in CANONICAL_GATE_KIND:
-                    if gate_i.kind!='control':
+                    if gate_i.kind=='unitary':
                         self.gate_index_list[ind0] = gate_i, tuple(x+delta for x in index_i)
-                    else:
+                    elif gate_i.kind=='control':
                         self.gate_index_list[ind0] = gate_i, ({(x+delta) for x in index_i[0]}, tuple((x+delta) for x in index_i[1]))
+                    elif gate_i.kind=='measure':
+                        assert index_i==gate_i.index
+                        tmp0 = tuple(x+delta for x in index_i)
+                        self.gate_index_list[ind0] = gate_i, tmp0
+                        gate_i.index = tmp0
 
     def init_theta_torch(self, force=False):
         ret = force or any((len(x['grad_index'])>0) and ('theta_torch' not in x)

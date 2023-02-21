@@ -13,6 +13,8 @@ from ..utils import is_torch
 
 
 def _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real):
+    # TODO @deprecated(shift_max_eig)
+    # TODO rename to _real_matrix_to_trace1_PSD_cholesky
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     N0 = len(matA)
@@ -36,7 +38,18 @@ def _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real):
     return ret
 
 
+def real_matrix_to_trace1_PSD(matA, tag_real=False, use_cholesky=False):
+    shift_max_eig = True
+    if use_cholesky:
+        ret = _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real)
+    tmp0 = real_matrix_to_hermitian(matA, tag_real)
+    ret = hermitian_matrix_to_trace1_PSD(tmp0)
+    return ret
+
+
 def real_matrix_to_PSD(matA, shift_max_eig=True, tag_real=False, use_cholesky=False):
+    # TODO @deprecated
+    print('[warning] numpyqi.param.real_matrix_to_PSD() is deprecated, use numpyqi.param.real_matrix_to_trace1_PSD() instead')
     if use_cholesky:
         ret = _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real)
     tmp0 = real_matrix_to_hermitian(matA, tag_real)
@@ -68,8 +81,27 @@ def real_matrix_to_hermitian(matA, tag_real=False):
 _hf_trace1_np = lambda x: x/np.trace(x)
 _hf_trace1_torch = lambda x: x/torch.trace(x)
 
-# TODO renamve to hermitian_matrix_to_trace1_PSD
+def hermitian_matrix_to_trace1_PSD(matA):
+    shape = matA.shape
+    matA = matA.reshape(-1, shape[-1], shape[-1])
+    N0 = len(matA)
+    if is_torch(matA):
+        tmp3 = matA.detach().cpu().numpy()
+        EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
+        eye_mat = torch.eye(matA.shape[1], dtype=matA.dtype, device=matA.device)
+        ret = torch.stack([_hf_trace1_torch(torch.linalg.matrix_exp(matA[x]-EVL[x]*eye_mat)) for x in range(N0)])
+    else:
+        EVL = [scipy.sparse.linalg.eigsh(matA[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
+        eye_mat = np.eye(matA.shape[1])
+        ret = np.stack([_hf_trace1_np(scipy.linalg.expm(matA[x]-EVL[x]*eye_mat)) for x in range(N0)])
+    ret = ret.reshape(*shape)
+    return ret
+
+
 def hermitian_matrix_to_PSD(matA, shift_max_eig=True):
+    # TODO @deprecated
+    # caller's duty to make sure it's hermitian
+    print('[warning] numpyqi.param.hermitian_matrix_to_PSD() is deprecated, use numpyqi.param.hermitian_matrix_to_trace1_PSD() instead')
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     N0 = len(matA)

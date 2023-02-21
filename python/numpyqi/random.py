@@ -2,6 +2,8 @@ import numpy as np
 import scipy.linalg
 
 
+from .gellmann import gellmann_basis_to_matrix
+
 def get_numpy_rng(np_rng_or_seed_or_none=None):
     if np_rng_or_seed_or_none is None:
         ret = np.random.default_rng()
@@ -159,4 +161,38 @@ def rand_channel_matrix_space(dim_in, num_term, seed=None):
         tmp0 = np_rng.normal(size=(dim_in,dim_in))+1j*np_rng.normal(size=(dim_in,dim_in))
         ret.append(tmp0 + tmp0.T.conj())
     ret = np.stack(ret)
+    return ret
+
+
+def rand_quantum_channel_matrix_subspace(dim_in, num_hermite, seed=None):
+    if hasattr(num_hermite, '__len__'):
+        assert len(num_hermite)==2
+        tag_real = True
+        num_sym,num_antisym = [int(x) for x in num_hermite]
+    else:
+        tag_real = False
+        num_hermite = int(num_hermite)
+    np_rng = get_numpy_rng(seed)
+    N0 = dim_in
+    ret = [np.eye(N0)[np.newaxis]]
+    if tag_real:
+        N1 = (N0*(N0-1)) // 2
+        assert (1<=num_sym) and (num_sym<=(N0*N0-N1))
+        if num_sym>1: #aS,aA,aD,aI
+            tmp0 = rand_unitary_matrix(N1+N0-1, tag_complex=False, seed=np_rng)[:(num_sym-1)]
+            tmp1 = np.zeros((num_sym-1, N0*N0), dtype=np.float64)
+            tmp1[:,:N1] = tmp0[:,:N1]
+            tmp1[:,(2*N1):-1] = tmp0[:,N1:]
+            ret.append(gellmann_basis_to_matrix(tmp1).real)
+        if num_antisym>0:
+            tmp0 = np.zeros((num_antisym, N0*N0), dtype=np.float64)
+            tmp0[:,N1:(2*N1)] = rand_unitary_matrix(N1, tag_complex=False, seed=np_rng)[:num_antisym]
+            ret.append(gellmann_basis_to_matrix(tmp0).imag)
+    else:
+        assert num_hermite>=1
+        if num_hermite>1:
+            tmp0 = rand_unitary_matrix(N0*N0-1, tag_complex=False, seed=np_rng)[:(num_hermite-1)]
+            tmp1 = gellmann_basis_to_matrix(np.concatenate([tmp0,np.zeros([num_hermite-1,1])], axis=1))
+            ret.append(tmp1)
+    ret = np.concatenate(ret, axis=0)
     return ret

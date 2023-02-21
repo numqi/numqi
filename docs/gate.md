@@ -45,9 +45,3 @@ $$
 `numpyqi.gate.u3(theta, phi, lambda)`
 
 `numpyqi.gate.rzz()`
-
-## misc
-
-`numpyqi.gate.Gate`
-
-`numpyqi.gate.ParameterGate`

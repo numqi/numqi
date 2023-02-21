@@ -1,7 +1,45 @@
+import itertools
+import functools
 import numpy as np
 import opt_einsum
 
-from .utils import hf_num_state_to_num_qubit, reduce_shape_index_list, hf_tuple_of_int
+from numpyqi.utils import hf_num_state_to_num_qubit, hf_tuple_of_int
+import numpyqi.random
+
+def _reduce_shape_index_list_int(shape_index_list):
+    if len(shape_index_list)>1:
+        np0 = np.array([x[1:] for x in shape_index_list[::-1]])
+        tmp0 = np.cumprod(np.array([1] + [x[0] for x in shape_index_list[::-1]]))
+        tmp1 = np.sum(tmp0[:-1,np.newaxis]*np0, axis=0).tolist()
+        ret = (int(tmp0[-1]),) + tuple(tmp1)
+    else:
+        ret = shape_index_list[0]
+    return ret
+
+
+def _reduce_shape_index_list_none(shape_index_list):
+    tmp0 = [x[0] for x in shape_index_list]
+    tmp1 = functools.reduce(lambda y0,y1: y0*y1, tmp0, 1)
+    ret = (tmp1,) + (slice(None),)*(len(shape_index_list[0])-1)
+    return ret
+
+
+@functools.lru_cache
+def reduce_shape_index_list(shape, *index_list):
+    '''
+    1. remove shape==1
+    2. group index_list by None
+    3. group index_list by integer
+    '''
+    assert isinstance(shape, tuple) and len(shape)>0 and all(x>1 for x in shape)
+    N0 = len(shape)
+    assert all(len(x)==N0 for x in index_list)
+    for shape_i,tmp0 in zip(shape, zip(*index_list)):
+        assert all(x==None for x in tmp0) or all((isinstance(x,int) and (0<=x<shape_i)) for x in tmp0)
+    tmp0 = itertools.groupby(zip(shape,*index_list), key=lambda x: x[1]==None)
+    ret = [(_reduce_shape_index_list_none(list(x1)) if x0 else _reduce_shape_index_list_int(list(x1))) for x0,x1 in tmp0]
+    ret = tuple(zip(*ret))
+    return ret
 
 
 def new_base(num_qubit, dtype=np.complex128):
@@ -146,3 +184,46 @@ def inner_product_grad(q0, q1, c_grad=1, tag_grad=(True,False)):
     else:
         q1_grad = None
     return q0_grad, q1_grad
+
+
+@functools.lru_cache
+def _measure_quantum_vector_hf0(num_qubit, index):
+    tmp0 = sorted(set(index))
+    assert (len(tmp0)==len(index)) and all(x==y for x,y in zip(tmp0,index))
+    shape = [2]*num_qubit
+    kind = np.zeros(len(shape), dtype=np.int64)
+    kind[list(index)] = 1
+    kind = kind.tolist()
+    hf0 = lambda x: x[0]
+    hf1 = lambda x: int(np.prod([y for _,y in x]))
+    z0 = [(k,hf1(x)) for k,x in itertools.groupby(zip(kind,shape), key=hf0)]
+    shape = tuple(x[1] for x in z0)
+    keep_dim = tuple(x for x,y in enumerate(z0) if y[0]==1)
+    reduce_dim = tuple(x for x,y in enumerate(z0) if y[0]==0)
+    return shape,keep_dim,reduce_dim
+
+
+def measure_quantum_vector(q0, index, seed=None):
+    np_rng = numpyqi.random.get_numpy_rng(seed)
+    index = numpyqi.utils.hf_tuple_of_int(index)
+    assert all(x==y for x,y in zip(sorted(index),index)), 'index must be sorted'
+    num_qubit = numpyqi.utils.hf_num_state_to_num_qubit(q0.shape[0])
+    shape,keep_dim,reduce_dim = _measure_quantum_vector_hf0(num_qubit, index)
+    q1 = q0.reshape(shape)
+    if len(reduce_dim)>0:
+        prob = np.linalg.norm(q1, axis=reduce_dim).reshape(-1)**2
+    else:
+        prob = np.abs(q1.reshape(-1))**2
+    ind1 = np_rng.choice(len(prob), p=prob)
+    bitstr = [int(x) for x in bin(ind1)[2:].rjust(len(index),'0')]
+    ind1a = np.unravel_index(ind1, tuple(shape[x] for x in keep_dim))
+    ind2 = [slice(None)]*len(shape)
+    for x,y in zip(keep_dim, ind1a):
+        ind2[x] = y
+    ind2 = tuple(ind2)
+    q2 = np.zeros_like(q1)
+    q2[ind2] = q1[ind2] / np.sqrt(prob[ind1])
+    q2 = q2.reshape(-1)
+    return bitstr,prob,q2
+
+# TODO docs/script/draft_custom_gate.py include measure here
