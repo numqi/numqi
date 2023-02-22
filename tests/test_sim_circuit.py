@@ -6,28 +6,13 @@ import numpyqi
 try:
     import torch
     import torch_wrapper
-    from _circuit_torch_utils import DummyQNN
+    from _circuit_torch_utils import DummyQNNModel
 except ImportError:
     torch = None
     torch_wrapper = None
-    DummyQNN = None
+    DummyQNNModel = None
 
-
-def _vqe00_generate_RB_state(num_qubit):
-    def hf_bin_pad(x, N):
-        tmp0 = bin(x)[2:]
-        ret = '0'*(N-len(tmp0)) + tmp0
-        return ret
-    tmp0 = num_qubit//2
-    tmp1 = [hf_bin_pad(x, tmp0) for x in range(2**tmp0)]
-    tmp2 = [(''.join(('1' if y=='0' else '0') for y in x))[::-1] for x in tmp1]
-    tmp3 = [int(x+y,2) for x,y in zip(tmp1,tmp2)]
-    hf0 = lambda x: sum(y=='1' for y in x)%2==0
-    tmp4 = np.array([(1 if hf0(x) else -1) for x in tmp1]) / np.sqrt(2**tmp0)
-    ret = np.zeros(2**num_qubit, dtype=np.complex128)
-    ret[tmp3] = tmp4
-    return ret
-
+np_rng = np.random.default_rng()
 
 def build_dummy_circuit(num_depth, num_qubit):
     circ = numpyqi.sim.Circuit(default_requires_grad=True)
@@ -47,11 +32,8 @@ def build_dummy_circuit(num_depth, num_qubit):
 def test_dummy_circuit():
     num_qubit = 5
     num_depth = 3
-    zero_eps = 1e-7
-    target_state = _vqe00_generate_RB_state(num_qubit)
-
     circuit = build_dummy_circuit(num_depth, num_qubit)
-    model = DummyQNN(circuit, target_state)
+    model = DummyQNNModel(circuit)
     torch_wrapper.check_model_gradient(model)
 
 
@@ -99,3 +81,60 @@ def test_measure_gate():
             assert np.abs(q1-np.array([1,0,0,0,0,0,0,0])).max() < 1e-7
         else:
             assert np.abs(q1-np.array([0,0,0,0,0,0,0,1])).max() < 1e-7
+
+
+def hf_ry_rx(alpha, beta):
+    r'''
+    ry(beta) * rx(alpha)
+    '''
+    if isinstance(alpha, torch.Tensor):
+        assert isinstance(beta, torch.Tensor)
+        assert alpha.dtype==beta.dtype
+        if alpha.dtype==torch.float32:
+            alpha = alpha*torch.tensor(1, dtype=torch.complex64)
+            beta = beta*torch.tensor(1, dtype=torch.complex64)
+        else:
+            assert alpha.dtype==torch.float64
+            alpha = alpha*torch.tensor(1, dtype=torch.complex128)
+            beta = beta*torch.tensor(1, dtype=torch.complex128)
+        cosa,sina,cosb,sinb = torch.cos(alpha/2),torch.sin(alpha/2),torch.cos(beta/2),torch.sin(beta/2)
+        cc,cs,sc,ss = cosa*cosb,cosa*sinb,sina*cosb,sina*sinb
+        ret = torch.stack([cc+1j*ss,-1j*sc-cs,cs-1j*sc,cc-1j*ss], dim=-1).view(*alpha.shape, 2, 2)
+    else:
+        alpha = np.asarray(alpha)
+        beta = np.asarray(beta)
+        # assert alpha.ndim<=1 and beta.ndim<=1
+        cosa,sina,cosb,sinb = np.cos(alpha/2),np.sin(alpha/2),np.cos(beta/2),np.sin(beta/2)
+        cc,cs,sc,ss = cosa*cosb,cosa*sinb,sina*cosb,sina*sinb
+        ret = np.stack([cc+1j*ss,-1j*sc-cs,cs-1j*sc,cc-1j*ss], axis=-1).reshape(*alpha.shape, 2, 2)
+    return ret
+
+
+class RyRxGate(numpyqi.sim.ParameterGate):
+    def __init__(self, index, alpha=0, beta=0, requires_grad=True):
+        super().__init__(kind='unitary', hf0=hf_ry_rx, args=(alpha,beta), name='ry_rx', requires_grad=requires_grad)
+        self.index = index, #must be tuple of int
+
+
+def test_custom_gate_without_torch():
+    alpha,beta = np_rng.uniform(0, 2*np.pi, 2)
+    tmp0 = np_rng.uniform(size=2) + 1j*np_rng.uniform(size=2)
+    q0 = tmp0 / np.linalg.norm(tmp0)
+
+    circ = numpyqi.sim.Circuit(default_requires_grad=False)
+    circ.register_custom_gate('ry_rx', RyRxGate)
+    circ.ry_rx(0, alpha, beta)
+    q1 = circ.apply_state(q0)
+
+    q2 = numpyqi.gate.ry(beta) @ (numpyqi.gate.rx(alpha) @ q0)
+    assert np.abs(q1-q2).max() < 1e-10
+
+
+@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
+def test_custom_gate_with_torch():
+    alpha,beta = np_rng.uniform(0, 2*np.pi, 2)
+    circ = numpyqi.sim.Circuit(default_requires_grad=False)
+    circ.register_custom_gate('ry_rx', RyRxGate)
+    circ.ry_rx(0, alpha, beta)
+    model = DummyQNNModel(circ)
+    torch_wrapper.check_model_gradient(model)

@@ -18,5 +18,5 @@ def test_np_operator_expectation_dm(num_qubit=3):
     operator_pad = opt_einsum.contract(tmp0, tmp1, *(y for x in tmp2 for y in x), tmp3).reshape(2**num_qubit,2**num_qubit)
     ret_ = np.trace(operator_pad @ np0)
 
-    ret0 = numpyqi.dm.operator_expectation(np0, operator, [ind0,ind1])
+    ret0 = numpyqi.sim.dm.operator_expectation(np0, operator, [ind0,ind1])
     assert hfe(ret_, ret0) < 1e-7
