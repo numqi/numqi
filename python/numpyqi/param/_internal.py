@@ -175,6 +175,7 @@ def real_matrix_to_special_unitary(matA, tag_real=False):
         if tag_real:
             tmp0 = torch.triu(matA, 1)
             tmp1 = tmp0 - tmp0.transpose(1,2)
+            # torch.linalg.matrix_exp for a batch of input will lead to memory issue, so use torch.stack()
             ret = torch.stack([torch.linalg.matrix_exp(tmp1[x]) for x in range(len(tmp1))])
         else:
             tmp0 = torch.tril(matA, -1)

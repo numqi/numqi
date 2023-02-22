@@ -5,8 +5,8 @@
 1. quantum circuit simulator, variational algorithm with gradient back-propagation
    * `numpyqi.sim.Circuit`: construct a circuit
    * `numpyqi.gate`: various gate, like Puali-XYZ
-   * `numpyqi.sim.state`: function for pure state simulation, already wrapped in `numpyqi.circuit` module
-   * `numpyqi.dm`: function for density matrix simulation, already wrapped in `numpyqi.circuit` module
+   * `numpyqi.sim.state`: function for pure state simulation, already wrapped in `numpyqi.sim.circuit` module
+   * `numpyqi.sim.dm`: function for density matrix simulation, already wrapped in `numpyqi.sim.circuit` module
 2. `numpyqi.random`: generate various random "stuff", like random pure state, untiary gate, quantum channel, density matrix, seprable density matrix, etc.
 3. `numpyqi.param`: parameterize various "stuff", like parameterized unitary matrices, hermitian matrices, quantum channel etc.
 4. `numpyqi.gellman`

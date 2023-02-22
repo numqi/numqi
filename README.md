@@ -43,8 +43,6 @@ the relation betwen `numpyqi` and `pyqet`
 
 ```python
 import numpyqi
-
-# all numpyqi.* will be put into pyqet.*
 numpyqi.param
 numpyqi.random
 numpyqi.gellmann
@@ -53,15 +51,7 @@ numpyqi.gate
 numpyqi.channel
 numpyqi.sim #.circuit .state .dm
 numpyqi.utils
-# numpyqi.matrix_subspace #not finished
-
-import pyqet
-# from numpyqi: .param .random .gellmann .dicke .gate .channel .sim .utils
-pyqet.qec #VarQEC
-pyqet.entangled #.cha .ppt .misc(criterion) .pureb .qetlab MaxEnt
-# pyqet.unique_determine #not finished
-pyqet.query
-pyqet.maximum_entropy
+numpyqi.matrix_subspace #not finished
 ```
 
 ## documentation
