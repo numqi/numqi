@@ -1,7 +1,6 @@
 import numpy as np
 import scipy.linalg
 
-
 from ..gellmann import matrix_to_gellmann_basis, gellmann_basis_to_matrix
 
 def build_matrix_with_index_value(dim0, dim1, index_value):
