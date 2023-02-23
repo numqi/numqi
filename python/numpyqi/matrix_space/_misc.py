@@ -217,7 +217,7 @@ def get_matrix_subspace_example(key, arg=None):
         ret = tmp0, 'real'
         # hierarchy(rank=2, k=1): True
         # DetectMatrixSpaceRank(rank=2): loss=0
-    elif key=={'hierarchy-ex1','hierarchy-ex3'}:
+    elif key in {'hierarchy-ex1','hierarchy-ex3'}:
         # https://arxiv.org/abs/2210.16389v1 example1 example3
         #at least rank=2
         tmp0 = [
