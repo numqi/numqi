@@ -96,3 +96,14 @@ def test_tensor2d_project_to_antisym_basis():
 
         ret0 = numpyqi.matrix_space.tensor2d_project_to_antisym_basis(np_list)
         assert np.abs(ret_-ret0).max() < 1e-10
+
+
+def test_has_rank_hierarchical_method():
+    matrix_subspace,field = numpyqi.matrix_space.get_matrix_subspace_example('hierarchy-ex1')
+    #if True, at least rank
+    assert numpyqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=1)
+
+    matrix_subspace,field = numpyqi.matrix_space.get_matrix_subspace_example('hierarchy-ex3')
+    assert not numpyqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=1)
+    assert not numpyqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=2)
+    assert numpyqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=3)
