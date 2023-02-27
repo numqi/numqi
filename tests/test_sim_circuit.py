@@ -5,11 +5,9 @@ import numpyqi
 
 try:
     import torch
-    import torch_wrapper
-    from _circuit_torch_utils import DummyQNNModel
+    from _torch_model import DummyQNNModel
 except ImportError:
     torch = None
-    torch_wrapper = None
     DummyQNNModel = None
 
 np_rng = np.random.default_rng()
@@ -34,7 +32,7 @@ def test_dummy_circuit():
     num_depth = 3
     circuit = build_dummy_circuit(num_depth, num_qubit)
     model = DummyQNNModel(circuit)
-    torch_wrapper.check_model_gradient(model)
+    numpyqi.optimize.check_model_gradient(model)
 
 
 def test_circuit_to_unitary():
@@ -137,4 +135,4 @@ def test_custom_gate_with_torch():
     circ.register_custom_gate('ry_rx', RyRxGate)
     circ.ry_rx(0, alpha, beta)
     model = DummyQNNModel(circ)
-    torch_wrapper.check_model_gradient(model)
+    numpyqi.optimize.check_model_gradient(model)

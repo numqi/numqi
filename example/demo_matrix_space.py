@@ -1,19 +1,17 @@
 import numpy as np
 
 import numpyqi
-import torch_wrapper
-
 
 def demo_matrix_subspace_XZ_R_XZ_C():
     # XZ_R
     matrix_subspace,field = numpyqi.matrix_space.get_matrix_subspace_example('XZ_R')
     basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,0))
-    theta_optim010 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim010 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,0))
-    theta_optim020 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim020 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,1))
-    theta_optim011 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim011 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim011.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(010): {theta_optim010.fun}') #1.0
@@ -28,7 +26,7 @@ def demo_matrix_subspace_XZ_R_XZ_C():
     matrix_subspace,field = numpyqi.matrix_space.get_matrix_subspace_example('XZ_C')
     basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
-    theta_optim1 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim1 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim1.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}, residual={residual}') #1e-9
@@ -45,11 +43,11 @@ def demo_matrix_space_UDA():
     basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='real')
 
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,3,1))
-    theta_optim031 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim031 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,4,0))
-    theta_optim040 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim040 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,2))
-    theta_optim022 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim022 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim022.x, rank_space)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(031): {theta_optim031.fun}') #0.5
@@ -60,9 +58,9 @@ def demo_matrix_space_UDA():
     basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='complex')
 
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
-    theta_optim1 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim1 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=2)
-    theta_optim2 = torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    theta_optim2 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim2.x, rank_space)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}') #0.5

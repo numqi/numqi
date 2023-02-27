@@ -18,6 +18,5 @@ setup(
         'opt_einsum',
         'scipy',
         'tqdm',
-        'torch-wrapper @ git+https://github.com/husisy/torch-wrapper.git',
     ], #torch
 )

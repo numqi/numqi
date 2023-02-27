@@ -2,10 +2,9 @@ import numpy as np
 import scipy.optimize
 import torch
 
-import torch_wrapper
-
 import numpyqi.utils
 import numpyqi.param
+import numpyqi.optimize
 from ._misc import find_closest_vector_in_space
 
 # cannot be torch.linalg.norm()**2 nan when calculating the gradient when norm is almost zero
@@ -118,7 +117,7 @@ class DetectRankModel(torch.nn.Module):
         return loss
 
     def get_matrix(self, theta, matrix_subspace):
-        torch_wrapper.set_model_flat_parameter(self, theta)
+        numpyqi.optimize.set_model_flat_parameter(self, theta)
         with torch.no_grad():
             self()
         matH = self.matH.detach().cpu().numpy().copy()
@@ -126,23 +125,23 @@ class DetectRankModel(torch.nn.Module):
         coeff, residual = find_closest_vector_in_space(matrix_subspace, matH, field)
         return matH,coeff,residual
 
-    # torch_wrapper.minimize(model, 'normal', num_repeat=3, tol=1e-7, print_freq=20)
+    # numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7, print_freq=20)
     # sometimes we need threshold to early stop, like in UDA/UDP
     def minimize(self, num_repeat=3, print_freq=-1, tol=1e-7, threshold=None, seed=None):
         # threshold is used for quick return if fun<threshold
         np_rng = np.random.default_rng(seed)
-        num_parameter = len(torch_wrapper.get_model_flat_parameter(self))
-        hf_model = torch_wrapper.hf_model_wrapper(self)
+        num_parameter = len(numpyqi.optimize.get_model_flat_parameter(self))
+        hf_model = numpyqi.optimize.hf_model_wrapper(self)
         loss_list = []
         for _ in range(num_repeat):
             theta0 = np_rng.normal(size=num_parameter)
-            hf_callback = torch_wrapper.hf_callback_wrapper(hf_model, print_freq=print_freq)
+            hf_callback = numpyqi.optimize.hf_callback_wrapper(hf_model, print_freq=print_freq)
             theta_optim = scipy.optimize.minimize(hf_model, theta0, jac=True, method='L-BFGS-B', tol=tol, callback=hf_callback)
             loss_list.append(theta_optim)
             if (threshold is not None) and (theta_optim.fun < threshold):
                 break
         ret = min(loss_list, key=lambda x: x.fun)
-        torch_wrapper.set_model_flat_parameter(self, ret.x)
+        numpyqi.optimize.set_model_flat_parameter(self, ret.x)
         return ret
 
 

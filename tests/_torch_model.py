@@ -24,7 +24,22 @@ class DummyQNNModel(torch.nn.Module):
         return loss
 
     def grad_backward(self, loss=None):
-        # loss is necessary for torch_wrapper.qnn.check_model_gradient
+        # loss is necessary for numpyqi.optimize.check_model_gradient
         q0_grad,_ = numpyqi.sim.state.inner_product_grad(self.q0, self.target_state, 2*self.inner_product, tag_grad=(True,False))
         self.q0, self.q0_grad, op_grad_list = self.circuit.apply_state_grad(self.q0, q0_grad)
         return op_grad_list
+
+
+class Rosenbrock(torch.nn.Module):
+    def __init__(self, num_parameter=3) -> None:
+        super().__init__()
+        assert num_parameter>1
+        np_rng = np.random.default_rng()
+        self.theta = torch.nn.Parameter(torch.tensor(np_rng.normal(size=num_parameter), dtype=torch.float64))
+        # solution [1,1,...,1] 0
+
+    def forward(self):
+        tmp0 = self.theta[1:] - self.theta[:-1]
+        tmp1 = 1-self.theta
+        ret = 100*torch.dot(tmp0, tmp0) + torch.dot(tmp1,tmp1)
+        return ret
