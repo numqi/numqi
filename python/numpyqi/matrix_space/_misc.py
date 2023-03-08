@@ -102,6 +102,9 @@ def get_matrix_orthogonal_basis(np0, field, zero_eps=1e-10):
     # span_R(C_H^nn)/C_H
     # span_R(C_T^nn)/R_cT
     # span_R(C^mn)/R_c
+    # (ret0)matrix_subspace(np,(N0,N1,N1))
+    # (ret1)matrix_subspace_orth(np,(N2,N1,N1))
+    # (ret2)space_char(str)
     assert np0.ndim==3
     assert field in {'real','complex'}
     np.iscomplexobj(np0)

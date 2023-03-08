@@ -14,6 +14,7 @@ hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
 class DetectRankModel(torch.nn.Module):
     def __init__(self, basis_orth, space_char, rank, dtype='float64', device='cpu'):
         super().__init__()
+        use_sparse = False #TODO
         assert basis_orth.ndim==3
         assert dtype in {'float32','float64'}
         assert space_char in set('R_T R_A C_T R C C_H R_cT R_c'.split(' '))
@@ -21,7 +22,8 @@ class DetectRankModel(torch.nn.Module):
         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
         self.device = device
         tmp0 = self.dtype if (space_char in set('R_T R_A R R_cT R_c'.split(' '))) else self.cdtype
-        self.basis_orth = torch.tensor(basis_orth, dtype=tmp0, device=self.device)
+        # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
+        self.basis_orth_conj = torch.tensor(basis_orth.conj().reshape(basis_orth.shape[0],-1), dtype=tmp0, device=self.device)
         self.theta = self._setup_parameter(basis_orth.shape[1], basis_orth.shape[2], space_char, rank, self.dtype, self.device)
         self.space_char = space_char
 
@@ -75,7 +77,7 @@ class DetectRankModel(torch.nn.Module):
             EVL = tmp1 / torch.linalg.norm(tmp1)
             unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=(space_char=='R_T'))[:len(EVL)]
             matH = (unitary.T.conj()*EVL) @ unitary
-            loss = hf_torch_norm_square(self.basis_orth.reshape(-1, matH.numel()) @ matH.reshape(-1))
+            loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='R_A':
             tmp0 = theta['EVL0']
             EVL = tmp0 / torch.linalg.norm(tmp0)
@@ -83,13 +85,13 @@ class DetectRankModel(torch.nn.Module):
             tmp0 = unitary[::2]
             tmp1 = unitary[1::2]
             matH = (tmp0.T * EVL) @ tmp1 - (tmp1.T * EVL) @ tmp0
-            loss = hf_torch_norm_square(self.basis_orth.reshape(-1, matH.numel()) @ matH.reshape(-1))
+            loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='C_T':
             tmp0 = theta['EVL0'] + 1j*theta['EVL1']
             EVL = tmp0/torch.linalg.norm(tmp0)
             unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
             matH = (unitary.T*EVL) @ unitary
-            loss = hf_torch_norm_square(self.basis_orth.reshape(-1, matH.numel()) @ matH.reshape(-1))
+            loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char in {'R','C'}:
             tag_real = space_char=='R'
             tmp0 = theta['EVL0']
@@ -97,14 +99,14 @@ class DetectRankModel(torch.nn.Module):
             unitary0 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
             unitary1 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
             matH = (unitary0.T.conj()*EVL) @ unitary1
-            loss = hf_torch_norm_square(self.basis_orth.reshape(-1, matH.numel()) @ matH.reshape(-1))
+            loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='R_cT':
             tmp0 = theta['EVL0'] + 1j*theta['EVL1']
             EVL = tmp0/torch.linalg.norm(tmp0)
             unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
             matH = (unitary.T*EVL) @ unitary
             tmp0 = numpyqi.utils.hf_complex_to_real(matH)
-            loss = hf_torch_norm_square(self.basis_orth.reshape(-1, tmp0.numel()) @ tmp0.reshape(-1))
+            loss = hf_torch_norm_square(self.basis_orth_conj @ tmp0.reshape(-1))
         elif space_char=='R_c':
             tmp0 = theta['EVL0']
             EVL = tmp0/torch.linalg.norm(tmp0)
@@ -112,7 +114,7 @@ class DetectRankModel(torch.nn.Module):
             unitary1 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
             matH = (unitary0.T.conj()*EVL) @ unitary1
             tmp0 = numpyqi.utils.hf_complex_to_real(matH)
-            loss = hf_torch_norm_square(self.basis_orth.reshape(-1, tmp0.numel()) @ tmp0.reshape(-1))
+            loss = hf_torch_norm_square(self.basis_orth_conj @ tmp0.reshape(-1))
         self.matH = matH
         return loss
 
@@ -125,8 +127,8 @@ class DetectRankModel(torch.nn.Module):
         coeff, residual = find_closest_vector_in_space(matrix_subspace, matH, field)
         return matH,coeff,residual
 
-    # numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7, print_freq=20)
-    # sometimes we need threshold to early stop, like in UDA/UDP
+    # numpyqi.optimize.minimize(model, 'normal', num_repeat=3, early_stop_threshold=0.01, tol=1e-7, print_freq=20)
+    # @deprecated sometimes we need threshold to early stop, like in UDA/UDP
     def minimize(self, num_repeat=3, print_freq=-1, tol=1e-7, threshold=None, seed=None):
         # threshold is used for quick return if fun<threshold
         np_rng = np.random.default_rng(seed)
