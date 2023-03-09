@@ -14,20 +14,36 @@ hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
 class DetectRankModel(torch.nn.Module):
     def __init__(self, basis_orth, space_char, rank, dtype='float64', device='cpu'):
         super().__init__()
-        use_sparse = False #TODO
+        self.is_torch = isinstance(basis_orth, torch.Tensor)
+        self.use_sparse = self.is_torch and basis_orth.is_sparse #use sparse only when is a torch.tensor
         assert basis_orth.ndim==3
         assert dtype in {'float32','float64'}
         assert space_char in set('R_T R_A C_T R C C_H R_cT R_c'.split(' '))
         self.dtype = torch.float32 if dtype=='float32' else torch.float64
         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
         self.device = device
-        tmp0 = self.dtype if (space_char in set('R_T R_A R R_cT R_c'.split(' '))) else self.cdtype
-        # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
-        self.basis_orth_conj = torch.tensor(basis_orth.conj().reshape(basis_orth.shape[0],-1), dtype=tmp0, device=self.device)
-        self.theta = self._setup_parameter(basis_orth.shape[1], basis_orth.shape[2], space_char, rank, self.dtype, self.device)
         self.space_char = space_char
+        self.basis_orth_conj = self._setup_basis_orth_conj(basis_orth)
+        self.theta = self._setup_parameter(basis_orth.shape[1], basis_orth.shape[2], space_char, rank, self.dtype, self.device)
 
         self.matH = None
+
+    def _setup_basis_orth_conj(self, basis_orth):
+        # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
+        dtype = self.dtype if (self.space_char in set('R_T R_A R R_cT R_c'.split(' '))) else self.cdtype
+        if self.use_sparse:
+            assert self.is_torch
+            assert self.device=='cpu', f'sparse tensor not support device "{self.device}"'
+            index = basis_orth.indices()
+            shape = basis_orth.shape
+            tmp0 = torch.stack([index[0], index[1]*shape[2] + index[2]])
+            basis_orth_conj = torch.sparse_coo_tensor(tmp0, basis_orth.values().conj().to(dtype), (shape[0], shape[1]*shape[2]))
+        else:
+            if self.is_torch:
+                basis_orth_conj = basis_orth.conj().reshape(basis_orth.shape[0],-1).to(device=self.device, dtype=dtype)
+            else:
+                basis_orth_conj = torch.tensor(basis_orth.conj().reshape(basis_orth.shape[0],-1), dtype=dtype, device=self.device)
+        return basis_orth_conj
 
     def _setup_parameter(self, dim0, dim1, space_char, rank, dtype, device):
         np_rng = np.random.default_rng()

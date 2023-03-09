@@ -73,3 +73,15 @@ def test_matrix_subspace_misc():
     assert abs(np.abs(EVL).max()-1) < 1e-7
     tmp0 = (coeff @ matrix_subspace.reshape(-1,dim*dim)).reshape(dim,dim)
     assert np.abs(tmp0-matH).max() < 1e-7
+
+
+@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
+def test_matrix_subspace_sparse():
+    pauli_str = 'XX XY'
+    matrix_subspace,matrix_subspace_orth = numpyqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+
+    model = numpyqi.matrix_space.DetectRankModel(torch.tensor(matrix_subspace_orth).to_sparse(), space_char='C_H', rank=(0,2,2))
+    theta_optim022 = numpyqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
+    matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
+    assert theta_optim022.fun < 1e-7
+    assert residual < 1e-7
