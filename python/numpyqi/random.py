@@ -105,13 +105,13 @@ def rand_choi_op(dim_in, dim_out, seed=None):
     return ret
 
 
-def rand_bipartitle_state(N0, N1=None, k=None, seed=None, return_dm=False):
+def rand_bipartite_state(N0, N1=None, k=None, seed=None, return_dm=False):
     # http://www.qetlab.com/RandomStateVector
     np_rng = get_numpy_rng(seed)
     if N1 is None:
         N1 = N0
     if k is None:
-        ret = rand_haar_state(N0, np_rng)
+        ret = rand_haar_state(N0*N1, np_rng)
     else:
         assert (0<k) and (k<=N0) and (k<=N1)
         tmp0 = np.linalg.qr(_random_complex(N0, N0, seed=np_rng), mode='complete')[0][:,:k]
