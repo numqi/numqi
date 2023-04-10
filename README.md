@@ -1,5 +1,15 @@
 # numpyqi: a quantum information toolbox implemented in numpy
 
+**TODO** pick a new package name
+
+1. short, no more than 7 letters
+2. keyword: quantum information, numpy, python, optimization
+3. NEP41: should not include the whole word "numpy"
+4. example (good and bad)
+   * `numpyqi`: bad
+   * `numqi`: pronounced as "num py q i", emphasize that it's based on numpy and focuses on quantum information field
+   * `numqy`: bad, confused with `numpy`
+
 WARNING: no backward compatibility guarantee until version `1.0.0`
 
 1. A numpy based quantum simulator, for quick development only, not performance-optimized
