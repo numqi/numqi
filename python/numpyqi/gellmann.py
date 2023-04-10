@@ -86,6 +86,7 @@ def matrix_to_gellmann_basis(A, norm_I='sqrt(2/d)'):
 
 
 def gellmann_basis_to_matrix(vec, norm_I='sqrt(2/d)'):
+    # I changed the default value norm_I='1/d' to norm_I='sqrt(2/d)' someday, this could lead to some bugs
     shape = vec.shape
     vec = vec.reshape(-1, shape[-1])
     N0 = vec.shape[0]
@@ -143,7 +144,7 @@ def gellmann_basis_to_dm(vec):
         tmp0 = torch.concat([vec, torch.ones(vec.shape[0], 1, dtype=torch.float64)/N0], axis=1)
     else:
         tmp0 = np.concatenate([vec, np.ones((vec.shape[0],1), dtype=np.float64)/N0], axis=1)
-    ret = gellmann_basis_to_matrix(tmp0)
+    ret = gellmann_basis_to_matrix(tmp0, norm_I='1/d')
     ret = ret[0] if (len(shape)==1) else ret.reshape(*shape[:-1], *ret.shape[-2:])
     return ret
 

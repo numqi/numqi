@@ -43,3 +43,10 @@ def test_trace0_orthongal_matrix():
     assert np.abs(z0-z0.transpose(0,2,1).conj()).max() < 1e-7
     tmp0 = np.array([[np.trace(x@y) for y in z0] for x in z0])
     assert np.abs(np.eye(len(tmp0)) - tmp0).max() < 1e-7
+
+
+def test_gellmann_basis_to_dm():
+    for N0 in [3,4,5,6]:
+        dm0 = numpyqi.random.rand_density_matrix(N0)
+        tmp0 = numpyqi.gellmann.dm_to_gellmann_basis(dm0)
+        assert np.abs(numpyqi.gellmann.gellmann_basis_to_dm(tmp0) - dm0).max() < 1e-7
