@@ -175,6 +175,9 @@ def to_unitary_representation(np0, return_matP=False):
     assert np0.ndim==3
     tmp0 = np0.reshape(-1,np0.shape[2])
     matP = scipy.linalg.sqrtm(tmp0.T.conj() @ tmp0)
+    if matP.dtype.name=='complex256':
+        # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
+        matP = matP.astype(np.complex128)
     np1 = matP @ np0 @ np.linalg.inv(matP)
     ret = (np1,matP) if return_matP else np1
     return ret

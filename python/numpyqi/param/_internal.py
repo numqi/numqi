@@ -160,7 +160,8 @@ def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
         if use_cholesky:
             tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
         else:
-            tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1))
+            tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
+            # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
         ret = np.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
                 tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(dim_in*dim_out,-1)
     ret = ret.reshape(*shape)
@@ -230,7 +231,8 @@ def PSD_to_choi_op(matA, dim_in, use_cholesky=False):
         if use_cholesky:
             tmp2 = np.stack([np.linalg.inv(scipy.linalg.cholesky(x)) for x in tmp1])
         else:
-            tmp2 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x)) for x in tmp1])
+            tmp2 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp1])
+            # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
         ret = np.einsum(matA.reshape(N0,dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3], optimize=True).reshape(N0, dim_in*dim_out, dim_in*dim_out)
     ret = ret.reshape(*shape)
