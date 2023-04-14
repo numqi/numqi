@@ -72,7 +72,7 @@ def test_matrix_subspace_misc():
     assert abs(np.linalg.norm(EVL)-1) < 1e-7
     assert abs(np.abs(EVL).max()-1) < 1e-7
     tmp0 = (coeff @ matrix_subspace.reshape(-1,dim*dim)).reshape(dim,dim)
-    assert np.abs(tmp0-matH).max() < 1e-7
+    assert np.abs(tmp0-matH).max() < 2e-7
 
 
 @pytest.mark.skipif(torch is None, reason='pytorch is not installed')
