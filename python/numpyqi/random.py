@@ -1,3 +1,5 @@
+import math
+import itertools
 import numpy as np
 import scipy.linalg
 
@@ -196,4 +198,21 @@ def rand_quantum_channel_matrix_subspace(dim_in, num_hermite, seed=None):
             tmp1 = gellmann_basis_to_matrix(np.concatenate([tmp0,np.zeros([num_hermite-1,1])], axis=1))
             ret.append(tmp1)
     ret = np.concatenate(ret, axis=0)
+    return ret
+
+
+def rand_ABk_density_matrix(dimA, dimB, kext, seed=None):
+    assert kext>=1
+    np_rng = get_numpy_rng(seed)
+    tmp0 = np_rng.normal(size=(dimA*dimB**kext, dimA*dimB**kext)) + 1j*np_rng.normal(size=(dimA*dimB**kext, dimA*dimB**kext))
+    tmp0 = tmp0 @ tmp0.T.conj()
+    if kext==1:
+        ret = tmp0.reshape([dimA]+[dimB]*kext+[dimA]+[dimB]*kext) / np.trace(tmp0)
+    else:
+        np0 = tmp0.reshape([dimA]+[dimB]*kext+[dimA]+[dimB]*kext) / (np.trace(tmp0)*math.factorial(kext))
+        ret = np0.copy()
+        for indI in list(itertools.permutations(list(range(kext))))[1:]:
+            tmp0 = [0] + [(1+x) for x in indI] + [kext+1] + [(2+kext+x) for x in indI]
+            ret += np.transpose(np0, tmp0)
+    ret = ret.reshape(dimA*dimB**kext, dimA*dimB**kext)
     return ret

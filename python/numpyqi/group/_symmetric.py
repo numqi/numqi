@@ -252,7 +252,7 @@ def get_all_young_tableaux(young, check=True):
 
 def young_tableau_to_young_symmetrizer(young, tableau):
     young = np.asarray(young, dtype=np.int64)
-    youngT = pygroup.get_young_diagram_transpose(young)
+    youngT = get_young_diagram_transpose(young)
     N0 = young.sum()
     tmp0 = sorted(set(young.tolist()) | set(youngT.tolist()))
     n_to_allperm = {x:np.array(list(itertools.permutations(list(range(x))))) for x in tmp0 if x>1}

@@ -169,7 +169,8 @@ def minimize(model, theta0=None, num_repeat=3, tol=1e-7, print_freq=-1, method='
     return ret
 
 
-def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01), seed=None, tqdm_update_freq=20, use_tqdm=True):
+def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),
+            seed=None, tqdm_update_freq=20, use_tqdm=True, early_stop_threshold=None):
     assert optim_args[0] in {'sgd', 'adam'}
     np_rng = np.random.default_rng(seed)
     num_parameter = len(get_model_flat_parameter(model))
@@ -186,10 +187,13 @@ def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01), s
             optimizer.zero_grad()
             loss = model()
             loss.backward()
+            loss_i = loss.item()
             optimizer.step()
             if use_tqdm and (ind0%tqdm_update_freq==0):
-                pbar.set_postfix(loss=f'{loss.item():.12f}')
-    return loss.item()
+                pbar.set_postfix(loss=f'{loss_i:.12f}')
+            if (early_stop_threshold is not None) and (loss_i<=early_stop_threshold):
+                break
+    return loss_i
 
 
 def _hf_zero_grad(parameter_list):
