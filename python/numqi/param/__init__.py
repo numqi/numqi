@@ -1,4 +1,4 @@
-from ._internal import (real_matrix_to_PSD, real_matrix_to_hermitian, hermitian_matrix_to_PSD,
+from ._internal import (real_matrix_to_hermitian,
         real_matrix_to_choi_op,real_to_kraus_op,PSD_to_choi_op, real_matrix_to_special_unitary)
 from ._internal import hermitian_matrix_to_trace1_PSD, real_matrix_to_trace1_PSD
 

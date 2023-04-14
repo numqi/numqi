@@ -143,25 +143,6 @@ class DetectRankModel(torch.nn.Module):
         coeff, residual = find_closest_vector_in_space(matrix_subspace, matH, field)
         return matH,coeff,residual
 
-    # numqi.optimize.minimize(model, 'normal', num_repeat=3, early_stop_threshold=0.01, tol=1e-7, print_freq=20)
-    # @deprecated sometimes we need threshold to early stop, like in UDA/UDP
-    def minimize(self, num_repeat=3, print_freq=-1, tol=1e-7, threshold=None, seed=None):
-        # threshold is used for quick return if fun<threshold
-        np_rng = np.random.default_rng(seed)
-        num_parameter = len(numqi.optimize.get_model_flat_parameter(self))
-        hf_model = numqi.optimize.hf_model_wrapper(self)
-        loss_list = []
-        for _ in range(num_repeat):
-            theta0 = np_rng.normal(size=num_parameter)
-            hf_callback = numqi.optimize.hf_callback_wrapper(hf_model, print_freq=print_freq)
-            theta_optim = scipy.optimize.minimize(hf_model, theta0, jac=True, method='L-BFGS-B', tol=tol, callback=hf_callback)
-            loss_list.append(theta_optim)
-            if (threshold is not None) and (theta_optim.fun < threshold):
-                break
-        ret = min(loss_list, key=lambda x: x.fun)
-        numqi.optimize.set_model_flat_parameter(self, ret.x)
-        return ret
-
 
 # old name: DetectOrthogonalRank1Model
 class DetectOrthogonalRankOneModel(torch.nn.Module):
