@@ -12,11 +12,13 @@ setup(
     version=__version__,
     packages=find_packages('python'),
     package_dir={'':'python'},
+    package_data={"numpyqi": ["*.json"]},
     description='quantum information toolbox implemented in numpy',
     install_requires=[
         'numpy',
         'opt_einsum',
         'scipy',
         'tqdm',
+        'sympy',
     ], #torch
 )
