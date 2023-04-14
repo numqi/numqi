@@ -1,27 +1,27 @@
-# numpyqi documentation
+# numqi documentation
 
-`numpyqi` (pronouce: num-py-q-i) is designed as the "basic" quantum computing toolbox. With minimum dependency required so that `numpyqi` can be installed on most of platform. `numpyqi` provides these modules
+`numqi` (pronouce: num-py-q-i) is designed as the "basic" quantum computing toolbox. With minimum dependency required so that `numqi` can be installed on most of platform. `numqi` provides these modules
 
 1. quantum circuit simulator, variational algorithm with gradient back-propagation
-   * `numpyqi.sim.Circuit`: construct a circuit
-   * `numpyqi.gate`: various gate, like Puali-XYZ
-   * `numpyqi.sim.state`: function for pure state simulation, already wrapped in `numpyqi.sim.circuit` module
-   * `numpyqi.sim.dm`: function for density matrix simulation, already wrapped in `numpyqi.sim.circuit` module
-2. `numpyqi.random`: generate various random "stuff", like random pure state, untiary gate, quantum channel, density matrix, seprable density matrix, etc.
-3. `numpyqi.param`: parameterize various "stuff", like parameterized unitary matrices, hermitian matrices, quantum channel etc.
-4. `numpyqi.gellman`
+   * `numqi.sim.Circuit`: construct a circuit
+   * `numqi.gate`: various gate, like Puali-XYZ
+   * `numqi.sim.state`: function for pure state simulation, already wrapped in `numqi.sim.circuit` module
+   * `numqi.sim.dm`: function for density matrix simulation, already wrapped in `numqi.sim.circuit` module
+2. `numqi.random`: generate various random "stuff", like random pure state, untiary gate, quantum channel, density matrix, seprable density matrix, etc.
+3. `numqi.param`: parameterize various "stuff", like parameterized unitary matrices, hermitian matrices, quantum channel etc.
+4. `numqi.gellman`
 
 ## installation
 
 the following command should be okay for `win/mac/linux`
 
-`pip install numpyqi`
+`pip install numqi`
 
 `pytorch` is an optional dependency. Without `pytorch`, you should still be able to use most of functions.
 
 test whether succuessfully installed (run it in `python/ipython` REPL)
 
-`import numpyqi`
+`import numqi`
 
 ## guide for developer
 

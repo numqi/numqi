@@ -6,10 +6,10 @@ try:
 except ImportError:
     torch = None
 
-import numpyqi.gate
-import numpyqi.channel
-import numpyqi.sim.state
-from numpyqi.utils import hf_tuple_of_int, hf_tuple_of_any
+import numqi.gate
+import numqi.channel
+import numqi.sim.state
+from numqi.utils import hf_tuple_of_int, hf_tuple_of_any
 
 from ._internal import Gate, ParameterGate
 
@@ -22,16 +22,16 @@ class MeasureGate:
         self.kind = 'measure'
         self.name = name
         self.requires_grad = False
-        index = numpyqi.utils.hf_tuple_of_int(index)
+        index = numqi.utils.hf_tuple_of_int(index)
         assert all(x==y for x,y in zip(sorted(index),index)), 'index must be sorted'
         self.index = index
-        self.np_rng = numpyqi.random.get_numpy_rng(seed)
+        self.np_rng = numqi.random.get_numpy_rng(seed)
 
         self.bitstr = None
         self.probability = None
 
     def forward(self, q0):
-        self.bitstr,self.probability,q1 = numpyqi.sim.state.measure_quantum_vector(q0, self.index, self.np_rng)
+        self.bitstr,self.probability,q1 = numqi.sim.state.measure_quantum_vector(q0, self.index, self.np_rng)
         return q1
 
     # def grad_backward():
@@ -39,9 +39,9 @@ class MeasureGate:
 def circuit_apply_state(q0, gate_index_list):
     for gate_i,index_i in gate_index_list:
         if gate_i.kind=='unitary':
-            q0 = numpyqi.sim.state.apply_gate(q0, gate_i.array, index_i)
+            q0 = numqi.sim.state.apply_gate(q0, gate_i.array, index_i)
         elif gate_i.kind=='control':
-            q0 = numpyqi.sim.state.apply_control_n_gate(q0, gate_i.array, index_i[0], index_i[1])
+            q0 = numqi.sim.state.apply_control_n_gate(q0, gate_i.array, index_i[0], index_i[1])
         elif gate_i.kind=='measure':
             q0 = gate_i.forward(q0)
         elif gate_i.kind=='custom':
@@ -56,10 +56,10 @@ def circuit_apply_state_grad(q0_conj, q0_grad, gate_index_list):
     for gate_i,index_i in reversed(gate_index_list):
         assert gate_i.kind!='measure', 'not support measure in gradient backward yet'
         if gate_i.kind=='control':
-            q0_conj, q0_grad, op_grad = numpyqi.sim.state.apply_control_n_gate_grad(
+            q0_conj, q0_grad, op_grad = numqi.sim.state.apply_control_n_gate_grad(
                     q0_conj, q0_grad, gate_i.array, index_i[0], index_i[1], tag_op_grad=gate_i.requires_grad)
         elif gate_i.kind=='unitary':
-            q0_conj, q0_grad, op_grad = numpyqi.sim.state.apply_gate_grad(q0_conj,
+            q0_conj, q0_grad, op_grad = numqi.sim.state.apply_gate_grad(q0_conj,
                     q0_grad, gate_i.array, index_i, tag_op_grad=gate_i.requires_grad)
         elif gate_i.kind=='custom':
             q0_conj, q0_grad, op_grad = gate_i.grad_backward(q0_conj, q0_grad)#TODO
@@ -217,33 +217,33 @@ class Circuit:
         self.gate_index_list.append((gate, (ind_control_set, ind_target)))
         return gate
 
-    X = _unitary_gate('X', numpyqi.gate.pauli.sx, 1)
-    Y = _unitary_gate('Y', numpyqi.gate.pauli.sy, 1)
-    X = _unitary_gate('Z', numpyqi.gate.pauli.sz, 1)
-    H = _unitary_gate('H', numpyqi.gate.H, 1)
-    S = _unitary_gate('S', numpyqi.gate.S, 1)
-    T = _unitary_gate('T', numpyqi.gate.T, 1)
-    Swap = _unitary_gate('Swap', numpyqi.gate.Swap, 1)
+    X = _unitary_gate('X', numqi.gate.pauli.sx, 1)
+    Y = _unitary_gate('Y', numqi.gate.pauli.sy, 1)
+    X = _unitary_gate('Z', numqi.gate.pauli.sz, 1)
+    H = _unitary_gate('H', numqi.gate.H, 1)
+    S = _unitary_gate('S', numqi.gate.S, 1)
+    T = _unitary_gate('T', numqi.gate.T, 1)
+    Swap = _unitary_gate('Swap', numqi.gate.Swap, 1)
 
-    cnot = _control_gate('cnot', numpyqi.gate.pauli.sx)
+    cnot = _control_gate('cnot', numqi.gate.pauli.sx)
     cx = cnot
-    cy = _control_gate('cy', numpyqi.gate.pauli.sy)
-    cz = _control_gate('cz', numpyqi.gate.pauli.sz)
+    cy = _control_gate('cy', numqi.gate.pauli.sy)
+    cz = _control_gate('cz', numqi.gate.pauli.sz)
 
-    rx = _unitary_parameter_gate('rx', numpyqi.gate.rx, 1)
-    ry = _unitary_parameter_gate('ry', numpyqi.gate.ry, 1)
-    rz = _unitary_parameter_gate('rz', numpyqi.gate.rz, 1)
-    u3 = _unitary_parameter_gate('u3', numpyqi.gate.u3, 1)
-    rzz = _unitary_parameter_gate('rzz', numpyqi.gate.rzz, 2)
+    rx = _unitary_parameter_gate('rx', numqi.gate.rx, 1)
+    ry = _unitary_parameter_gate('ry', numqi.gate.ry, 1)
+    rz = _unitary_parameter_gate('rz', numqi.gate.rz, 1)
+    u3 = _unitary_parameter_gate('u3', numqi.gate.u3, 1)
+    rzz = _unitary_parameter_gate('rzz', numqi.gate.rzz, 2)
 
-    crx = _control_parameter_gate('crx', numpyqi.gate.rx)
-    cry = _control_parameter_gate('cry', numpyqi.gate.rx)
-    crz = _control_parameter_gate('crz', numpyqi.gate.rx)
-    cu3 = _control_parameter_gate('cu3', numpyqi.gate.u3)
+    crx = _control_parameter_gate('crx', numqi.gate.rx)
+    cry = _control_parameter_gate('cry', numqi.gate.rx)
+    crz = _control_parameter_gate('crz', numqi.gate.rx)
+    cu3 = _control_parameter_gate('cu3', numqi.gate.u3)
 
-    dephasing = _kraus_gate('dephasing', numpyqi.channel.hf_dephasing_kraus_op)
-    depolarizing = _kraus_gate('depolarizing', numpyqi.channel.hf_depolarizing_kraus_op)
-    amplitude_damping = _kraus_gate('amplitude_damping', numpyqi.channel.hf_amplitude_damping_kraus_op)
+    dephasing = _kraus_gate('dephasing', numqi.channel.hf_dephasing_kraus_op)
+    depolarizing = _kraus_gate('depolarizing', numqi.channel.hf_depolarizing_kraus_op)
+    amplitude_damping = _kraus_gate('amplitude_damping', numqi.channel.hf_amplitude_damping_kraus_op)
 
     def measure(self, index, seed=None, name='measure'):
         gate = MeasureGate(index, seed, name)

@@ -2,7 +2,7 @@ import itertools
 import numpy as np
 import scipy.special
 
-import numpyqi.utils
+import numqi.utils
 
 try:
     import torch
@@ -32,7 +32,7 @@ def dicke_state(num_qubit, k, return_dm=False):
 
 
 def mixed_dicke_state(prob, all_dicke_state=None, tag_flat=False):
-    is_torch = numpyqi.utils.is_torch(prob)
+    is_torch = numqi.utils.is_torch(prob)
     assert prob.ndim==2
     num_qubitA = round(np.log2(prob.shape[0]).item())
     num_qubitB = prob.shape[1]-1
@@ -67,7 +67,7 @@ def dicke_state_partial_trace(num_qubit):
     return a00,a01,a10,a11
 
 def partial_trace_AC_to_AB(state, dicke_a_vec=None):
-    is_torch = numpyqi.utils.is_torch(state)
+    is_torch = numqi.utils.is_torch(state)
     assert state.ndim==2
     dimA,dimC = state.shape
     if dicke_a_vec is None:
@@ -141,7 +141,7 @@ def qudit_dicke_state_partial_trace(d, num_qudit):
 
 
 def qudit_partial_trace_AC_to_AB(state, dicke_Bij):
-    is_torch = numpyqi.utils.is_torch(state)
+    is_torch = numqi.utils.is_torch(state)
     assert state.ndim==2
     dimA,dimC = state.shape
     dimB = int(np.sqrt(len(dicke_Bij)))

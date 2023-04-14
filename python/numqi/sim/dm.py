@@ -1,7 +1,7 @@
 import numpy as np
 import opt_einsum
 
-from numpyqi.utils import hf_num_state_to_num_qubit
+from numqi.utils import hf_num_state_to_num_qubit
 
 
 def new_base(num_qubit, dtype):

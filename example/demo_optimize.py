@@ -2,17 +2,17 @@ import numpy as np
 import scipy.optimize
 import torch
 
-import numpyqi
+import numqi
 
 
 
 np_rng = np.random.default_rng()
 
-# or use numpyqi.optimize.minimize(model) for convenience
+# or use numqi.optimize.minimize(model) for convenience
 def hf_demo(model, print_freq=10, history_info=None):
-    hf_model = numpyqi.optimize.hf_model_wrapper(model)
-    hf_callback = numpyqi.optimize.hf_callback_wrapper(hf_model, history_info, print_freq=print_freq)
-    num_parameter = len(numpyqi.optimize.get_model_flat_parameter(model))
+    hf_model = numqi.optimize.hf_model_wrapper(model)
+    hf_callback = numqi.optimize.hf_callback_wrapper(hf_model, history_info, print_freq=print_freq)
+    num_parameter = len(numqi.optimize.get_model_flat_parameter(model))
     theta0 = np_rng.uniform(size=num_parameter)
     theta_optim = scipy.optimize.minimize(hf_model, theta0, method='L-BFGS-B', jac=True, callback=hf_callback, tol=1e-20)
     print(theta_optim.x, theta_optim.fun)
@@ -78,20 +78,20 @@ class Beale(torch.nn.Module):
 
 
 model = Rosenbrock(num_parameter=10)
-theta_optim = numpyqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
+theta_optim = numqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
 # [1. 1. 1. 1. 1. 1. 1. 1. 1. 1.] 3.959370430722476e-21
 
 
 model = Rastrigin(num_parameter=10)
-theta_optim = numpyqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
+theta_optim = numqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
 # almost impossible to find the global minimum
 
 
 model = Ackley()
-theta_optim = numpyqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
+theta_optim = numqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
 # [0,0] 0
 
 
 model = Beale()
-theta_optim = numpyqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
+theta_optim = numqi.optimize.minimize(model, num_repeat=1, tol=1e-10, print_freq=20)
 # [3, 0.5] 0

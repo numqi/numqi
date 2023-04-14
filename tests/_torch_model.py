@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-import numpyqi
+import numqi
 
 class DummyQNNModel(torch.nn.Module):
     def __init__(self, circuit):
@@ -17,15 +17,15 @@ class DummyQNNModel(torch.nn.Module):
         self.q0_grad = None
 
     def forward(self):
-        self.q0 = numpyqi.sim.state.new_base(self.num_qubit, dtype=np.complex128)
+        self.q0 = numqi.sim.state.new_base(self.num_qubit, dtype=np.complex128)
         self.q0 = self.circuit.apply_state(self.q0)
-        self.inner_product = numpyqi.sim.state.inner_product(self.q0, self.target_state)
+        self.inner_product = numqi.sim.state.inner_product(self.q0, self.target_state)
         loss = abs(self.inner_product)**2
         return loss
 
     def grad_backward(self, loss=None):
-        # loss is necessary for numpyqi.optimize.check_model_gradient
-        q0_grad,_ = numpyqi.sim.state.inner_product_grad(self.q0, self.target_state, 2*self.inner_product, tag_grad=(True,False))
+        # loss is necessary for numqi.optimize.check_model_gradient
+        q0_grad,_ = numqi.sim.state.inner_product_grad(self.q0, self.target_state, 2*self.inner_product, tag_grad=(True,False))
         self.q0, self.q0_grad, op_grad_list = self.circuit.apply_state_grad(self.q0, q0_grad)
         return op_grad_list
 

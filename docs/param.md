@@ -2,7 +2,7 @@
 
 ## special unitary matrix
 
-`numpyqi.param.real_matrix_to_special_unitary(x)`
+`numqi.param.real_matrix_to_special_unitary(x)`
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -22,7 +22,7 @@ Usually, the unitary matrix is unnecessary. But still, one can still parameteriz
 
 ## special orthogonal matrix
 
-`numpyqi.param.real_matrix_to_special_unitary(x, tag_real=True)`
+`numqi.param.real_matrix_to_special_unitary(x, tag_real=True)`
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -34,7 +34,7 @@ $$
 
 ## Positive Semi-definite matrix
 
-`numpyqi.param.real_matrix_to_trace1_PSD(x)`
+`numqi.param.real_matrix_to_trace1_PSD(x)`
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -52,14 +52,14 @@ for numerical stability, this function only produce trace one PSD matrices. To g
 
 ## quantum channel
 
-`numpyqi.param.real_matrix_to_choi_op`
+`numqi.param.real_matrix_to_choi_op`
 
 TODO
 
-`numpyqi.param.real_to_kraus_op`
+`numqi.param.real_to_kraus_op`
 
 TODO
 
-`numpyqi.param.PSD_to_choi_op`
+`numqi.param.PSD_to_choi_op`
 
 TODO

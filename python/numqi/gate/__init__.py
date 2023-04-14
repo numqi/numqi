@@ -5,4 +5,4 @@ from ._pauli import pauli_str_to_matrix, get_pauli_group, pauli_index_str_conver
 
 
 # deprecated
-from numpyqi.sim._internal import Gate, ParameterGate
+from numqi.sim._internal import Gate, ParameterGate

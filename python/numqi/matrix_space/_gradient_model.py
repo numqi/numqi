@@ -2,9 +2,9 @@ import numpy as np
 import scipy.optimize
 import torch
 
-import numpyqi.utils
-import numpyqi.param
-import numpyqi.optimize
+import numqi.utils
+import numqi.param
+import numqi.optimize
 from ._misc import find_closest_vector_in_space
 
 # cannot be torch.linalg.norm()**2 nan when calculating the gradient when norm is almost zero
@@ -47,7 +47,7 @@ class DetectRankModel(torch.nn.Module):
 
     def _setup_parameter(self, dim0, dim1, space_char, rank, dtype, device):
         np_rng = np.random.default_rng()
-        rank = numpyqi.utils.hf_tuple_of_int(rank)
+        rank = numqi.utils.hf_tuple_of_int(rank)
         hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=dtype, device=device))
         if space_char in {'R_T', 'C_H'}:
             assert (len(rank)==1) or (len(rank)==3)
@@ -91,13 +91,13 @@ class DetectRankModel(torch.nn.Module):
             ]
             tmp1 = torch.cat([x for x in tmp0 if x is not None])
             EVL = tmp1 / torch.linalg.norm(tmp1)
-            unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=(space_char=='R_T'))[:len(EVL)]
+            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=(space_char=='R_T'))[:len(EVL)]
             matH = (unitary.T.conj()*EVL) @ unitary
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='R_A':
             tmp0 = theta['EVL0']
             EVL = tmp0 / torch.linalg.norm(tmp0)
-            unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=True)[:(2*len(EVL))]
+            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=True)[:(2*len(EVL))]
             tmp0 = unitary[::2]
             tmp1 = unitary[1::2]
             matH = (tmp0.T * EVL) @ tmp1 - (tmp1.T * EVL) @ tmp0
@@ -105,37 +105,37 @@ class DetectRankModel(torch.nn.Module):
         elif space_char=='C_T':
             tmp0 = theta['EVL0'] + 1j*theta['EVL1']
             EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
+            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
             matH = (unitary.T*EVL) @ unitary
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char in {'R','C'}:
             tag_real = space_char=='R'
             tmp0 = theta['EVL0']
             EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary0 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
-            unitary1 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
+            unitary0 = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
+            unitary1 = numqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
             matH = (unitary0.T.conj()*EVL) @ unitary1
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='R_cT':
             tmp0 = theta['EVL0'] + 1j*theta['EVL1']
             EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
+            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
             matH = (unitary.T*EVL) @ unitary
-            tmp0 = numpyqi.utils.hf_complex_to_real(matH)
+            tmp0 = numqi.utils.hf_complex_to_real(matH)
             loss = hf_torch_norm_square(self.basis_orth_conj @ tmp0.reshape(-1))
         elif space_char=='R_c':
             tmp0 = theta['EVL0']
             EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary0 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
-            unitary1 = numpyqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
+            unitary0 = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
+            unitary1 = numqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
             matH = (unitary0.T.conj()*EVL) @ unitary1
-            tmp0 = numpyqi.utils.hf_complex_to_real(matH)
+            tmp0 = numqi.utils.hf_complex_to_real(matH)
             loss = hf_torch_norm_square(self.basis_orth_conj @ tmp0.reshape(-1))
         self.matH = matH
         return loss
 
     def get_matrix(self, theta, matrix_subspace):
-        numpyqi.optimize.set_model_flat_parameter(self, theta)
+        numqi.optimize.set_model_flat_parameter(self, theta)
         with torch.no_grad():
             self()
         matH = self.matH.detach().cpu().numpy().copy()
@@ -143,23 +143,23 @@ class DetectRankModel(torch.nn.Module):
         coeff, residual = find_closest_vector_in_space(matrix_subspace, matH, field)
         return matH,coeff,residual
 
-    # numpyqi.optimize.minimize(model, 'normal', num_repeat=3, early_stop_threshold=0.01, tol=1e-7, print_freq=20)
+    # numqi.optimize.minimize(model, 'normal', num_repeat=3, early_stop_threshold=0.01, tol=1e-7, print_freq=20)
     # @deprecated sometimes we need threshold to early stop, like in UDA/UDP
     def minimize(self, num_repeat=3, print_freq=-1, tol=1e-7, threshold=None, seed=None):
         # threshold is used for quick return if fun<threshold
         np_rng = np.random.default_rng(seed)
-        num_parameter = len(numpyqi.optimize.get_model_flat_parameter(self))
-        hf_model = numpyqi.optimize.hf_model_wrapper(self)
+        num_parameter = len(numqi.optimize.get_model_flat_parameter(self))
+        hf_model = numqi.optimize.hf_model_wrapper(self)
         loss_list = []
         for _ in range(num_repeat):
             theta0 = np_rng.normal(size=num_parameter)
-            hf_callback = numpyqi.optimize.hf_callback_wrapper(hf_model, print_freq=print_freq)
+            hf_callback = numqi.optimize.hf_callback_wrapper(hf_model, print_freq=print_freq)
             theta_optim = scipy.optimize.minimize(hf_model, theta0, jac=True, method='L-BFGS-B', tol=tol, callback=hf_callback)
             loss_list.append(theta_optim)
             if (threshold is not None) and (theta_optim.fun < threshold):
                 break
         ret = min(loss_list, key=lambda x: x.fun)
-        numpyqi.optimize.set_model_flat_parameter(self, ret.x)
+        numqi.optimize.set_model_flat_parameter(self, ret.x)
         return ret
 
 

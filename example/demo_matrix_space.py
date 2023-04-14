@@ -1,17 +1,17 @@
 import numpy as np
 
-import numpyqi
+import numqi
 
 def demo_matrix_subspace_XZ_R_XZ_C():
     # XZ_R
-    matrix_subspace,field = numpyqi.matrix_space.get_matrix_subspace_example('XZ_R')
-    basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,0))
-    theta_optim010 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,0))
-    theta_optim020 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,1))
-    theta_optim011 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('XZ_R')
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,0))
+    theta_optim010 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,0))
+    theta_optim020 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,1))
+    theta_optim011 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim011.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(010): {theta_optim010.fun}') #1.0
@@ -23,10 +23,10 @@ def demo_matrix_subspace_XZ_R_XZ_C():
     # loss(011): 3.222853017830347e-26, residual=1.6095880932274593e-26
 
     # XZ_C
-    matrix_subspace,field = numpyqi.matrix_space.get_matrix_subspace_example('XZ_C')
-    basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
-    theta_optim1 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('XZ_C')
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
+    theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim1.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}, residual={residual}') #1e-9
@@ -37,17 +37,17 @@ def demo_matrix_subspace_XZ_R_XZ_C():
 def demo_matrix_space_UDA():
     # UDA
     pauli_str = 'XX XY'
-    rank_space,rank_space_orth = numpyqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+    rank_space,rank_space_orth = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
 
     # span_R(C_H)
-    basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='real')
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='real')
 
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,3,1))
-    theta_optim031 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,4,0))
-    theta_optim040 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,2))
-    theta_optim022 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,3,1))
+    theta_optim031 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,4,0))
+    theta_optim040 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,2))
+    theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim022.x, rank_space)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(031): {theta_optim031.fun}') #0.5
@@ -55,12 +55,12 @@ def demo_matrix_space_UDA():
     print(f'loss(022): {theta_optim022.fun}, residual={residual}') #1e-9
 
     # span_C(C_H)
-    basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='complex')
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='complex')
 
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
-    theta_optim1 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=2)
-    theta_optim2 = numpyqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
+    theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
+    model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=2)
+    theta_optim2 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim2.x, rank_space)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}') #0.5
@@ -70,9 +70,9 @@ def demo_matrix_space_UDA():
 
 def demo_hierarchical_XZ_over_real():
     pauli_str = 'X Z'
-    matA,matB = numpyqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+    matA,matB = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
     for k in range(1, 8):
-        tag,z0 = numpyqi.matrix_space.has_rank_hierarchical_method(matA, rank=2,
+        tag,z0 = numqi.matrix_space.has_rank_hierarchical_method(matA, rank=2,
                         hierarchy_k=k, use_real_field=True, return_space=True, num_worker=10)
         print(k, tag, z0.shape, np.linalg.eigvalsh(z0@z0.T))
     # 1, False (3, 2) [0. 0. 2.]
@@ -84,9 +84,9 @@ def demo_hierarchical_XZ_over_real():
     # 7 False (9, 8192) [0 0 7.976e-01 1.223e+00 1.615e+00 6.122e+00 6.141e+00 6.408e+01 6.408e+01]
 
     pauli_str = 'XX XY'
-    matA,matB = numpyqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+    matA,matB = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
     for k in range(1,7):
-        tag,z0 = numpyqi.matrix_space.has_rank_hierarchical_method(matA, rank=4,
+        tag,z0 = numqi.matrix_space.has_rank_hierarchical_method(matA, rank=4,
                         hierarchy_k=k, use_real_field=True, return_space=True, num_worker=10)
         print(k, tag, z0.shape, np.linalg.eigvalsh(z0@z0.T))
     # 1 False [-2.681e-16  0.000e+00  1.844e-17  7.976e-17  2.111e+00]

@@ -1,4 +1,4 @@
-# numpyqi.optimize
+# numqi.optimize
 
 A wrapper for calling `scipy.optimize.minimize` on torch Module
 
@@ -6,7 +6,7 @@ A wrapper for calling `scipy.optimize.minimize` on torch Module
 
 ```python
 import torch
-import numpyqi
+import numqi
 
 class DummyModel(torch.nn.Module):
     def __init__(self):
@@ -18,5 +18,5 @@ class DummyModel(torch.nn.Module):
         return loss
 
 model = DummyModel()
-theta_optim = numpyqi.optimize.minimize(model, tol=1e-7, num_repeat=1, method='L-BFGS-B')
+theta_optim = numqi.optimize.minimize(model, tol=1e-7, num_repeat=1, method='L-BFGS-B')
 ```

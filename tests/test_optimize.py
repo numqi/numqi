@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-import numpyqi
+import numqi
 
 try:
     import torch
@@ -13,4 +13,4 @@ except ImportError:
 @pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_gradient_correct():
     model = Rosenbrock(num_parameter=5)
-    numpyqi.optimize.check_model_gradient(model, zero_eps=1e-4)
+    numqi.optimize.check_model_gradient(model, zero_eps=1e-4)

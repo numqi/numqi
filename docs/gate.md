@@ -2,46 +2,46 @@
 
 ## Pauli
 
-`numpyqi.gate.X`
+`numqi.gate.X`
 
-`numpyqi.gate.Y`
+`numqi.gate.Y`
 
-`numpyqi.gate.Z`
+`numqi.gate.Z`
 
-`numpyqi.gate.I`
+`numqi.gate.I`
 
-`numpyqi.gate.pauli.s0`: `.sx` `.sy` `.sz` `.s0` `.s0s0` `.s0sx` ...
+`numqi.gate.pauli.s0`: `.sx` `.sy` `.sz` `.s0` `.s0s0` `.s0sx` ...
 
 ## Clifford gate
 
-`numpyqi.gate.H`
+`numqi.gate.H`
 
-`numpyqi.gate.S`
+`numqi.gate.S`
 
-`numpyqi.gate.CNOT`
+`numqi.gate.CNOT`
 
-`numpyqi.gate.CZ`
+`numqi.gate.CZ`
 
-`numpyqi.gate.Swap`
+`numqi.gate.Swap`
 
 ## non-Clifford gate
 
-`numpyqi.gate.T`
+`numqi.gate.T`
 
 ## parameterized gate
 
-`numpyqi.gate.pauli_exponential(a, theta, phi)`
+`numqi.gate.pauli_exponential(a, theta, phi)`
 
 $$
 e^{ia\hat{n}\cdot \vec{\sigma}}
 $$
 
-`numpyqi.gate.rx()`
+`numqi.gate.rx()`
 
-`numpyqi.gate.ry()`
+`numqi.gate.ry()`
 
-`numpyqi.gate.rz()`
+`numqi.gate.rz()`
 
-`numpyqi.gate.u3(theta, phi, lambda)`
+`numqi.gate.u3(theta, phi, lambda)`
 
-`numpyqi.gate.rzz()`
+`numqi.gate.rzz()`

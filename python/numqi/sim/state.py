@@ -3,8 +3,8 @@ import functools
 import numpy as np
 import opt_einsum
 
-from numpyqi.utils import hf_num_state_to_num_qubit, hf_tuple_of_int
-import numpyqi.random
+from numqi.utils import hf_num_state_to_num_qubit, hf_tuple_of_int
+import numqi.random
 
 def _reduce_shape_index_list_int(shape_index_list):
     if len(shape_index_list)>1:
@@ -204,10 +204,10 @@ def _measure_quantum_vector_hf0(num_qubit, index):
 
 
 def measure_quantum_vector(q0, index, seed=None):
-    np_rng = numpyqi.random.get_numpy_rng(seed)
-    index = numpyqi.utils.hf_tuple_of_int(index)
+    np_rng = numqi.random.get_numpy_rng(seed)
+    index = numqi.utils.hf_tuple_of_int(index)
     assert all(x==y for x,y in zip(sorted(index),index)), 'index must be sorted'
-    num_qubit = numpyqi.utils.hf_num_state_to_num_qubit(q0.shape[0])
+    num_qubit = numqi.utils.hf_num_state_to_num_qubit(q0.shape[0])
     shape,keep_dim,reduce_dim = _measure_quantum_vector_hf0(num_qubit, index)
     q1 = q0.reshape(shape)
     if len(reduce_dim)>0:

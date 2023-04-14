@@ -1,6 +1,6 @@
 import numpy as np
 
-from numpyqi.utils import hf_tuple_of_any
+from numqi.utils import hf_tuple_of_any
 
 class Gate:
     def __init__(self, kind, array, requires_grad=False, name=None):

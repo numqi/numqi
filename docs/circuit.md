@@ -6,8 +6,8 @@ Construct a "non-trival" circuit
 
 ```Python
 import numpy as np
-import numpyqi
-circ = numpyqi.sim.Circuit()
+import numqi
+circ = numqi.sim.Circuit()
 for x in range(4):
     circ.H(x)
 circ.cz(3, 4)
@@ -32,7 +32,7 @@ Given a initial state, `circ` can produce the final state (out-of-place operatio
 ```Python
 initial_state = np.zeros(2**5, dtype=np.complex128)
 initial_state[0] = 1
-# initial_state = numpyqi.sim.state.new_base(5)
+# initial_state = numqi.sim.state.new_base(5)
 final_state_0 = circ.apply_state(initial_state)
 
 initial_state = np.zeros(2**5, dtype=np.complex128)
@@ -50,8 +50,8 @@ mat = circ.to_unitary() #(np,complex128,(32,32))
 
 ```Python
 import numpy as np
-import numpyqi
-circ = numpyqi.sim.Circuit(default_requires_grad=True)
+import numqi
+circ = numqi.sim.Circuit(default_requires_grad=True)
 gate0 = circ.ry(1)
 circ.H(1)
 circ.cnot(0, 1)
@@ -61,16 +61,16 @@ above we create a circuit with parameterized gate `gate0`. We can modify the par
 
 ```Python
 import matplotlib.pyplot as plt
-initial_state = numpyqi.sim.state.new_base(2)
+initial_state = numqi.sim.state.new_base(2)
 theta = np.linspace(0, 4*np.pi)
-op = [(1.0, [(numpyqi.gate.Z,1)])]
+op = [(1.0, [(numqi.gate.Z,1)])]
 expectation = []
 circ.init_theta_torch() #TODO error below if not this line
 for x in theta:
     # gate0.set_args([x]) #fail TODO
     circ.name_to_pgate['ry']['theta_torch'].data[0,0] = x
     psi = circ.apply_state(initial_state)
-    expectation.append(numpyqi.sim.state.inner_product_psi0_O_psi1(psi, psi, op).real)
+    expectation.append(numqi.sim.state.inner_product_psi0_O_psi1(psi, psi, op).real)
 
 fig,ax = plt.subplots()
 ax.plot(theta, expectation)

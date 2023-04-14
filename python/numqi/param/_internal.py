@@ -49,7 +49,7 @@ def real_matrix_to_trace1_PSD(matA, tag_real=False, use_cholesky=False):
 
 def real_matrix_to_PSD(matA, shift_max_eig=True, tag_real=False, use_cholesky=False):
     # TODO @deprecated
-    print('[warning] numpyqi.param.real_matrix_to_PSD() is deprecated, use numpyqi.param.real_matrix_to_trace1_PSD() instead')
+    print('[warning] numqi.param.real_matrix_to_PSD() is deprecated, use numqi.param.real_matrix_to_trace1_PSD() instead')
     if use_cholesky:
         ret = _real_matrix_to_PSD_cholesky(matA, shift_max_eig, tag_real)
     tmp0 = real_matrix_to_hermitian(matA, tag_real)
@@ -101,7 +101,7 @@ def hermitian_matrix_to_trace1_PSD(matA):
 def hermitian_matrix_to_PSD(matA, shift_max_eig=True):
     # TODO @deprecated
     # caller's duty to make sure it's hermitian
-    print('[warning] numpyqi.param.hermitian_matrix_to_PSD() is deprecated, use numpyqi.param.hermitian_matrix_to_trace1_PSD() instead')
+    print('[warning] numqi.param.hermitian_matrix_to_PSD() is deprecated, use numqi.param.hermitian_matrix_to_trace1_PSD() instead')
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     N0 = len(matA)

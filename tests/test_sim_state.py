@@ -1,14 +1,14 @@
 import numpy as np
 import opt_einsum
 
-import numpyqi
+import numqi
 
 hfe = lambda x,y,eps=1e-5: np.max(np.abs(x-y)/(np.abs(x)+np.abs(y)+eps))
 
 def test_np_operator_expectation_dm(num_qubit=3):
     assert num_qubit>=3
     ind0,ind1 = np.sort(np.random.permutation(num_qubit)[:2]).tolist()
-    np0 = numpyqi.random.rand_density_matrix(2**num_qubit)
+    np0 = numqi.random.rand_density_matrix(2**num_qubit)
     operator = np.random.randn(4,4) + 1j*np.random.randn(4,4)
 
     tmp0 = operator.reshape(2,2,2,2)
@@ -18,5 +18,5 @@ def test_np_operator_expectation_dm(num_qubit=3):
     operator_pad = opt_einsum.contract(tmp0, tmp1, *(y for x in tmp2 for y in x), tmp3).reshape(2**num_qubit,2**num_qubit)
     ret_ = np.trace(operator_pad @ np0)
 
-    ret0 = numpyqi.sim.dm.operator_expectation(np0, operator, [ind0,ind1])
+    ret0 = numqi.sim.dm.operator_expectation(np0, operator, [ind0,ind1])
     assert hfe(ret_, ret0) < 1e-7
