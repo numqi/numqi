@@ -64,7 +64,7 @@ def test_matrix_subspace_misc():
 
     basis,basis_orth,space_char = numpyqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')
     model = numpyqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(1,0,0))
-    theta_optim022 = numpyqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-12, early_stop_threshold=1e-10)
+    theta_optim022 = numpyqi.optimize.minimize(model, 'normal', num_repeat=20, tol=1e-12, early_stop_threshold=1e-10)
     matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
     assert theta_optim022.fun < 1e-7
     assert residual < 1e-7
