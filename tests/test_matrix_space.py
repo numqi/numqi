@@ -259,6 +259,7 @@ def detect_relative_factor(x0, x1, zero_eps, tag_real):
     assert np.abs(x0 - x1*ret[:,np.newaxis]).max() < zero_eps
     return ret
 
+
 def test_anti_symmetric_matrix():
     # https://en.wikipedia.org/wiki/Skew-symmetric_matrix
     hf_anti = lambda x: (x-x.transpose(0,2,1))/2
@@ -287,6 +288,7 @@ def test_anti_symmetric_matrix():
         s0[:,::2] *= tmp1
         s0[:,1::2] *= tmp0
         assert np.abs((u0*s0[:,np.newaxis]) @ v0 - np0).max() < 1e-10
+
 
 def test_complex_anti_symmetric_matrix():
     hf_anti = lambda x: (x-x.transpose(0,2,1))/2
@@ -358,3 +360,21 @@ def test_channel_matrix_space_equivalence():
     # matrix_space1 = numqi.matrix_space.kraus_op_to_matrix_space(tmp0)
     # print(numqi.matrix_space.is_vector_space_equivalent(matrix_space, matrix_space1, field='complex'))
 
+
+def test_detect_commute_matrix():
+    matrix_subspace = numqi.random.rand_reducible_matrix_subspace(11, partition=(2,3))
+    matH_list = numqi.matrix_space.detect_commute_matrix(matrix_subspace, tag_real=True)
+    assert len(matH_list)>0
+    for matH in matH_list:
+        assert np.abs(matH @ matrix_subspace - matrix_subspace @ matH).max() < 1e-10
+
+
+def test_get_vector_plane():
+    N0 = 23
+    tmp0 = np_rng.normal(size=(2,23))
+    vec0,vec1 = tmp0 / np.linalg.norm(tmp0, axis=1, keepdims=True)
+    angle,hf_theta = numqi.matrix_space.get_vector_plane(vec0, vec1)
+    assert np.abs(hf_theta(0) - vec0).max() < 1e-10
+    assert np.abs(hf_theta(angle) - vec1).max() < 1e-10
+    vec2 = hf_theta(np_rng.normal())
+    assert not numqi.matrix_space.is_vector_linear_independent(np.stack([vec0,vec1,vec2]), 'real')

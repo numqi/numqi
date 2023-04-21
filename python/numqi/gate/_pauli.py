@@ -1,6 +1,7 @@
 import functools
 import itertools
 import numpy as np
+import scipy.sparse
 
 from ._internal import pauli
 
@@ -24,10 +25,25 @@ def pauli_str_to_matrix(pauli_str, return_orth=False):
 
 
 @functools.lru_cache
-def get_pauli_group(num_qubit, kind='numpy'):
+def get_pauli_group(num_qubit, /, kind='numpy', use_sparse=False):
     assert kind in {'numpy','str','str_to_index'}
+    if use_sparse:
+        assert kind=='numpy'
     if kind=='numpy':
-        ret = tuple(hf_kron([_one_pauli_str_to_np[y] for y in x]) for x in itertools.product(*['IXYZ']*num_qubit))
+        if use_sparse:
+            # @20230309 scipy.sparse.kron have not yet been ported https://docs.scipy.org/doc/scipy/reference/sparse.html
+            hf0 = lambda x,y: scipy.sparse.coo_array(scipy.sparse.kron(x,y,format='coo'))
+            hf_kron = lambda x: functools.reduce(hf0, x)
+            tmp0 = [scipy.sparse.coo_array(_one_pauli_str_to_np[x]) for x in 'IXYZ']
+            tmp1 = [(0,1,2,3)]*num_qubit
+            ret = [hf_kron([tmp0[y] for y in x]) for x in itertools.product(*tmp1)]
+            # x = ret[0]
+            # x.toarray()[x.row, x.col] #x.data
+        else:
+            hf_kron = lambda x: functools.reduce(np.kron, x)
+            tmp0 = [_one_pauli_str_to_np[x] for x in 'IXYZ']
+            tmp1 = [(0,1,2,3)]*num_qubit
+            ret = np.stack([hf_kron([tmp0[y] for y in x]) for x in itertools.product(*tmp1)])
     else:
         tmp0 = tuple(''.join(x) for x in itertools.product(*['IXYZ']*num_qubit))
         if kind=='str':

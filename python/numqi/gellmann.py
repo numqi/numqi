@@ -1,4 +1,6 @@
 import numpy as np
+import functools
+import itertools
 
 try:
     import torch
@@ -35,21 +37,28 @@ def gellmann_matrix(i, j, d):
     return ret
 
 
-_all_gellmann_matrix_cache = dict()
-def all_gellmann_matrix(d, with_I=True):
-    d = int(d)
-    assert d>=2
-    if d in _all_gellmann_matrix_cache:
-        ret = _all_gellmann_matrix_cache[d]
-    else:
-        sym_mat = [gellmann_matrix(i,j,d) for i in range(d) for j in range(i+1,d)]
-        antisym_mat = [gellmann_matrix(j,i,d) for i in range(d) for j in range(i+1,d)]
-        diag_mat = [gellmann_matrix(i,i,d) for i in range(1,d)]
-        tmp0 = [gellmann_matrix(0, 0, d)]
-        ret = np.stack(sym_mat+antisym_mat+diag_mat+tmp0, axis=0)
-        _all_gellmann_matrix_cache[d] = ret
+@functools.lru_cache
+def _all_gellmann_matrix_cache(d, tensor_n, with_I):
+    sym_mat = [gellmann_matrix(i,j,d) for i in range(d) for j in range(i+1,d)]
+    antisym_mat = [gellmann_matrix(j,i,d) for i in range(d) for j in range(i+1,d)]
+    diag_mat = [gellmann_matrix(i,i,d) for i in range(1,d)]
+    tmp0 = [gellmann_matrix(0, 0, d)]
+    ret = np.stack(sym_mat+antisym_mat+diag_mat+tmp0, axis=0)
+    if tensor_n>1:
+        tmp0 = [list(range(d**2))]*tensor_n
+        ret = np.stack([functools.reduce(np.kron, [ret[y] for y in x]) for x in itertools.product(*tmp0)])
     if not with_I:
         ret = ret[:-1]
+    return ret
+
+
+def all_gellmann_matrix(d, /, tensor_n=1, with_I=True):
+    # the last item is identity
+    d = int(d)
+    tensor_n = int(tensor_n)
+    with_I = bool(with_I)
+    assert (d>=2) and (tensor_n>=1)
+    ret = _all_gellmann_matrix_cache(d, tensor_n, with_I)
     return ret
 
 

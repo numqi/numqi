@@ -216,3 +216,41 @@ def rand_ABk_density_matrix(dimA, dimB, kext, seed=None):
             ret += np.transpose(np0, tmp0)
     ret = ret.reshape(dimA*dimB**kext, dimA*dimB**kext)
     return ret
+
+
+def rand_reducible_matrix_subspace(num_matrix, partition, return_unitary=False, seed=None):
+    np_rng = get_numpy_rng(seed)
+    partition = [int(x) for x in partition]
+    assert len(partition)>1 and all(x>0 for x in partition)
+    N0 = sum(partition)
+    unitary = rand_unitary_matrix(N0, tag_complex=False, seed=np_rng)
+    tmp0 = np.cumsum(np.array([0]+partition))
+    unitary_part_list = [unitary[x:y] for x,y in zip(tmp0[:-1],tmp0[1:])]
+    matrix_subspace = 0
+    for unitary_i in unitary_part_list:
+        dim = unitary_i.shape[0]
+        tmp0 = np_rng.normal(size=(num_matrix,dim,dim))
+        matrix_subspace = matrix_subspace + unitary_i.T @ tmp0 @ unitary_i
+    ret = (matrix_subspace,unitary) if return_unitary else matrix_subspace
+    return ret
+
+
+def rand_symmetric_inner_product(N0, zero_eps=1e-10, seed=None):
+    # (ret0)matB(np,float,(num_matrix,N0,N0))
+    # (ret1)matU(np,float,(N0,N0))
+    # for all x, x^T B U x = x^T U^T B x
+    # TODO complex?
+    np_rng = get_numpy_rng(seed)
+    assert N0>=2
+    matU = np_rng.normal(size=(N0,N0))
+    tmp0 = np.eye(N0)
+    tmp1 = np.einsum(matU, [3,1], tmp0, [0,2], [0,1,2,3], optimize=True)
+    tmp2 = np.einsum(matU, [2,0], tmp0, [1,3], [0,1,2,3], optimize=True)
+    tmp3 = np.einsum(matU, [2,1], tmp0, [0,3], [0,1,2,3], optimize=True)
+    tmp4 = np.einsum(matU, [3,0], tmp0, [1,2], [0,1,2,3], optimize=True)
+    z0 = (tmp1-tmp2-tmp3+tmp4).reshape(-1, N0*N0)
+    EVL,EVC = np.linalg.eigh(z0.T @ z0)
+    num_zero = (EVL<zero_eps).sum()
+    assert num_zero>0
+    matB = (EVC[:,:num_zero].T).reshape(-1, N0, N0)
+    return matB, matU

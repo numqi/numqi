@@ -1,3 +1,4 @@
+import functools
 import numpy as np
 import scipy.linalg
 
@@ -335,3 +336,62 @@ def kraus_op_to_matrix_subspace(op, reduce=True, zero_eps=1e-10):
         # tmp0 = V[:(S>zero_eps).sum()].reshape(-1, dim_in, dim_in)
         ret = get_hermite_channel_matrix_subspace(tmp0, zero_eps)
     return ret
+
+
+def detect_commute_matrix(np0, tag_real, zero_eps=1e-7):
+    assert np0.dtype.type in {np.float32,np.float64}, f'not support complex matrix {np0.dtype}'
+    assert (np0.ndim==3) and (np0.shape[1]==np0.shape[2])
+    N0,N1,_ = np0.shape
+    tmp0 = np.eye(N1)
+    tmp1 = np.einsum(np0, [0,4,2], tmp0, [1,3], [0,1,2,3,4], optimize=True)
+    tmp2 = np.einsum(np0, [0,1,3], tmp0, [2,4], [0,1,2,3,4], optimize=True)
+    tmp3 = matrix_to_gellmann_basis((tmp1 - tmp2).reshape(N0*N1*N1,N1,N1))
+    # aS,aA,aD,aI
+    tmp3 = tmp3[:,:-1]
+    N2 = (N1*(N1-1))//2
+    if tag_real:
+        tmp3 = np.concatenate([tmp3[:,:N2],tmp3[:,(2*N2):]], axis=1)
+    else:
+        tmp3[:,N2:(2*N2)] *= -1
+    tmp3 = np.concatenate([tmp3.real,tmp3.imag], axis=0)
+    EVL,EVC = np.linalg.eigh(tmp3.T @ tmp3)
+    ret = []
+    for ind0 in range((EVL<=zero_eps).sum()):
+        if tag_real:
+            tmp0 = np.zeros(N1*N1, dtype=np.float64)
+            tmp0[:N2] = EVC[:N2,ind0]
+            tmp0[(2*N2):-1] = EVC[N2:,ind0]
+            ret.append(gellmann_basis_to_matrix(tmp0).real)
+        else:
+            tmp0 = np.concatenate([EVC[:,ind0], np.zeros([0])])
+            ret.append(gellmann_basis_to_matrix(tmp0))
+    return ret
+
+
+def get_vector_plane(vec0, vec1):
+    vec0 = vec0 / np.linalg.norm(vec0)
+    vec1 = vec1 / np.linalg.norm(vec1)
+    angle = np.arccos(np.dot(vec0, vec1))
+    tmp0 = vec1 - vec0*np.dot(vec0,vec1)
+    vec1_orth = tmp0 / np.linalg.norm(tmp0)
+    def hf0(theta):
+        ret = vec0*np.cos(theta) + vec1_orth*np.sin(theta)
+        return ret
+    return angle,hf0
+
+
+def detect_antisym_y_Ux(np0, a=1):
+    assert (np0.ndim==3) and np0.shape[1]==np0.shape[2]
+    tmp0 = np0 - a*np0.transpose(0,2,1)
+    tmp1 = np.eye(16)
+    tmp2 = np.einsum(tmp0, [0,1,3], tmp1, [2,4], [0,1,2,3,4], optimize=True)
+    tmp3 = np.einsum(tmp0, [0,2,3], tmp1, [1,4], [0,1,2,3,4], optimize=True)
+    z0 = (tmp2+tmp3).reshape(-1, 256)
+    z1 = z0.T @ z0
+    ret = np.linalg.eigvalsh(z1), z1
+    return ret
+
+
+def matrix_subspace_to_biquadratic_form(np0):
+    matZ = np.einsum(np0.conj(), [0,1,2], np0, [0,3,4], [1,2,3,4], optimize=True)
+    return matZ

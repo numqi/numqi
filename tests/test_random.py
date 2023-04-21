@@ -4,6 +4,8 @@ import itertools
 import numqi
 
 
+np_rng = np.random.default_rng()
+
 def test_rand_quantum_channel_matrix_subspace():
     zero_eps = 1e-7
 
@@ -33,3 +35,14 @@ def test_rand_ABk_density_matrix():
             tmp1[[indI+1,indJ+1]] = tmp1[[indJ+1,indI+1]]
             tmp1[[indI+2+kext,indJ+2+kext]] = tmp1[[indJ+2+kext,indI+2+kext]]
             assert np.abs(tmp0-np.transpose(tmp0,tmp1)).max() < 1e-10
+
+
+def test_rand_symmetric_inner_product():
+    zero_eps = 1e-10
+    for N0 in [2,3,4,5]:
+        matB,matU = numqi.random.rand_symmetric_inner_product(N0)
+        tmp0 = matB @ matU - matU.T @ matB
+        assert np.abs(tmp0+tmp0.transpose(0,2,1)).max() < zero_eps
+        vecX = np_rng.normal(size=N0)
+        vecY = matU @ vecX
+        assert np.abs((vecX @ matB) @ vecY - (vecY @ matB) @ vecX).max() < zero_eps

@@ -53,3 +53,11 @@ def test_real_matrix_to_special_unitary():
         np1 = numqi.param.real_matrix_to_special_unitary(np0, tag_real=False)
         assert np.abs((np1 @ np1.transpose(0,2,1).conj()) - np.eye(N1)).max() < 1e-10
         assert np.abs(np.linalg.det(np1)-1).max() < 1e-10
+
+
+def test_get_rational_orthogonal2_matrix():
+    for m in range(-10, 10):
+        for n in range(-10,10):
+            if (m!=0) and (n!=0) and (abs(m)!=abs(n)):
+                tmp0 = numqi.param.get_rational_orthogonal2_matrix(m, n)
+                assert abs(tmp0 @ tmp0.T-np.eye(2)).max() < 1e-10

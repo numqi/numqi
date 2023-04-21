@@ -195,3 +195,18 @@ def PSD_to_choi_op(matA, dim_in, use_cholesky=False):
                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3], optimize=True).reshape(N0, dim_in*dim_out, dim_in*dim_out)
     ret = ret.reshape(*shape)
     return ret
+
+
+def get_rational_orthogonal2_matrix(m, n):
+    # https://en.wikipedia.org/wiki/Pythagorean_triple
+    m = int(m)
+    n = int(n)
+    assert (m!=0) and (n!=0) and (abs(m)!=abs(n))
+    a = m*m - n*n
+    b = 2*m*n
+    c = m*m + n*n
+    # print(a,b,c)
+    st = a/c
+    ct = b/c
+    ret = np.array([[ct,st],[-st,ct]])
+    return ret
