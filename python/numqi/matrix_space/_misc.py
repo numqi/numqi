@@ -395,3 +395,13 @@ def detect_antisym_y_Ux(np0, a=1):
 def matrix_subspace_to_biquadratic_form(np0):
     matZ = np.einsum(np0.conj(), [0,1,2], np0, [0,3,4], [1,2,3,4], optimize=True)
     return matZ
+
+
+def divide_into_sym_antisym_space(np0):
+    assert (np0.ndim==3) and (np0.shape[1]==np0.shape[2])
+    N0,N1,_ = np0.shape
+    tmp0 = np0 + np0.transpose(0,2,1)
+    ret0 = reduce_vector_space(tmp0.reshape(N0, N1*N1)).reshape(-1,N1,N1)
+    tmp0 = np0 - np0.transpose(0,2,1)
+    ret1 = reduce_vector_space(tmp0.reshape(N0, N1*N1)).reshape(-1,N1,N1)
+    return ret0,ret1

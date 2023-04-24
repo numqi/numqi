@@ -5,6 +5,7 @@ import scipy.linalg
 
 
 from .gellmann import gellmann_basis_to_matrix
+from .param import real_matrix_to_special_unitary
 
 def get_numpy_rng(np_rng_or_seed_or_none=None):
     if np_rng_or_seed_or_none is None:
@@ -50,6 +51,7 @@ def rand_haar_unitary(N0, seed=None):
     return ret
 
 def rand_unitary_matrix(N0, tag_complex=True, seed=None):
+    # TODO special=True/False, special unitary (orthogonal) matrix
     np_rng = get_numpy_rng(seed)
     if tag_complex:
         tmp0 = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
@@ -254,3 +256,31 @@ def rand_symmetric_inner_product(N0, zero_eps=1e-10, seed=None):
     assert num_zero>0
     matB = (EVC[:,:num_zero].T).reshape(-1, N0, N0)
     return matB, matU
+
+
+def rand_orthonormal_matrix_basis(num_orthonormal, dim_qudit, num_qudit=1, num_sample=None, with_I=False, seed=None):
+    np_rng = get_numpy_rng(seed)
+    tag_one = num_sample is None
+    num_sample = 1 if tag_one else num_sample
+    assert num_sample>=1
+    # we can always select the first orthonormal as the computational basis
+    povm_basis = np.zeros((dim_qudit,dim_qudit,dim_qudit), dtype=np.float64)
+    ind1 = np.arange(dim_qudit, dtype=np.int64)
+    povm_basis[ind1,ind1,ind1] = 1
+    ret = []
+    for _ in range(num_sample):
+        tmp0 = np_rng.normal(size=(num_qudit*(num_orthonormal-1),dim_qudit,dim_qudit))
+        unitary = real_matrix_to_special_unitary(tmp0).reshape(num_qudit, num_orthonormal-1, dim_qudit, dim_qudit)
+        tmp1 = [[(y[:,:,np.newaxis]*y[:,np.newaxis].conj()) for y in x] for x in unitary]
+        tmp1 = [np.stack([povm_basis]+x, axis=0) for x in tmp1]
+        tmp2 = tmp1[0]
+        for ind1 in range(1, num_qudit):
+            tmp3 = np.einsum(tmp2, [0,1,2,3], tmp1[ind1], [0,4,5,6], [0,1,4,2,5,3,6], optimize=True)
+            tmp2 = tmp3.reshape(num_orthonormal, dim_qudit**(ind1+1), dim_qudit**(ind1+1), dim_qudit**(ind1+1))
+        tmp2 = tmp2.reshape(num_orthonormal*(dim_qudit**num_qudit), dim_qudit**num_qudit, dim_qudit**num_qudit)
+        if with_I:
+            tmp2 = np.concatenate([np.eye(tmp2.shape[1])[np.newaxis], tmp2], axis=0)
+        ret.append(tmp2)
+    if tag_one:
+        ret = ret[0]
+    return ret

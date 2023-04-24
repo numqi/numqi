@@ -1,6 +1,10 @@
 import numpy as np
+from tqdm import tqdm
 
 import numqi
+
+np_rng = np.random.default_rng()
+hf_randc = lambda *size: np_rng.normal(size=size) + 1j*np_rng.normal(size=size)
 
 def demo_matrix_subspace_XZ_R_XZ_C():
     # XZ_R
@@ -95,3 +99,15 @@ def demo_hierarchical_XZ_over_real():
     # 4 False (8,8192) [-8.531e-15 -2.173e-15  4.899e-16  9.227e-16  4.973e+00  4.973e+00  6.464e+01  6.464e+01]
     # 5 False [-3.004e-14 -5.318e-16  3.281e-15  1.230e-14  5.145e+00  1.633e+01  1.894e+01  2.573e+02  2.574e+02]
     # 6 False [-4.415e-14 -3.072e-14  1.263e-13  1.504e-13  1.174e+01  1.174e+01  6.660e+01  6.660e+01  1.027e+03  1.027e+03]
+
+
+def demo_hierarchical_method_random_matrix_subspace():
+    dimA = 4
+    dimB = 4
+    rank = 2
+    hierarchy_k = 2
+    num_matrix = 9 #(da-rank+1)(db-rank+1)
+    ret = []
+    for _ in tqdm(range(int(100))):
+        matrix_space = [hf_randc(dimA,dimB) for _ in range(num_matrix)]
+        ret.append(numqi.matrix_space.has_rank(matrix_space, rank, hierarchy_k))
