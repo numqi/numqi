@@ -8,7 +8,9 @@ import numqi.optimize
 from ._misc import find_closest_vector_in_space
 
 # cannot be torch.linalg.norm()**2 nan when calculating the gradient when norm is almost zero
-hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
+# see https://github.com/pytorch/pytorch/issues/99868
+# hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
+hf_torch_norm_square = lambda x: torch.sum((x.conj() * x).real)
 
 # old_name DetectMatrixSpaceRank
 class DetectRankModel(torch.nn.Module):
