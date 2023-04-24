@@ -26,7 +26,7 @@ def test_matrix_subspace_XZ_R_XZ_C():
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
     theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim1.x, matrix_subspace)
-    assert theta_optim011.fun < 1e-7
+    assert theta_optim1.fun < 1e-7
     assert residual < 1e-7
 
 
