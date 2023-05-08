@@ -4,3 +4,6 @@ build/
 tbd00/
 
 *.egg-info
+
+# mkdocs
+site/
