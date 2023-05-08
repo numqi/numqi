@@ -151,9 +151,8 @@ def tensor2d_project_to_sym_antisym_basis(np_list, r):
         ret *= (1/scipy.special.factorial(r+k))
     return ret
 
-def has_rank_hierarchical_method(matrix_space, rank, hierarchy_k=1, zero_eps=1e-7, use_real_field=False, return_space=False, num_worker=None):
+def has_rank_hierarchical_method(matrix_space, rank, hierarchy_k=1, zero_eps=1e-7, return_space=False, num_worker=None):
     # "r-entangled" (defined in the paper) means that the matrix_space has at-least rank (r+1)
-    # TODO remove use_real_field, which will never be correct
     assert rank>1
     r = rank-1
     tmp0 = itertools.combinations_with_replacement(list(range(len(matrix_space))), r+hierarchy_k)
@@ -164,9 +163,7 @@ def has_rank_hierarchical_method(matrix_space, rank, hierarchy_k=1, zero_eps=1e-
         with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
             job_list = [executor.submit(tensor2d_project_to_sym_antisym_basis, [matrix_space[y] for y in x], r) for x in tmp0]
             z0 = np.stack([x.result().reshape(-1) for x in job_list])
-    if use_real_field:
-        z0 = np.concatenate([z0.real, z0.imag], axis=1)
-    ret = is_vector_linear_independent(z0, ('real' if use_real_field else 'complex'), zero_eps)
+    ret = is_vector_linear_independent(z0, 'complex', zero_eps)
     # if ret=True, matrix_space must be at least rank
     # if ret=False, not too much can be predicted
     if return_space:
