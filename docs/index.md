@@ -1,6 +1,8 @@
 # numqi documentation
 
-`numqi` (pronouce: num-py-q-i) is designed as the "basic" quantum computing toolbox. With minimum dependency required so that `numqi` can be installed on most of platform. `numqi` provides these modules
+**WARNING**: the documentation is generated with the help of GitHub Copilot, so it may contain some errors.
+
+`numqi` (pronouce: num(-py)-q-i) is designed as the "basic" quantum computing toolbox. With minimum dependency required so that `numqi` can be installed on most of platform. `numqi` provides these modules
 
 1. quantum circuit simulator, variational algorithm with gradient back-propagation
    * `numqi.sim.Circuit`: construct a circuit
@@ -17,6 +19,8 @@ the following command should be okay for `win/mac/linux`
 
 `pip install numqi`
 
+**TODO**: upload `numqi` to pypi.
+
 `pytorch` is an optional dependency. Without `pytorch`, you should still be able to use most of functions.
 
 test whether succuessfully installed (run it in `python/ipython` REPL)
@@ -27,4 +31,4 @@ test whether succuessfully installed (run it in `python/ipython` REPL)
 
 TODO
 
-1. [ ] VarQEC
+1. [ ] [github/best-of-mkdocs](https://github.com/mkdocs/best-of-mkdocs)

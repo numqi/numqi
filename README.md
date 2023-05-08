@@ -59,7 +59,10 @@ numqi.matrix_subspace #not finished
 package requried for building the documentation
 
 ```bash
-pip install mkdocs mkdocs-material pymdown-extensions
+# https://github.com/mkdocstrings/mkdocstrings
+conda install -c conda-forge mkdocs pymdown-extensions mkdocstrings
+pip install mkdocs mkdocs-material pymdown-extensions mkdocstrings
+pip install 'mkdocstrings[crystal,python]'
 ```
 
 Build and Serve the documentation locally, then brower the website `127.0.0.1:23333`

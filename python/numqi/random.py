@@ -23,22 +23,31 @@ def _random_complex(*size, seed=None):
     ret = np_rng.normal(size=size + (2,)).astype(np.float64, copy=False).view(np.complex128).reshape(size)
     return ret
 
+def rand_haar_state(dim, tag_complex=True, seed=None):
+    r'''Return a random state vector from the Haar measure on the unit sphere in $\mathbb{C}^{d}$.
 
-def rand_haar_state(N0, seed=None):
+    $$\left\{ |\psi \rangle \in \mathbb{C} ^d\,\,: \left\| |\psi \rangle \right\| _2=1 \right\}$$
+
+    Parameters:
+        dim (int): The dimension of the Hilbert space that the state should be sampled from.
+        tag_complex (bool): If True, use complex normal distribution. If False, use real normal distribution.
+        seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
+
+    Returns:
+        ret (numpy.ndarray): shape=(`dim`,), dtype=np.complex128
+    '''
     # http://www.qetlab.com/RandomStateVector
-    ret = _random_complex(N0, seed=seed)
+    ret = _random_complex(dim, seed=seed)
+    if tag_complex:
+        ret = _random_complex(dim, seed=seed)
+    else:
+        np_rng = get_numpy_rng(seed)
+        ret = np_rng.normal(size=dim)
     ret /= np.linalg.norm(ret)
     return ret
 
-# warning change from rand_state(num_qubit)
-def rand_state(N0, tag_complex=True, seed=None):
-    np_rng = get_numpy_rng(seed)
-    ret = np_rng.normal(size=N0)
-    if tag_complex:
-        ret = ret + np_rng.normal(size=N0)*1j
-    ret = ret / np.sqrt(np.vdot(ret, ret))
-    return ret
-
+# rand_state is deprecated
+rand_state = rand_haar_state
 
 def rand_haar_unitary(N0, seed=None):
     # http://www.qetlab.com/RandomUnitary
@@ -63,17 +72,31 @@ def rand_unitary_matrix(N0, tag_complex=True, seed=None):
     return ret
 
 
-def rand_density_matrix(N0, k=None, kind='haar', seed=None):
-    # http://www.qetlab.com/RandomDensityMatrix
+def rand_density_matrix(dim, k=None, kind='haar', seed=None):
+    r'''Generate random density matrix
+
+    $$\left\{ \rho \in \mathbb{C} ^{d\times d}\,: \rho \succeq 0,\mathrm{Tr}\left[ \rho \right] =1 \right\}$$
+
+    Parameters:
+        dim (int): The dimension of the Hilbert space that the state should be sampled from.
+        k (int): The rank of the density matrix. If None, k=dim.
+        kind (str): 'haar' or 'bures'
+        seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
+
+    see also: [qetlab/RandomDensityMatrix](http://www.qetlab.com/RandomDensityMatrix)
+
+    Returns:
+        ret (numpy.ndarray): shape=(`dim`,`dim`), dtype=np.complex128
+    '''
     np_rng = get_numpy_rng(seed)
     assert kind in {'haar','bures'}
     if k is None:
-        k = N0
+        k = dim
     if kind=='haar':
-        ginibre_ensemble = _random_complex(N0, k, seed=np_rng)
+        ginibre_ensemble = _random_complex(dim, k, seed=np_rng)
     else:
-        tmp0 = _random_complex(N0, k, seed=np_rng)
-        ginibre_ensemble = (rand_haar_unitary(N0, seed=np_rng) + np.eye(N0)) @ tmp0
+        tmp0 = _random_complex(dim, k, seed=np_rng)
+        ginibre_ensemble = (rand_haar_unitary(dim, seed=np_rng) + np.eye(dim)) @ tmp0
     ret = ginibre_ensemble @ ginibre_ensemble.T.conj()
     ret /= np.trace(ret)
     return ret
@@ -110,17 +133,35 @@ def rand_choi_op(dim_in, dim_out, seed=None):
     return ret
 
 
-def rand_bipartite_state(N0, N1=None, k=None, seed=None, return_dm=False):
-    # http://www.qetlab.com/RandomStateVector
+def rand_bipartite_state(dimA, dimB=None, k=None, seed=None, return_dm=False):
+    r'''Generate random bipartite pure state
+
+    $$\left\{ |\psi \rangle \in \mathbb{C} ^{d_1d_2}\,\,: \left\| |\psi \rangle \right\| _2=1 \right\}$$
+
+    see also [qetlab/RandomStateVector](http://www.qetlab.com/RandomStateVector)
+
+    Parameters:
+        dimA (int): dimension of subsystem A
+        dimB (int,None): dimension of subsystem B, if None, `dimB=dimA`
+        k (int): rank of the state
+        seed (int,None,numpy.RandomState): random seed
+        return_dm (bool): if True, return density matrix, otherwise return state vector (default)
+
+    Returns:
+        ret (numpy.ndarray):
+            if `return_dm=True`, density matrix, shape=(dimA*dimB, dimA*dimB), dtype=complex128
+            if `return_dm=False`, state vector, shape=(dimA*dimB,), dtype=complex128
+
+    '''
     np_rng = get_numpy_rng(seed)
-    if N1 is None:
-        N1 = N0
+    if dimB is None:
+        dimB = dimA
     if k is None:
-        ret = rand_haar_state(N0*N1, np_rng)
+        ret = rand_haar_state(dimA*dimB, np_rng)
     else:
-        assert (0<k) and (k<=N0) and (k<=N1)
-        tmp0 = np.linalg.qr(_random_complex(N0, N0, seed=np_rng), mode='complete')[0][:,:k]
-        tmp1 = np.linalg.qr(_random_complex(N1, N1, seed=np_rng), mode='complete')[0][:,:k]
+        assert (0<k) and (k<=dimA) and (k<=dimB)
+        tmp0 = np.linalg.qr(_random_complex(dimA, dimA, seed=np_rng), mode='complete')[0][:,:k]
+        tmp1 = np.linalg.qr(_random_complex(dimB, dimB, seed=np_rng), mode='complete')[0][:,:k]
         tmp2 = _random_complex(k, seed=np_rng)
         tmp2 /= np.linalg.norm(tmp2)
         ret = ((tmp0*tmp2) @ tmp1.T).reshape(-1)
@@ -129,14 +170,29 @@ def rand_bipartite_state(N0, N1=None, k=None, seed=None, return_dm=False):
     return ret
 
 
-def rand_separable_dm(N0, N1=None, k=2, seed=None):
+def rand_separable_dm(dimA, dimB=None, k=2, seed=None):
+    r'''Generate random separable density matrix
+
+    $$\left\{ \rho \in \mathbb{C} ^{d_1d_2\times d_1d_2}\,\,: \rho =\sum_k{p_i\rho _{i}^{\left( A \right)}\otimes \rho _{i}^{\left( B \right)}} \right\}$$
+
+    Parameters:
+        dimA (int): dimension of subsystem A
+        dimB (int,None): dimension of subsystem B, if None, `dimB=dimA`
+        k (int): number of terms in the separable state
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): density matrix, shape=(dimA*dimB, dimA*dimB), dtype=complex128
+    '''
+    if dimB is None:
+        dimB = dimA
     np_rng = get_numpy_rng(seed)
     probability = np_rng.uniform(0, 1, size=k)
     probability /= probability.sum()
     ret = 0
     for ind0 in range(k):
-        tmp0 = rand_density_matrix(N0, kind='haar', seed=np_rng)
-        tmp1 = rand_density_matrix(N1, kind='haar', seed=np_rng)
+        tmp0 = rand_density_matrix(dimA, kind='haar', seed=np_rng)
+        tmp1 = rand_density_matrix(dimB, kind='haar', seed=np_rng)
         ret = ret + probability[ind0] * np.kron(tmp0, tmp1)
     return ret
 

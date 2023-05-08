@@ -11,3 +11,7 @@ Initially, this package is named `numpyqi`, later it's shortened to be `numqi` (
    * `numpyqi`: bad
    * `numqi`: pronounced as "num py q i", emphasize that it's based on numpy and focuses on quantum information field
    * `numqy`: bad, confused with `numpy`
+
+> why `233` appears so frequently?
+
+`233` is a prime number! Internet slang that essentially means “LOL.”

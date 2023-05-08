@@ -1,9 +1,9 @@
 site_name: numqi
 # site_url: https://husisy.github.io/demo-mkdocs/
 theme:
+  name: material
   features:
     - navigation.tabs
-  name: material
   palette:
     - scheme: default
       toggle:
@@ -20,8 +20,17 @@ nav:
   - Quantum Gate: gate.md
   - Quantum Circuit: circuit.md
   - VarQEC: varqec.md
-  - TODO:
-    - TODO: todo.md
+  - misc: misc.md
+plugins:
+  search: {}
+  mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        paths: [python]
+        options:
+          docstring_style: google
+          show_root_heading: true
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
@@ -29,5 +38,4 @@ extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-
 # mkdocs serve --dev-addr=127.0.0.1:23333
