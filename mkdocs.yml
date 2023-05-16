@@ -4,6 +4,9 @@ theme:
   name: material
   features:
     - navigation.tabs
+    - search.highlight
+    - search.share
+    - search.suggest
   palette:
     - scheme: default
       toggle:
@@ -19,10 +22,11 @@ nav:
   - Parameterization: param.md
   - Quantum Gate: gate.md
   - Quantum Circuit: circuit.md
+  - Matrix space: matrix_space.md
   - VarQEC: varqec.md
   - misc: misc.md
 plugins:
-  search: {}
+  search:
   mkdocstrings:
     default_handler: python
     handlers:

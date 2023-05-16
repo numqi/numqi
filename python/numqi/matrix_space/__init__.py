@@ -14,8 +14,11 @@ from ._hierarchy import (get_antisymmetric_basis, get_symmetric_basis, project_t
     has_rank_hierarchical_method, permutation_with_antisymmetric_factor)
 # for unittest only
 from ._hierarchy import naive_antisym_sym_projector, naive_tensor2d_project_to_sym_antisym_basis
+from ._numerical_range import (get_matrix_numerical_range, get_matrix_numerical_range_along_direction,
+    get_real_bipartite_numerical_range, detect_real_matrix_subspace_rank_one)
 
 from . import _misc
 from . import _hierarchy
 from . import _gradient
 from . import _clebsch_gordan
+from . import _numerical_range

@@ -95,17 +95,25 @@ def find_closest_vector_in_space(space, vec, field):
 
 
 def get_matrix_orthogonal_basis(np0, field, zero_eps=1e-10):
-    # R_T C_T R C C_H R_cT R_c
-    # span_R(R_T^nn)/R_T
-    # span_C(R_T^nn) span_C(C_T) / C_T
-    # span_R(R^mn)/R
-    # span_C(R^mn) span_C(C^mn) / C
-    # span_R(C_H^nn)/C_H
-    # span_R(C_T^nn)/R_cT
-    # span_R(C^mn)/R_c
-    # (ret0)matrix_subspace(np,(N0,N1,N1))
-    # (ret1)matrix_subspace_orth(np,(N2,N1,N1))
-    # (ret2)space_char(str)
+    r'''return matrix orhtogonal basis
+
+    Parameters:
+        np0 (np.ndarray): (N0,N1,N1)
+        field (str): 'real' or 'complex'
+        zero_eps (float): zero threshold
+
+    Returns:
+        basis (np.ndarray): (N0,N1,N1)
+        basis_orth (np.ndarray): (N2,N1,N1)
+        space_char (str): R_T C_T R C C_H R_cT R_c
+            R_T: span_R(R_T^nn), real symmetric matrix over real field
+            C_T: span_C(C_T) span_C(R_T^nn), real/complex symmetric matrix over complex field
+            R: span_R(R^mn), real matrix over real field
+            C: span_C(C^mn) span_C(R^mn), real/complex matrix over complex field
+            C_H: span_R(C_H^nn), complex hermitian matrix over complex field
+            R_cT: span_R(C_T^nn), complex symmetric matrix over real field
+            R_c: span_R(C^mn), complex matrix over real field
+    '''
     assert np0.ndim==3
     assert field in {'real','complex'}
     np.iscomplexobj(np0)

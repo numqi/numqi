@@ -120,6 +120,10 @@ def apply_super_op(op, rho):
 
 # bad performance
 def hf_channel_to_kraus_op(hf_channel, dim_in):
+    r'''convert hf_channel (linear map) to kraus_op
+
+    warning, not all hf_channel can be converted to kraus_op (see https://arxiv.org/abs/2212.12811 eq16)
+    '''
     super_op = []
     for ind0 in range(dim_in):
         for ind1 in range(dim_in):
@@ -129,3 +133,16 @@ def hf_channel_to_kraus_op(hf_channel, dim_in):
     super_op = np.stack(super_op, axis=2).reshape(-1,dim_in*dim_in)
     kraus_op = super_op_to_kraus_op(super_op)
     return kraus_op
+
+# bad performance
+def hf_channel_to_choi_op(hf0, dim_in):
+    ret = []
+    tmp0 = np.zeros((dim_in,dim_in), dtype=np.float64)
+    for ind0 in range(dim_in):
+        for ind1 in range(dim_in):
+            tmp0[ind0,ind1] = 1
+            ret.append(hf0(tmp0))
+            tmp0[ind0,ind1] = 0
+    dim_out = ret[0].shape[0]
+    ret = np.stack(ret, axis=0).reshape(dim_in,dim_in,dim_out,dim_out).transpose(0,2,1,3)
+    return ret
