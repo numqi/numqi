@@ -19,7 +19,7 @@ theme:
 nav:
   - Home: index.md
   - Preliminary:
-    - Symplectic group: preliminary/group_spf2.md
+    - Symplectic: preliminary/group_spf2.md
   - Tutorial:
     - optimize: tutorial/optimize.md
     - gradient: tutorial/gradient_descent.md
