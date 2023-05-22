@@ -1,5 +1,3 @@
-from . import symext
-
 from ._internal import (
     cayley_table_to_left_regular_form,
     get_klein_four_group_cayley_table,
@@ -31,3 +29,6 @@ from ._symmetric import (
     get_all_young_tableaux,
     young_tableau_to_young_symmetrizer,
 )
+
+from . import symext
+from . import spf2

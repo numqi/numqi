@@ -1,19 +1,31 @@
 import math
+import random
 import itertools
 import numpy as np
 import scipy.linalg
 
 
-from .gellmann import gellmann_basis_to_matrix
-from .param import real_matrix_to_special_unitary
+from numqi.gellmann import gellmann_basis_to_matrix
+from numqi.param import real_matrix_to_special_unitary
 
-def get_numpy_rng(np_rng_or_seed_or_none=None):
-    if np_rng_or_seed_or_none is None:
-        ret = np.random.default_rng()
-    elif isinstance(np_rng_or_seed_or_none, np.random.Generator):
-        ret = np_rng_or_seed_or_none
+
+def get_random_rng(rng_or_seed=None):
+    if rng_or_seed is None:
+        ret = random.Random()
+    elif isinstance(rng_or_seed, random.Random):
+        ret = rng_or_seed
     else:
-        seed = int(np_rng_or_seed_or_none)
+        ret = random.Random(int(rng_or_seed))
+    return ret
+
+
+def get_numpy_rng(rng_or_seed=None):
+    if rng_or_seed is None:
+        ret = np.random.default_rng()
+    elif isinstance(rng_or_seed, np.random.Generator):
+        ret = rng_or_seed
+    else:
+        seed = int(rng_or_seed)
         ret = np.random.default_rng(seed)
     return ret
 
@@ -22,6 +34,7 @@ def _random_complex(*size, seed=None):
     np_rng = get_numpy_rng(seed)
     ret = np_rng.normal(size=size + (2,)).astype(np.float64, copy=False).view(np.complex128).reshape(size)
     return ret
+
 
 def rand_haar_state(dim, tag_complex=True, seed=None):
     r'''Return a random state vector from the Haar measure on the unit sphere in $\mathbb{C}^{d}$.
@@ -45,9 +58,6 @@ def rand_haar_state(dim, tag_complex=True, seed=None):
         ret = np_rng.normal(size=dim)
     ret /= np.linalg.norm(ret)
     return ret
-
-# rand_state is deprecated
-rand_state = rand_haar_state
 
 def rand_haar_unitary(N0, seed=None):
     # http://www.qetlab.com/RandomUnitary
