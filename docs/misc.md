@@ -4,6 +4,8 @@
 
 1. [ ] check `functools.lru_cache`, all type of input should be simple-typed, e.g. `int(1)` not `np.array([1])[0]`
 2. [ ] make it a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
+3. [ ] github CI
+4. [ ] coverage
 
 ## license
 
@@ -54,6 +56,10 @@ package requried for building the documentation
 conda install -c conda-forge mkdocs pymdown-extensions mkdocstrings mkdocs-material mkdocstrings-python
 pip install mkdocs mkdocs-material pymdown-extensions 'mkdocstrings[python]' mkdocs-material
 pip install 'mkdocstrings[crystal,python]'
+
+pytest
+pytest-cov
+pytest --cov=python/numqi tests
 ```
 
 Build and Serve the documentation locally, then brower the website `127.0.0.1:23333`
