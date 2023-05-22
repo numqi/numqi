@@ -32,9 +32,9 @@ $$p_{x\alpha,y\beta}\succeq0,\quad q_{x\alpha,y\beta}\succeq0,\quad\sum_{x\alpha
 
 with the complete basis set (Bosonic and Fermionic parts)
 
-$$\left|\psi_{B}^{\alpha}\right\rangle \in\left\{ \left|00\right\rangle ,\left|11\right\rangle ,\left|22\right\rangle ,\frac{1}{\sqrt{2}}\left(\left|01\right\rangle +\left|10\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|02\right\rangle +\left|20\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|12\right\rangle +\left|21\right\rangle \right)\right\} $$
+$$\left|\psi_{B}^{\alpha}\right\rangle \in\lbrace \left|00\right\rangle ,\left|11\right\rangle ,\left|22\right\rangle ,\frac{1}{\sqrt{2}}\left(\left|01\right\rangle +\left|10\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|02\right\rangle +\left|20\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|12\right\rangle +\left|21\right\rangle \right)\rbrace $$
 
-$$ \left|\psi_{F}^{\alpha}\right\rangle \in\left\{ \frac{1}{\sqrt{2}}\left(\left|01\right\rangle -\left|10\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|02\right\rangle -\left|20\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|12\right\rangle -\left|21\right\rangle \right)\right\}  $$
+$$ \left|\psi_{F}^{\alpha}\right\rangle \in\lbrace \frac{1}{\sqrt{2}}\left(\left|01\right\rangle -\left|10\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|02\right\rangle -\left|20\right\rangle \right),\frac{1}{\sqrt{2}}\left(\left|12\right\rangle -\left|21\right\rangle \right)\rbrace  $$
 
 comment: easy for convex optimization (semidefinite programming), hard for `L-BFGS-B` algorithm, feasible for `BFGS` algorithm, feasible for `adam` optimizer
 

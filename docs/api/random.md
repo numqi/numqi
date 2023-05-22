@@ -52,7 +52,7 @@ array([ 0.24727854-0.1190505j ,  0.48835483-0.06843491j,
 `numqi.random.rand_hermite_matrix(d)`
 
 $$
-\left\{ x\in \mathbb{C} ^{d\times d}\,\,: x=x^{\dagger} \right\}
+\lbrace x\in \mathbb{C} ^{d\times d}\,\,: x=x^{\dagger} \rbrace
 $$
 
 ## unitary matrix
@@ -60,7 +60,7 @@ $$
 `numqi.random.rand_haar_unitary(d)`, `numqi.random.rand_unitary_matrix(d)`
 
 $$
-\left\{ x\in \mathbb{C} ^{d\times d}\,\,: xx^{\dagger}=I_d \right\}
+\lbrace x\in \mathbb{C} ^{d\times d}\,\,: xx^{\dagger}=I_d \rbrace
 $$
 
 ## quantum channel
@@ -68,13 +68,13 @@ $$
 `numqi.random.rand_kraus_op(k, d0, d1)`
 
 $$
-\left\{ K\in \mathbb{C} ^{k\times d_o\times d_i}\,\,: \sum_s{K_{s}^{\dagger}K_s}=I_{d_i} \right\}
+\lbrace K\in \mathbb{C} ^{k\times d_o\times d_i}\,\,: \sum_s{K_{s}^{\dagger}K_s}=I_{d_i} \rbrace
 $$
 
 `numqi.random.rand_choi_op(d0, d1)`
 
 $$
-\left\{ C\in \mathbb{C} ^{d_id_o\times d_id_o}\,\,:C\succeq 0,\mathrm{Tr}_{d_o}\left[ C \right] =I_{d_i} \right\}
+\lbrace C\in \mathbb{C} ^{d_id_o\times d_id_o}\,\,:C\succeq 0,\mathrm{Tr}_{d_o}\left[ C \right] =I_{d_i} \rbrace
 $$
 
 ## misc

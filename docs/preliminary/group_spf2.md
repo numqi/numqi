@@ -7,7 +7,7 @@
     * $\mathbb{F}_n$: finite field
     * $\mathbb{R}$: real field
     * $\mathbb{C}$: complex field
-    * $U(n)=\left\{x\in\mathbb{C}^{n\times n}:x^\dagger x=I_n \right\}$: unitary group
+    * $U(n)=\lbrace x\in\mathbb{C}^{n\times n}:x^\dagger x=I_n \rbrace$: unitary group
     * $\Lambda_n=\sigma_x\otimes I_n$
 
 ## Symplectic vector space $\mathbb{F}_2^{2n}$
@@ -18,7 +18,7 @@ $$x,y\in \mathbb{F}_2^{2n}\Rightarrow \langle x,y\rangle=\sum_{i=1}^n x_iy_{i+n}
 
 ## Symplectic pair vector set $S_n$
 
-$$S_{n}=\left\{ \left(x,y\right)\in\mathbb{F}_{2}^{2n}\times\mathbb{F}_{2}^{2n}:\langle x,y\rangle=x^{T}\Lambda_{n}y=1\right\} $$
+$$S_{n}=\lbrace \left(x,y\right)\in\mathbb{F}_{2}^{2n}\times\mathbb{F}_{2}^{2n}:\langle x,y\rangle=x^{T}\Lambda_{n}y=1\rbrace $$
 
 1. order of the set
 
@@ -26,7 +26,7 @@ $$S_{n}=\left\{ \left(x,y\right)\in\mathbb{F}_{2}^{2n}\times\mathbb{F}_{2}^{2n}:
 
 ## Symplectic group $Sp(2n,\mathbb{F}_2)$
 
-$$Sp\left(2n,\mathbb{F}_{2}\right)=\left\{ x\in\mathbb{F}_{2}^{2n\times2n}:x\Lambda_{n}x^{T}=\Lambda_{n}\right\}$$
+$$Sp\left(2n,\mathbb{F}_{2}\right)=\lbrace x\in\mathbb{F}_{2}^{2n\times2n}:x\Lambda_{n}x^{T}=\Lambda_{n}\rbrace$$
 
 1. $x\in Sp\left(2n,\mathbb{F}_{2}\right)\Rightarrow x^{T}\in Sp\left(2n,\mathbb{F}_{2}\right)$
 2. $x,y\in Sp\left(2n,\mathbb{F}_{2}\right)\Rightarrow xy\in Sp\left(2n,\mathbb{F}_{2}\right)$
@@ -46,12 +46,12 @@ $$h\in\mathbb{F}_{2}^{2n},T_{h}\left(x\right)=T_{h}x=x+\langle x,h\rangle h:\mat
 \mapsto\mathbb{F}_{2}^{2n}$$
 
 1. $\forall h\in\mathbb{F}_{2}^{2n},T_{h}T_{h}x=x=T_{0}x$
-2. $\forall x,y\in\mathbb{F}_{2}^{2n}\setminus\left\{ 0\right\} \Rightarrow\exists a,b\in\mathbb{F}_{2}^{2n},y=T_{b}T_{a}x$
+2. $\forall x,y\in\mathbb{F}_{2}^{2n}\setminus\lbrace 0\rbrace \Rightarrow\exists a,b\in\mathbb{F}_{2}^{2n},y=T_{b}T_{a}x$
     * Lemma 2 in paper [doi-link](https://doi.org/10.1063%2F1.4903507)
 
 ## Pauli group
 
-$$P_{n}=\left\{ e^{ij_{0}\pi/2}\sigma_{j_{1}}\otimes\cdots\sigma_{j_{n}}:j_{k}\in\mathbb{F}_{4}\right\} =\left\{ \pm1,\pm i\right\} \otimes\left\{ I,X,Y,Z\right\} ^{n}$$
+$$P_{n}=\lbrace e^{ij_{0}\pi/2}\sigma_{j_{1}}\otimes\cdots\sigma_{j_{n}}:j_{k}\in\mathbb{F}_{4}\rbrace =\lbrace \pm1,\pm i\rbrace \otimes\lbrace I,X,Y,Z\rbrace ^{n}$$
 
 1. there exists a one-to-one mapping $P_{n}\mapsto\mathbb{F}_{2}^{2n+2}$
 
@@ -61,7 +61,7 @@ $$P_{n}=\left\{ e^{ij_{0}\pi/2}\sigma_{j_{1}}\otimes\cdots\sigma_{j_{n}}:j_{k}\i
 
 ## Clifford group
 
-$$C_{n}=\left\{ x\in U\left(2^{n}\right):xP_{n}x^{\dagger}=P_{n}\right\} /U\left(1\right)$$
+$$C_{n}=\lbrace x\in U\left(2^{n}\right):xP_{n}x^{\dagger}=P_{n}\rbrace /U\left(1\right)$$
 
 1. group isomorphism $C_{n}\cong\mathbb{F}_{2}^{2n}\times Sp\left(2n,\mathbb{F}_{2}\right)$
 

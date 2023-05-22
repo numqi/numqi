@@ -82,7 +82,7 @@ $S_6$
 
 ## alternating group
 
-$A_2=\left\{e\right\}$
+$A_2=\lbrace e\rbrace$
 
 $A_3=C_3$
 
