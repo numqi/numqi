@@ -18,12 +18,20 @@ theme:
         name: Switch to light mode
 nav:
   - Home: index.md
-  - Random Sampling: random.md
-  - Parameterization: param.md
-  - Quantum Gate: gate.md
-  - Quantum Circuit: circuit.md
-  - Matrix space: matrix_space.md
-  - VarQEC: varqec.md
+  - Preliminary:
+    - Symplectic group: preliminary/group_spf2.md
+  - Tutorial:
+    - optimize: tutorial/optimize.md
+    - gradient: tutorial/gradient_descent.md
+    - group:
+      - group: tutorial/group.md
+      - symmetric extension: tutorial/group-symext.md
+  - API:
+    - matrix space: api/matrix_space.md
+    - random: api/random.md
+    - parameterization: api/param.md
+    - quantum gate: api/gate.md
+    - quantum circuit: api/circuit.md
   - misc: misc.md
 plugins:
   search:
@@ -34,6 +42,7 @@ plugins:
         paths: [python]
         options:
           docstring_style: google
+          show_source: false
           show_root_heading: true
 markdown_extensions:
   - pymdownx.arithmatex:

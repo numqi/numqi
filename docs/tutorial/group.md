@@ -3,11 +3,10 @@
 TODO
 
 1. Cayley table (multiplication table)
-2. TODO
-   * [ ] analytical results for Dihedral group and cyclic group (@book-ZhongqiMA)
-   * [ ] Young diagram/tableau
-   * [ ] `su(n)`
-   * [ ] space group
+2. analytical results for Dihedral group and cyclic group (@book-ZhongqiMA)
+3. Young diagram/tableau
+4. `su(n)`
+5. space group
 
 ## Klein four-group
 

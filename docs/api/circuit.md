@@ -80,7 +80,7 @@ fig.tight_layout()
 # fig.savefig('data/circuit_basic_pgate.png')
 ```
 
-![circuit-basic-pgate](data/circuit_basic_pgate.png)
+![circuit-basic-pgate](../data/circuit_basic_pgate.png)
 
 ## custom gate
 

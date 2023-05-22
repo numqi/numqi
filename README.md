@@ -71,3 +71,10 @@ Build and Serve the documentation locally, then brower the website `127.0.0.1:23
 mkdocs serve --dev-addr=127.0.0.1:23333
 # --dev-addr=0.0.0.0:23333
 ```
+
+## `python/numqi` file structure
+
+1. special module name, not for users
+   * `._xxx.py`: internal functions, not for users
+   * `._internal.py`: private to submodules. E.g., `numqi.A._internal` can only be imported in `numqi.A.xxx`
+   * `._lib_public.py`: library public functions. E.g., `numqi.A._lib_public` can be imported by `numqi.B`
