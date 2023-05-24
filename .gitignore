@@ -7,3 +7,7 @@ tbd00/
 
 # mkdocs
 site/
+
+python/*/_version.py
+
+.coverage

@@ -78,3 +78,14 @@ mkdocs serve --dev-addr=127.0.0.1:23333
    * `._xxx.py`: internal functions, not for users
    * `._internal.py`: private to submodules. E.g., `numqi.A._internal` can only be imported in `numqi.A.xxx`
    * `._lib_public.py`: library public functions. E.g., `numqi.A._lib_public` can be imported by `numqi.B`
+
+new environment
+
+```bash
+micromamba create -n test00 python
+micromamba activate test00
+
+# pip install ".[torch]"
+pip install -e ".[dev,doc]"
+mkdocs serve
+```

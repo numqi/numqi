@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools_scm>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "numqi"
+authors = [
+    { name = "husisy", email = "donot@mail.me" },
+]
+description = "quantum information toolbox implemented in numpy"
+readme = "README.md"
+keywords = ["quantum information"]
+license = { text = "MIT" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    'numpy',
+    'opt_einsum',
+    'scipy',
+    'tqdm',
+    'sympy',
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+torch = ["torch"]
+dev = [
+    "twine",
+    "pytest",
+    "pytest-cov",
+    "torch",
+]
+doc = [
+    "mkdocs",
+    "mkdocs-material",
+    "pymdown-extensions",
+    "mkdocstrings[python]",
+]
+
+[project.urls]
+Homepage = "https://github.com/husisy/numqi/"
+Documentation = "https://husisy.github.io/numqi/"
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.setuptools_scm]
+write_to = "python/numqi/_version.py"
