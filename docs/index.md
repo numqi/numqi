@@ -28,3 +28,5 @@ the following command should be okay for `win/mac/linux`
 test whether succuessfully installed (run it in `python/ipython` REPL)
 
 `import numqi`
+
+TODO: more tutorials and api docs.
