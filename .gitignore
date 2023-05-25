@@ -8,6 +8,7 @@ tbd00/
 # mkdocs
 site/
 
+# setuptools-scm
 python/*/_version.py
 
 .coverage
