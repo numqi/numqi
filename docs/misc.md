@@ -35,7 +35,32 @@ SOFTWARE.
 
 ## contributing
 
-to write documentations, see
+Personally i use `conda/miniconda/mamba/micromamba` to create a virtual environment. You can use any familiar tools `poetry/rye/etc.` to create a virtual environment.
+
+```bash
+conda create -n env-numqi python
+conda activate env-numqi
+```
+
+Then install `numqi` in it using `pip`
+
+```bash
+git clone git@github.com:husisy/numqi.git
+cd numqi
+pip install -e ".[dev]"
+```
+
+run the unittest
+
+```bash
+pytest --cov=python/numqi
+```
+
+build the documentation
+
+```bash
+mkdocs serve
+```
 
 1. **WARNING**: second indentaion must be 4 spaces, not 3 spaces (necessary for `mkdoc`)
 2. api style: [griffe/usage](https://mkdocstrings.github.io/griffe/docstrings/)
@@ -44,30 +69,10 @@ to write documentations, see
     * [github/mkdocstrings/python](https://github.com/mkdocstrings/python)
     * [github/mkdocstrings/griffe](https://github.com/mkdocstrings/griffe)
     * [github/best-of-mkdocs](https://github.com/mkdocs/best-of-mkdocs)
-
-```bash
-pip install 'mkdocstrings[crystal,python]'
-```
-
-package requried for building the documentation
-
-```bash
-# https://github.com/mkdocstrings/mkdocstrings
-conda install -c conda-forge mkdocs pymdown-extensions mkdocstrings mkdocs-material mkdocstrings-python
-pip install mkdocs mkdocs-material pymdown-extensions 'mkdocstrings[python]' mkdocs-material
-pip install 'mkdocstrings[crystal,python]'
-
-pytest
-pytest-cov
-pytest --cov=python/numqi tests
-```
-
-Build and Serve the documentation locally, then brower the website `127.0.0.1:23333`
-
-```bash
-mkdocs serve --dev-addr=127.0.0.1:23333
-# --dev-addr=0.0.0.0:23333
-```
+4. special module name, not for users
+   * `._xxx.py`: internal functions, not for users
+   * `._internal.py`: private to submodules. E.g., `numqi.A._internal` can only be imported in `numqi.A.xxx`
+   * `._lib_public.py`: library public functions. E.g., `numqi.A._lib_public` can be imported by `numqi.B`
 
 ## Q-and-A
 

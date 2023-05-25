@@ -30,8 +30,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "torch",
-]
-doc = [
+    # below for building documentation
     "mkdocs",
     "mkdocs-material",
     "pymdown-extensions",
