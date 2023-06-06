@@ -21,6 +21,7 @@ nav:
   - Preliminary:
     - Symplectic: preliminary/group_spf2.md
   - Tutorial:
+    - Gell-Mann: tutorial/gellmann.md
     - optimize: tutorial/optimize.md
     - gradient: tutorial/gradient_descent.md
     - group:

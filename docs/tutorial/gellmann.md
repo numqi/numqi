@@ -1,6 +1,6 @@
 # Gell-Mann matrix
 
-[wiki/generalizationso-of-pauli-matrices](https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices)
+[wiki/generalizations-of-pauli-matrices](https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices)
 
 In traceless matrix space $\lbrace x\in\mathbb{C}^{d\times d}:\mathrm{Tr}[x]=0\rbrace$, the Gell-Mann matrices make a complete and orthogonal basis. When $d=2$, Gell-Mann matrices are simply three Pauli matrices. For general dimension $d$, the number of Gell-Mann matrices is $d^2-1$, $M_0,M_1,M_2,\cdots,M_{d^2-2}$. For $d=3$, the specifc form of Gell-Mann matrices can be found in [wiki/Gell-Mann-matrices](https://en.wikipedia.org/wiki/Gell-Mann_matrices).
 
