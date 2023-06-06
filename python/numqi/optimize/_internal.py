@@ -170,8 +170,9 @@ def minimize(model, theta0=None, num_repeat=3, tol=1e-7, print_freq=-1, method='
 
 
 def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),
-            seed=None, tqdm_update_freq=20, use_tqdm=True, early_stop_threshold=None):
+            seed=None, tqdm_update_freq=20, early_stop_threshold=None, tag_return_history=False):
     assert optim_args[0] in {'sgd', 'adam'}
+    use_tqdm = tqdm_update_freq>0
     np_rng = np.random.default_rng(seed)
     num_parameter = len(get_model_flat_parameter(model))
     if theta0!='no-init':
@@ -182,18 +183,28 @@ def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=optim_args[1])
     tmp0 = tqdm(range(num_step)) if use_tqdm else contextlib.nullcontext(range(num_step))
+    loss_best = None
+    theta_best = None
+    loss_history = []
     with tmp0 as pbar:
         for ind0 in pbar:
             optimizer.zero_grad()
             loss = model()
             loss.backward()
             loss_i = loss.item()
+            if tag_return_history:
+                loss_history.append(loss_i)
+            if (loss_best is None) or (loss_i<loss_best):
+                loss_best = loss_i
+                theta_best = get_model_flat_parameter(model)
             optimizer.step()
             if use_tqdm and (ind0%tqdm_update_freq==0):
                 pbar.set_postfix(loss=f'{loss_i:.12f}')
             if (early_stop_threshold is not None) and (loss_i<=early_stop_threshold):
                 break
-    return loss_i
+    set_model_flat_parameter(model, theta_best)
+    ret = (loss_best, loss_history) if tag_return_history else loss_best
+    return ret
 
 
 def _hf_zero_grad(parameter_list):
