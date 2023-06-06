@@ -36,5 +36,5 @@ pip install .
 test whether succuessfully installed (run it in `python/ipython` REPL)
 
 ```Python
-import pyqet
+import numqi
 ```
