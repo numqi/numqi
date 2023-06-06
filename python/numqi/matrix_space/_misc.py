@@ -95,7 +95,7 @@ def find_closest_vector_in_space(space, vec, field):
 
 
 def get_matrix_orthogonal_basis(np0, field, zero_eps=1e-10):
-    r'''return matrix orhtogonal basis
+    r'''return matrix orthogonal basis
 
     Parameters:
         np0 (np.ndarray): (N0,N1,N1)
