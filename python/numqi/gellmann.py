@@ -159,12 +159,20 @@ def gellmann_basis_to_dm(vec):
 
 
 def dm_to_gellmann_distance(dm):
-    tmp0 = dm_to_gellmann_basis(dm)
-    shape = tmp0.shape
-    tmp1 = tmp0.reshape(-1, shape[-1])
-    if is_torch(dm):
-        ret = torch.linalg.norm(tmp1, dim=1)
-    else:
-        ret = np.linalg.norm(tmp1, axis=1)
-    ret = ret.item() if (len(shape)==1) else ret.reshape(*shape[:-1])
+    shape = dm.shape
+    assert shape[-1]==shape[-2]
+    N0 = dm.shape[-1]
+    dm = dm.reshape(-1, N0, N0)
+    tmp0 = (np.trace(dm, axis1=1, axis2=2)/N0).reshape(-1,1,1) * np.eye(N0)
+    ret = np.linalg.norm((dm - tmp0).reshape(-1,N0*N0), ord=2, axis=1)/np.sqrt(2)
+    ret = ret.item() if (len(shape)==2) else ret.reshape(*shape[:-2])
+    ## the following code is equivalent to the above one
+    # tmp0 = dm_to_gellmann_basis(dm)
+    # shape = tmp0.shape
+    # tmp1 = tmp0.reshape(-1, shape[-1])
+    # if is_torch(dm):
+    #     ret = torch.linalg.norm(tmp1, dim=1)
+    # else:
+    #     ret = np.linalg.norm(tmp1, axis=1)
+    # ret = ret.item() if (len(shape)==1) else ret.reshape(*shape[:-1])
     return ret
