@@ -158,7 +158,7 @@ def gellmann_basis_to_dm(vec):
     return ret
 
 
-def dm_to_gellmann_distance(dm):
+def dm_to_gellmann_norm(dm):
     shape = dm.shape
     assert shape[-1]==shape[-2]
     N0 = dm.shape[-1]
