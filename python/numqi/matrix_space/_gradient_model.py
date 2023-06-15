@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.optimize
 import torch
 
 import numqi.utils
@@ -15,6 +14,16 @@ hf_torch_norm_square = lambda x: torch.sum((x.conj() * x).real)
 # old_name DetectMatrixSpaceRank
 class DetectRankModel(torch.nn.Module):
     def __init__(self, basis_orth, space_char, rank, dtype='float64', device='cpu'):
+        r'''
+        Args:
+            basis_orth (np.ndarray): shape (N0, N1, N2)
+            space_char (str): see numqi.matrix_space.get_matrix_orthogonal_basis
+            rank (tuple,int): if int or tuple of length 1, then search for matrix of rank `rank` in the space.
+                If tuple (must be of length 3), then search for hermitian matrix in the space of matrices with
+                with the inertia `(EVL_free, EVL_positive, EVL_negative)`
+            dtype (str): 'float32' or 'float64'
+            device (str): 'cpu' or 'cuda'
+        '''
         super().__init__()
         self.is_torch = isinstance(basis_orth, torch.Tensor)
         self.use_sparse = self.is_torch and basis_orth.is_sparse #use sparse only when is a torch.tensor

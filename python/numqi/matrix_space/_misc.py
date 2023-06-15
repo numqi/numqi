@@ -94,17 +94,18 @@ def find_closest_vector_in_space(space, vec, field):
     return ret
 
 
-def get_matrix_orthogonal_basis(np0, field, zero_eps=1e-10):
+def get_matrix_orthogonal_basis(matrix_subspace, field, zero_eps=1e-10):
     r'''return matrix orhtogonal basis
 
     Parameters:
-        np0 (np.ndarray): (N0,N1,N1)
+        matrix_subspace (np.ndarray): (N0,N1,N2), `N0` matrices with each matrix of shape (N1,N2)
         field (str): 'real' or 'complex'
         zero_eps (float): zero threshold
 
     Returns:
-        basis (np.ndarray): (N0,N1,N1)
-        basis_orth (np.ndarray): (N2,N1,N1)
+        basis (np.ndarray): (N3,N1,N2), `N3` basis with each basis of shape (N1,N2). `N3` (<N0) is the rank of `matrix_subspace`
+            Each basis is orthogonal to each other $Tr(A^\dag B)=0$ and normalized in Frobenius norm $Tr(A^\dag A)=1$
+        basis_orth (np.ndarray): (N4,N1,N2), `N3` basis with each basis of shape (N1,N2)
         space_char (str): R_T C_T R C C_H R_cT R_c
             R_T: span_R(R_T^nn), real symmetric matrix over real field
             C_T: span_C(C_T) span_C(R_T^nn), real/complex symmetric matrix over complex field
@@ -114,6 +115,7 @@ def get_matrix_orthogonal_basis(np0, field, zero_eps=1e-10):
             R_cT: span_R(C_T^nn), complex symmetric matrix over real field
             R_c: span_R(C^mn), complex matrix over real field
     '''
+    np0 = matrix_subspace #alias for short
     assert np0.ndim==3
     assert field in {'real','complex'}
     np.iscomplexobj(np0)
