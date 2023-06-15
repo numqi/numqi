@@ -1,5 +1,5 @@
 site_name: numqi
-# site_url: https://husisy.github.io/demo-mkdocs/
+site_url: https://husisy.github.io/numqi/
 theme:
   name: material
   features:
@@ -21,6 +21,7 @@ nav:
   - Preliminary:
     - Symplectic: preliminary/group_spf2.md
   - Tutorial:
+    - Gell-Mann: tutorial/gellmann.md
     - optimize: tutorial/optimize.md
     - gradient: tutorial/gradient_descent.md
     - group:
@@ -47,8 +48,9 @@ plugins:
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-# mkdocs serve --dev-addr=127.0.0.1:23333
