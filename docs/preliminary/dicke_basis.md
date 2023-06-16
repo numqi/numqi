@@ -2,11 +2,11 @@
 
 See paper for detail explaination [arxiv-link](http://arxiv.org/abs/1904.07358)
 
-For $n$ qudit-$d$ Hilbert space $\mathcal{H}_d^{\otimes n}$, you may think of $n$ Boson particles $A_1,A_2,\cdots,A_n$, the pure state vector must satisfy the permutation symmetry
+For $n$ qudit-$d$ Hilbert space $\mathcal{H}_d^{\otimes n}$, you may think of $n$ Boson particles $B_1,B_2,\cdots,B_n$, the pure state vector must satisfy the permutation symmetry
 
-$$ P_{A_rA_s} \psi=\psi,\forall r,s=1,2,\cdots,n$$
+$$ P_{B_rB_s} \psi=\psi,\forall r,s=1,2,\cdots,n$$
 
-with the permutation operator $P_{A_rA_s}$ interchanging $B_r$-party and $B_s$-party. If take $\psi$ as a high-dimensioanl array (tensor), it's equivalent to say
+with the permutation operator $P_{B_rB_s}$ interchanging $B_r$-party and $B_s$-party. If take $\psi$ as a high-dimensioanl array (tensor), it's equivalent to say
 
 $$ \left[P_{B_{r}B_{s}}\psi\right]_{i_{1}\cdots i_{r-1}i_{r}i_{r+1}\cdots i_{s-1}i_{s}i_{s+1}\cdots i_{n}}=\psi_{i_{1}\cdots i_{r-1}i_{s}i_{r+1}\cdots i_{s-1}i_{r}i_{s+1}\cdots i_{n}} $$
 
