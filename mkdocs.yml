@@ -20,6 +20,7 @@ nav:
   - Home: index.md
   - Preliminary:
     - Symplectic: preliminary/group_spf2.md
+    - Dicke Basis: preliminary/dicke_basis.md
   - Tutorial:
     - Gell-Mann: tutorial/gellmann.md
     - optimize: tutorial/optimize.md

@@ -2,7 +2,7 @@ import math
 import functools
 import numpy as np
 
-from ..dicke import dicke_state_partial_trace
+import numqi.dicke
 from ._symmetric import get_all_young_tableaux, get_young_diagram_mask, young_tableau_to_young_symmetrizer, get_sym_group_young_diagram
 
 def get_B1B2_basis():
@@ -101,8 +101,9 @@ def get_symmetric_extension_irrep_coeff(dimB, kext):
     dimB = int(dimB)
     kext = int(kext)
     if dimB==2:
-        a00,a01,a10,a11 = dicke_state_partial_trace(kext)
-        tmp0 = np.stack([np.diag(a00), np.diag(a01,1), np.diag(a10,-1), np.diag(a11)], axis=2).reshape(kext+1,kext+1,2,2)
+        tmp0 = numqi.dicke.get_partial_trace_ABk_to_AB_index(kext, dim=2, return_tensor=True).transpose(2,3,0,1).copy()
+        # a00,a01,a10,a11 = numqi.dicke.dicke_state_partial_trace(kext)
+        # tmp0 = np.stack([np.diag(a00), np.diag(a01,1), np.diag(a10,-1), np.diag(a11)], axis=2).reshape(kext+1,kext+1,2,2)
         coeffB_list = [tmp0]
         multiplicity_list = 1, #all sym-ext are bosonic-ext, so we only use Dicke state
     else:
