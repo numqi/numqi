@@ -43,6 +43,8 @@ def test_superactivation_matrix_subspace():
     ret = np.array(ret)
     assert np.std(ret, axis=0).max() < 1e-10
 
+    # when theta is close to 0 or np.pi/2, the following assert might fail
+    npA,npB,npAB,npL,npR,field = numqi.matrix_space.get_matrix_subspace_example('0error-eq537', np.pi/4)
     EVL,_ = numqi.matrix_space.detect_antisym_y_Ux(npAB, a=1)
     assert abs(EVL[0]) < 1e-10
     assert abs(EVL[1]) > 0.01
