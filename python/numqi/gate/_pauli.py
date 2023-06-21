@@ -26,6 +26,8 @@ def pauli_str_to_matrix(pauli_str, return_orth=False):
 
 @functools.lru_cache
 def get_pauli_group(num_qubit, /, kind='numpy', use_sparse=False):
+    # 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+    # II IX IY IZ XI XX XY XZ YI YX YY YZ ZI ZX ZY ZZ
     assert kind in {'numpy','str','str_to_index'}
     if use_sparse:
         assert kind=='numpy'

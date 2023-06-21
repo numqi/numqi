@@ -17,6 +17,7 @@ def _get_number_internal(n:int, kind:str):
             ret = ret * (x-1) * (x>>1)
     else:
         assert kind=='coset'
+        # TODO ai,bi
         ret = tuple((x-1)*(x>>1) for x in tmp0)
     return ret
 

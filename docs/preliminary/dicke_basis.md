@@ -46,9 +46,9 @@ $$ \mathrm{Tr}_{B^{n-1}}\left[|\psi_{AB^{n}}\rangle\left\langle \psi_{AB^{n}}\ri
 
 with $|r \rangle,|s\rangle$ belongs to $B_i$'s Hilbert space. The $\mathcal{B}_{rs\vec{k}\vec{k}'}$ can be calculated by
 
-$$ \mathcal{B}_{rs\vec{k}\vec{k}'}=\mathrm{Tr}_{B^{n-1}}\left[\left\langle r\right.|D_{n,\vec{k}}\rangle\left\langle D_{n,\vec{k}'}\right|\left.s\right\rangle \right]=\frac{1}{n}\sqrt{k_{r}k_{s}^{\prime}}\prod_{i}\delta_{k_{i},k_{i}^{\prime}} $$
+$$ \begin{aligned} \mathcal{B}_{rs\vec{k}\vec{k}'}&=\left\langle r\right|\mathrm{Tr}_{B^{n-1}}\left[\left|D_{n,\vec{k}}\right\rangle \left\langle D_{n,\vec{k}'}\right|\right]\left|s\right\rangle \\&=\frac{1}{n}\sqrt{k_{r}k_{s}^{\prime}}\delta_{k_{0}k_{0}^{\prime}}\cdots\delta_{k_{r}-1,k_{r}^{\prime}}\cdots\delta_{k_{s}+1,k_{s}^{\prime}}\cdots\delta_{k_{d-1},k_{d-1}^{\prime}} \end{aligned} $$
 
-For n qubits, the tensor $\mathcal{B}$ can be explicitly written down.
+For $n$ qubits, the tensor $\mathcal{B}$ can be explicitly written down.
 
 $$ |D_{n,0}\rangle=|D_{n,0n}\rangle=|1^{\otimes n}\rangle,|D_{n,n}\rangle=|D_{n,n0}\rangle=|0^{\otimes n}\rangle $$
 
