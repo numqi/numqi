@@ -3,6 +3,8 @@
 1. link
     * [wiki/symplecticc-group](https://en.wikipedia.org/wiki/Symplectic_group)
     * paper: How to efficiently select an arbitrary clifford group element [doi-link](https://doi.org/10.1063%2F1.4903507)
+    * the canonical name of Clifford group: Involutions on the the Barnes-Wall lattices and their fixed point sublattices [arxiv-link](https://arxiv.org/abs/math/0511084)
+    * the canonical name of Pauli group: extra special group with $p=2$ [wiki-link](https://en.wikipedia.org/wiki/Extra_special_group) the Heisenberg group over a finite field [stackexchange-link](https://quantumcomputing.stackexchange.com/q/26351)
 2. notation
     * $\mathbb{F}_n$: finite field
     * $\mathbb{R}$: real field
