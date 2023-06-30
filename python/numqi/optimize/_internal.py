@@ -45,6 +45,7 @@ def hf_model_wrapper(model):
     tmp0 = np.cumsum(np.array([0] + [x.numel() for x in parameter_sorted])).tolist()
     index01 = list(zip(tmp0[:-1],tmp0[1:]))
     def hf0(theta, tag_grad=True):
+        # tag_grad=False, return fval only, not (fval,None)
         set_model_flat_parameter(model, theta, index01)
         if tag_grad:
             loss = model()
@@ -58,11 +59,11 @@ def hf_model_wrapper(model):
             # scipy.optimize.LBFGS does not support float32 @20221118
             grad = np.concatenate([x.grad.detach().cpu().numpy().reshape(-1).astype(theta.dtype) for x in parameter_sorted])
         else:
-            # TODO, if tag_grad=False, maybe we should return fval only, not (fval,None)
             with torch.no_grad():
                 loss = model()
             grad = None
-        return loss.item(), grad
+        ret = (loss.item(),grad) if tag_grad else loss.item()
+        return ret
     return hf0
 
 
@@ -78,7 +79,7 @@ def hf_callback_wrapper(hf_fval, state:dict=None, print_freq:int=1):
         if (print_freq>0) and (step%print_freq==0):
             t0 = state['time']
             t1 = time.time()
-            fval = hf_fval(theta, tag_grad=False)[0]
+            fval = hf_fval(theta, tag_grad=False)
             print(f'[step={step}][time={t1-t0:.3f} seconds] loss={fval}')
             state['fval'].append(fval)
             state['time'] = t1
@@ -171,6 +172,7 @@ def minimize(model, theta0=None, num_repeat=3, tol=1e-7, print_freq=-1, method='
 
 def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),
             seed=None, tqdm_update_freq=20, early_stop_threshold=None, tag_return_history=False):
+    # TODO num_repeat
     assert optim_args[0] in {'sgd', 'adam'}
     use_tqdm = tqdm_update_freq>0
     np_rng = np.random.default_rng(seed)
@@ -182,6 +184,11 @@ def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),
         optimizer = torch.optim.SGD(model.parameters(), lr=optim_args[1])
     else:
         optimizer = torch.optim.Adam(model.parameters(), lr=optim_args[1])
+    if len(optim_args)==3:
+        tmp0 = (optim_args[2]/optim_args[1])**(1/num_step)
+        lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=tmp0)
+    else:
+        lr_scheduler = None
     tmp0 = tqdm(range(num_step)) if use_tqdm else contextlib.nullcontext(range(num_step))
     loss_best = None
     theta_best = None
@@ -198,11 +205,16 @@ def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),
                 loss_best = loss_i
                 theta_best = get_model_flat_parameter(model)
             optimizer.step()
+            if lr_scheduler is not None:
+                lr_scheduler.step()
             if use_tqdm and (ind0%tqdm_update_freq==0):
                 pbar.set_postfix(loss=f'{loss_i:.12f}')
             if (early_stop_threshold is not None) and (loss_i<=early_stop_threshold):
                 break
+    # set theta and model.property (sometimes)
     set_model_flat_parameter(model, theta_best)
+    with torch.no_grad():
+        model()
     ret = (loss_best, loss_history) if tag_return_history else loss_best
     return ret
 
