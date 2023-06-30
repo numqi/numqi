@@ -51,7 +51,7 @@ mat = circ.to_unitary() #(np,complex128,(32,32))
 ```Python
 import numpy as np
 import numqi
-circ = numqi.sim.Circuit(default_requires_grad=True)
+circ = numqi.sim.Circuit(default_requires_grad=False)
 gate0 = circ.ry(1)
 circ.H(1)
 circ.cnot(0, 1)
@@ -65,10 +65,8 @@ initial_state = numqi.sim.state.new_base(2)
 theta = np.linspace(0, 4*np.pi)
 op = [(1.0, [(numqi.gate.Z,1)])]
 expectation = []
-circ.init_theta_torch() #TODO error below if not this line
 for x in theta:
-    # gate0.set_args([x]) #fail TODO
-    circ.name_to_pgate['ry']['theta_torch'].data[0,0] = x
+    gate0.set_args([x])
     psi = circ.apply_state(initial_state)
     expectation.append(numqi.sim.state.inner_product_psi0_O_psi1(psi, psi, op).real)
 

@@ -13,6 +13,11 @@ from numqi.utils import hf_tuple_of_int, hf_tuple_of_any
 
 from ._internal import Gate, ParameterGate
 
+if torch is not None:
+    from ._torch_utils import CircuitTorchWrapper
+else:
+    CircuitTorchWrapper = None
+
 CANONICAL_GATE_KIND = {'unitary','control','measure'}
 # TODO kraus
 
@@ -34,42 +39,6 @@ class MeasureGate:
         self.bitstr,self.probability,q1 = numqi.sim.state.measure_quantum_vector(q0, self.index, self.np_rng)
         return q1
 
-    # def grad_backward():
-
-def circuit_apply_state(q0, gate_index_list):
-    for gate_i,index_i in gate_index_list:
-        if gate_i.kind=='unitary':
-            q0 = numqi.sim.state.apply_gate(q0, gate_i.array, index_i)
-        elif gate_i.kind=='control':
-            q0 = numqi.sim.state.apply_control_n_gate(q0, gate_i.array, index_i[0], index_i[1])
-        elif gate_i.kind=='measure':
-            q0 = gate_i.forward(q0)
-        elif gate_i.kind=='custom':
-            q0 = gate_i.forward(q0)
-        else:
-            assert False, f'{gate_i} not supported'
-    return q0
-
-
-def circuit_apply_state_grad(q0_conj, q0_grad, gate_index_list):
-    op_grad_list = []
-    for gate_i,index_i in reversed(gate_index_list):
-        assert gate_i.kind!='measure', 'not support measure in gradient backward yet'
-        if gate_i.kind=='control':
-            q0_conj, q0_grad, op_grad = numqi.sim.state.apply_control_n_gate_grad(
-                    q0_conj, q0_grad, gate_i.array, index_i[0], index_i[1], tag_op_grad=gate_i.requires_grad)
-        elif gate_i.kind=='unitary':
-            q0_conj, q0_grad, op_grad = numqi.sim.state.apply_gate_grad(q0_conj,
-                    q0_grad, gate_i.array, index_i, tag_op_grad=gate_i.requires_grad)
-        elif gate_i.kind=='custom':
-            q0_conj, q0_grad, op_grad = gate_i.grad_backward(q0_conj, q0_grad)#TODO
-        else:
-            raise KeyError(f'not recognized gate "{gate_i}"')
-        if op_grad is not None:
-            gate_i.grad += op_grad
-        op_grad_list.append(op_grad)
-    ret = q0_conj,q0_grad,op_grad_list[::-1]
-    return ret
 
 def _unitary_gate(name_, array, num_index):
     def hf0(self, /, *index, name=name_):
@@ -102,7 +71,6 @@ def _unitary_parameter_gate(name_, hf0, num_index):
         else:
             args = hf_tuple_of_any(args, type_=float) #convert float/int into tuple
         gate = ParameterGate('unitary', hf0, args, name=name, requires_grad=requires_grad)
-        self.check_parameter_gate(gate)
         index = hf_tuple_of_int(index)
         assert len(index)==num_index
         self.gate_index_list.append((gate, index))
@@ -122,7 +90,6 @@ def _control_parameter_gate(name_, hf0):
         target_qubit = hf_tuple_of_int(target_qubit)
         assert all((x not in control_qubit) for x in target_qubit) and len(target_qubit)==len(set(target_qubit))
         gate = ParameterGate('control', hf0, args, name=name, requires_grad=requires_grad)
-        self.check_parameter_gate(gate)
         self.gate_index_list.append((gate, (control_qubit,target_qubit)))
         return gate
     return hf1
@@ -143,7 +110,6 @@ class Circuit:
         if torch is None:
             assert not default_requires_grad, 'pytorch is required for default_requires_grad=True'
         self.default_requires_grad = default_requires_grad
-        self.name_to_pgate = dict()
 
     def register_custom_gate(self, name, gate_class):
         # gate_class could not be child of Gate if not is_pgate
@@ -151,9 +117,7 @@ class Circuit:
         is_pgate = issubclass(gate_class, ParameterGate)
         def hf0(self, *args, **kwargs):
             gate = gate_class(*args, **kwargs)
-            if is_pgate:
-                # TODO WARNING default_requires_grad is not checked here
-                self.check_parameter_gate(gate)
+            # TODO WARNING default_requires_grad is not checked here
             index = gate.index if (gate.kind in CANONICAL_GATE_KIND) else ()
             #leave index to empty for unkown gate
             self.gate_index_list.append((gate,index))
@@ -162,26 +126,6 @@ class Circuit:
         # https://stackoverflow.com/a/1015405
         tmp0 = hf0.__get__(self, self.__class__)
         setattr(self, name, tmp0)
-
-    def check_parameter_gate(self, pgate):
-        index = len(self.gate_index_list)
-        num_parameter = len(pgate.args)
-        name = pgate.name
-        if pgate.name in self.name_to_pgate:
-            tmp0 = self.gate_index_list[self.name_to_pgate[name]['index'][0]][0]
-            assert tmp0.hf0 == pgate.hf0
-            self.name_to_pgate[name]['index'].append(index)
-            if pgate.requires_grad and (id(pgate) not in self.name_to_pgate[name]['grad_index_set']):
-                self.name_to_pgate[name]['grad_index'].append(index)
-                self.name_to_pgate[name]['grad_index_set'].add(id(pgate))
-        else:
-            self.name_to_pgate[name] = {
-                'index': [index],
-                'grad_index': [index] if pgate.requires_grad else [],
-                'grad_index_set': {id(pgate)} if pgate.requires_grad else set(),
-                'num_parameter': num_parameter,
-                'hf0': pgate.hf0,
-            }
 
     def single_qubit_gate(self, np0, ind0, requires_grad=False, name='single'):
         assert np0.shape==(2,2)
@@ -288,69 +232,19 @@ class Circuit:
                         self.gate_index_list[ind0] = gate_i, tmp0
                         gate_i.index = tmp0
 
-    def init_theta_torch(self, force=False):
-        ret = force or any((len(x['grad_index'])>0) and ('theta_torch' not in x)
-                        for x in self.name_to_pgate.values())
-        if ret:
-            for key,value in self.name_to_pgate.items():
-                if len(value['grad_index'])==0:
-                    continue
-                tmp1 = np.array([self.gate_index_list[x][0].args for x in value['index']])
-                # tmp1 = np_rng.uniform(min_, max_, size=(len(value['grad_index']),value['num_parameter']))
-                if 'theta_torch' in self.name_to_pgate[key]:
-                    self.name_to_pgate[key]['theta_torch'].data[:] = torch.tensor(tmp1, dtype=torch.float64, requires_grad=True)
-                else:
-                    theta_torch = torch.nn.Parameter(torch.tensor(tmp1, dtype=torch.float64, requires_grad=True))
-                    self.name_to_pgate[key]['theta_torch'] = theta_torch
-            self.update_gate()
-        return ret
-
-    def get_trainable_parameter(self):
-        self.init_theta_torch()
-        tmp0 = {k:v['theta_torch'] for k,v in self.name_to_pgate.items() if ('theta_torch' in v)}
-        ret = torch.nn.ParameterDict(tmp0)
-        return ret
-
-    def update_gate(self):
-        self.init_theta_torch()
-        for key,value in self.name_to_pgate.items():
-            if len(value['grad_index'])==0:
-                continue
-            theta_torch = value['theta_torch']
-            gate_torch = value['hf0'](*theta_torch.T)
-            theta_np = theta_torch.detach().numpy()
-            gate_np = gate_torch.detach().numpy()
-            for ind0,ind1 in enumerate(value['grad_index']):
-                self.gate_index_list[ind1][0].set_args(theta_np[ind0], gate_np[ind0])
-            self.name_to_pgate[key]['gate_torch'] = gate_torch
-
-    def apply_state(self, q0, tag_update=True):
-        tmp0 = self.init_theta_torch()
-        if (not tmp0) and tag_update:
-            self.update_gate()
-        ret = circuit_apply_state(q0, self.gate_index_list)
-        return ret
-
-    def _gate_grad(self):
-        for value in self.name_to_pgate.values():
-            if len(value['grad_index'])==0:
-                continue
-            tmp0 = torch.tensor(np.stack([self.gate_index_list[x][0].grad for x in value['grad_index']], axis=0))
-            value['gate_torch'].backward(tmp0)
-
-    def zero_grad_(self):
-        for x in self.name_to_pgate.values():
-            for y in x['grad_index']:
-                self.gate_index_list[y][0].zero_grad_()
-
-    def apply_state_grad(self, q0, q0_grad, tag_zero_grad=True):
-        if tag_zero_grad:
-            self.zero_grad_()
-        q0_conj = np.conj(q0)
-        q0_conj,q0_grad,op_grad_list = circuit_apply_state_grad(q0_conj, q0_grad, self.gate_index_list)
-        self._gate_grad()
-        q0 = np.conj(q0_conj)
-        return q0, q0_grad, op_grad_list
+    def apply_state(self, q0):
+        for gate,index in self.gate_index_list:
+            if gate.kind=='unitary':
+                q0 = numqi.sim.state.apply_gate(q0, gate.array, index)
+            elif gate.kind=='control':
+                q0 = numqi.sim.state.apply_control_n_gate(q0, gate.array, index[0], index[1])
+            elif gate.kind=='measure':
+                q0 = gate.forward(q0)
+            elif gate.kind=='custom':
+                q0 = gate.forward(q0)
+            else:
+                assert False, f'{gate} not supported'
+        return q0
 
 # TODO ch see qiskit
 # TODO when should we use torch, when should we use numpy only

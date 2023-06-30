@@ -170,7 +170,7 @@ def reduce_to_probability(q0, keep_index_set):
 
 
 def inner_product(q0, q1):
-    ret = np.dot(q0. conj(), q1)
+    ret = np.dot(q0.conj(), q1)
     return ret
 
 

@@ -6,28 +6,21 @@ import numqi
 class DummyQNNModel(torch.nn.Module):
     def __init__(self, circuit):
         super().__init__()
-        self.circuit = circuit
-        self.theta = circuit.get_trainable_parameter()
+        self.circuit_torch = numqi.sim.CircuitTorchWrapper(circuit)
         self.num_qubit = circuit.num_qubit
         np_rng = np.random.default_rng()
         tmp0 = np_rng.normal(size=2**self.num_qubit) + 1j*np_rng.normal(size=2**self.num_qubit)
-        self.target_state = (tmp0 / np.linalg.norm(tmp0)).astype(np.complex128)
+        self.target_state = torch.tensor(tmp0 / np.linalg.norm(tmp0), dtype=torch.complex128)
 
-        self.q0 = None
-        self.q0_grad = None
+        self.q0 = torch.empty(2**self.num_qubit, dtype=torch.complex128, requires_grad=False)
 
     def forward(self):
-        self.q0 = numqi.sim.state.new_base(self.num_qubit, dtype=np.complex128)
-        self.q0 = self.circuit.apply_state(self.q0)
-        self.inner_product = numqi.sim.state.inner_product(self.q0, self.target_state)
-        loss = abs(self.inner_product)**2
+        self.q0[:] = 0
+        self.q0[0] = 1
+        q0 = self.circuit_torch(self.q0)
+        inner_product = torch.dot(self.target_state.conj(), q0)
+        loss = (inner_product*inner_product.conj()).real
         return loss
-
-    def grad_backward(self, loss=None):
-        # loss is necessary for numqi.optimize.check_model_gradient
-        q0_grad,_ = numqi.sim.state.inner_product_grad(self.q0, self.target_state, 2*self.inner_product, tag_grad=(True,False))
-        self.q0, self.q0_grad, op_grad_list = self.circuit.apply_state_grad(self.q0, q0_grad)
-        return op_grad_list
 
 
 class Rosenbrock(torch.nn.Module):
