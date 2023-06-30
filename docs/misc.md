@@ -6,6 +6,8 @@
 2. [ ] make it a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 3. [ ] github CI
 4. [ ] coverage
+5. documentation
+   * [ ] numerical range
 
 ## license
 
