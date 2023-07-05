@@ -7,7 +7,7 @@
 3. [ ] github CI
 4. [ ] coverage
 5. documentation
-   * [ ] numerical range
+    * [ ] numerical range
 
 ## license
 
