@@ -128,6 +128,7 @@ def apply_control_n_gate_grad(q0_conj, q0_grad, op, ind_control_set, ind_target,
     return q0_conj, q0_grad, op_grad
 
 
+# TODO torch.autograd.Function
 def inner_product_psi0_O_psi1(psi0, psi1, operator_list):
     '''
     psi0(np,?,(N0,))

@@ -12,24 +12,29 @@ except ImportError:
 
 np_rng = np.random.default_rng()
 
-def build_dummy_circuit(num_depth, num_qubit):
+def build_dummy_circuit(num_depth, num_qubit, seed=None):
+    np_rng = numqi.random.get_numpy_rng(seed)
     circ = numqi.sim.Circuit(default_requires_grad=True)
-    for ind0 in range(num_depth):
+    hf0 = lambda x: np_rng.uniform(0, 2*np.pi, size=x)
+    for _ in range(num_depth):
         tmp0 = list(range(0, num_qubit-1, 2)) + list(range(1, num_qubit-1, 2))
         for ind1 in tmp0:
-            circ.ry(ind1)
-            circ.ry(ind1+1)
-            circ.rz(ind1)
-            circ.rz(ind1+1)
+            circ.ry(ind1, hf0(1))
+            circ.ry(ind1+1, hf0(1))
+            circ.rz(ind1, hf0(1))
+            circ.rz(ind1+1, hf0(1))
+            circ.rzz((ind1, ind1+1), hf0(1))
             circ.cnot(ind1, ind1+1)
-            circ.double_qubit_gate(numqi.random.rand_haar_unitary(4,4), ind1, ind1+1)
+            tmp0 = numqi.random.rand_unitary_matrix(2, seed=np_rng)
+            circ.controlled_single_qubit_gate(tmp0, (ind1+1,(ind1-1)%num_qubit), ind1)
+            circ.double_qubit_gate(numqi.random.rand_unitary_matrix(4, seed=np_rng), ind1, ind1+1)
     return circ
 
 
 @pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_dummy_circuit():
     num_qubit = 5
-    num_depth = 3
+    num_depth = 2
     circuit = build_dummy_circuit(num_depth, num_qubit)
     model = DummyQNNModel(circuit)
     numqi.optimize.check_model_gradient(model)
@@ -37,7 +42,8 @@ def test_dummy_circuit():
 
 def test_circuit_to_unitary():
     num_qubit = 5
-    circ = build_dummy_circuit(num_depth=3, num_qubit=num_qubit)
+    num_depth = 3
+    circ = build_dummy_circuit(num_depth, num_qubit)
     np0 = numqi.random.rand_haar_state(2**num_qubit)
 
     ret_ = circ.apply_state(np0)

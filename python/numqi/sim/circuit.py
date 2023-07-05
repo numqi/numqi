@@ -45,7 +45,7 @@ def _unitary_gate(name_, array, num_index):
         gate = Gate('unitary', array, name=name)
         index = hf_tuple_of_int(index)
         assert len(index)==num_index
-        self.gate_index_list.append((gate, hf_tuple_of_int(index)))
+        self.gate_index_list.append((gate, index))
         return gate
     return hf0
 
@@ -127,37 +127,51 @@ class Circuit:
         tmp0 = hf0.__get__(self, self.__class__)
         setattr(self, name, tmp0)
 
-    def single_qubit_gate(self, np0, ind0, requires_grad=False, name='single'):
+    def single_qubit_gate(self, np0, ind0, name='single'):
         assert np0.shape==(2,2)
-        gate = Gate('unitary', np0, requires_grad, name=name)
+        gate = Gate('unitary', np0, requires_grad=False, name=name)
         index = int(ind0),
         self.gate_index_list.append((gate, index))
         return gate
 
-    def double_qubit_gate(self, np0, ind0, ind1, requires_grad=False, name='double'):
+    def double_qubit_gate(self, np0, ind0, ind1, name='double'):
         assert np0.shape==(4,4)
-        gate = Gate('unitary', np0, requires_grad, name=name)
+        gate = Gate('unitary', np0, requires_grad=False, name=name)
         index = int(ind0),int(ind1)
         self.gate_index_list.append((gate, index))
         return gate
 
-    def controlled_single_qubit_gate(self, np0, ind_control_set, ind_target, requires_grad=False, name='control'):
+    def triple_qubit_gate(self, np0, ind0, ind1, ind2, name='triple'):
+        assert np0.shape==(8,8)
+        gate = Gate('unitary', np0, requires_grad=False, name=name)
+        index = int(ind0),int(ind1),int(ind2)
+        self.gate_index_list.append((gate, index))
+        return gate
+
+    def quadruple_qubit_gate(self, np0, ind0, ind1, ind2, ind3, name='quadruple'):
+        assert np0.shape==(16,16)
+        gate = Gate('unitary', np0, requires_grad=False, name=name)
+        index = int(ind0),int(ind1),int(ind2),int(ind3)
+        self.gate_index_list.append((gate, index))
+        return gate
+
+    def controlled_single_qubit_gate(self, np0, ind_control_set, ind_target, name='control'):
         ind_control_set = set(sorted(hf_tuple_of_int(ind_control_set)))
         ind_target = hf_tuple_of_int(ind_target)
         assert len(ind_target)==1
         assert all((x not in ind_control_set) for x in ind_target) and len(ind_target)==len(set(ind_target))
         assert np0.shape==(2,2)
-        gate = Gate('control', np0, requires_grad, name=name)
+        gate = Gate('control', np0, requires_grad=False, name=name)
         self.gate_index_list.append((gate, (ind_control_set, ind_target)))
         return gate
 
-    def controlled_double_qubit_gate(self, np0, ind_control_set, ind_target, requires_grad=False, name='control'):
+    def controlled_double_qubit_gate(self, np0, ind_control_set, ind_target, name='control'):
         ind_control_set = set(sorted(hf_tuple_of_int(ind_control_set)))
         ind_target = hf_tuple_of_int(ind_target)
         assert len(ind_target)==2
         assert all((x not in ind_control_set) for x in ind_target) and len(ind_target)==len(set(ind_target))
         assert np0.shape==(4,4)
-        gate = Gate('control', np0, requires_grad, name=name)
+        gate = Gate('control', np0, requires_grad=False, name=name)
         self.gate_index_list.append((gate, (ind_control_set, ind_target)))
         return gate
 
@@ -167,7 +181,7 @@ class Circuit:
     H = _unitary_gate('H', numqi.gate.H, 1)
     S = _unitary_gate('S', numqi.gate.S, 1)
     T = _unitary_gate('T', numqi.gate.T, 1)
-    Swap = _unitary_gate('Swap', numqi.gate.Swap, 1)
+    Swap = _unitary_gate('Swap', numqi.gate.Swap, 2)
 
     cnot = _control_gate('cnot', numqi.gate.pauli.sx)
     cx = cnot
