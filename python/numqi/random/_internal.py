@@ -59,24 +59,48 @@ def rand_haar_state(dim, tag_complex=True, seed=None):
     ret /= np.linalg.norm(ret)
     return ret
 
-def rand_haar_unitary(N0, seed=None):
-    # http://www.qetlab.com/RandomUnitary
-    # https://pennylane.ai/qml/demos/tutorial_haar_measure.html
-    ginibre_ensemble = _random_complex(N0, N0, seed=seed)
+
+def rand_haar_unitary(dim, seed=None):
+    r'''Return a random unitary matrix from the Haar measure on the unitary group $U(N)$.
+
+    also see
+        http://www.qetlab.com/RandomUnitary
+        https://pennylane.ai/qml/demos/tutorial_haar_measure.html
+
+    Parameters:
+        dim (int): the column (row) of matrix
+        seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
+
+    Returns:
+        ret (numpy.ndarray): shape=(`dim`,`dim`), dtype=np.complex128
+    '''
+    ginibre_ensemble = _random_complex(dim, dim, seed=seed)
     Q,R = np.linalg.qr(ginibre_ensemble)
     tmp0 = np.sign(np.diag(R).real)
     tmp0[tmp0==0] = 1
     ret = Q * tmp0
     return ret
 
-def rand_unitary_matrix(N0, tag_complex=True, seed=None):
-    # TODO special=True/False, special unitary (orthogonal) matrix
+
+def rand_unitary_matrix(dim, tag_complex=True, seed=None):
+    r'''generate random unitary matrix
+
+    TODO special=True/False, special unitary (orthogonal) matrix
+
+    Parameters:
+        dim (int): the column (row) of matrix
+        tag_complex (bool): If True, `ret` is a complex unitary matrix. If False, `ret` is a real orthogonal matrix.
+        seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
+
+    Returns:
+        ret (numpy.ndarray): shape=(`dim`,`dim`), dtype=np.complex128 if `tag_complex=True` else np.float64
+    '''
     np_rng = get_numpy_rng(seed)
     if tag_complex:
-        tmp0 = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
+        tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
         tmp0 = tmp0 + np.conjugate(tmp0.T)
     else:
-        tmp0 = np_rng.normal(size=(N0,N0))
+        tmp0 = np_rng.normal(size=(dim,dim))
         tmp0 = tmp0 + tmp0.T
     ret = np.linalg.eigh(tmp0)[1]
     return ret
