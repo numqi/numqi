@@ -86,3 +86,23 @@ def clifford_array_to_F2(np0):
         cli_mat[:,ind0+N0] = Zbit[2:]
         cli_r[ind0+N0] = (Zbit[0] + (np.dot(Zbit[2:(N0+2)], Zbit[(N0+2):]) % 4)//2) % 2
     return cli_r,cli_mat
+
+
+def clifford_multiply(rx, Sx, ry, Sy):
+    # z=y \circ x
+    assert rx.shape[0]%2==0
+    N0 = rx.shape[0]//2
+    assert (rx.shape==(2*N0,)) and (Sx.shape==(2*N0,2*N0))
+    assert (ry.shape==(2*N0,)) and (Sy.shape==(2*N0,2*N0))
+    assert all(x.dtype.type==np.uint8 for x in [rx,ry,Sx,Sy])
+    Sz = (Sy @ Sx) % 2
+    tmp0 = np.einsum(Sx[:N0], [0,1], Sx[N0:], [0,1], [1], optimize=True)
+    tmp1 = np.einsum(Sx, [0,1], Sy[:N0], [2,0], Sy[N0:], [2,0], [1], optimize=True)
+    tmp2 = np.einsum(Sz[:N0], [0,1], Sz[N0:], [0,1], [1], optimize=True)
+    assert np.all((tmp0+tmp1+tmp2)%2==0)
+    delta = ((tmp0 + tmp1 - tmp2)%4).astype(np.uint8)
+    # alpha=0 j=1 k=2 i=3
+    tmp0 = np.triu(np.ones(2*N0, dtype=np.uint8), k=1)
+    tmp1 = np.einsum(Sx, [1,0], Sx, [2,0], Sy[N0:], [3,1], Sy[:N0], [3,2], tmp0, [1,2], [0], optimize=True)
+    rz = (rx + ry@Sx + tmp1 + delta//2) % 2
+    return rz, Sz

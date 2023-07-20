@@ -43,3 +43,20 @@ def test_clifford_array_to_F2():
         tmp0 = np.einsum(np0, [0,1], pauli_array, [2,1,3], np0.conj(), [4,3], [2,0,4], optimize=True)
         ret_ = [numqi.sim.clifford.pauli_array_to_F2(x) for x in tmp0]
         assert all(np.array_equal(x, y) for x,y in zip(ret0, ret_))
+
+
+def test_clifford_multiply():
+    for N0 in [1,2,3,4,5,6]:
+        for _ in range(10):
+            rx = numqi.random.rand_F2(2*N0)
+            Sx = numqi.random.rand_SpF2(N0)
+            ry = numqi.random.rand_F2(2*N0)
+            Sy = numqi.random.rand_SpF2(N0)
+            rz,Sz = numqi.sim.clifford.clifford_multiply(rx, Sx, ry, Sy)
+            for _ in range(10):
+                pauli = numqi.random.rand_F2(2*N0+2)
+
+                tmp0 = numqi.sim.clifford.apply_clifford_on_pauli(pauli, rx, Sx)
+                ret_ = numqi.sim.clifford.apply_clifford_on_pauli(tmp0, ry, Sy)
+                ret0 = numqi.sim.clifford.apply_clifford_on_pauli(pauli, rz, Sz)
+                assert np.array_equal(ret_, ret0)

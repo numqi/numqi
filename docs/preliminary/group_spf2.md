@@ -34,7 +34,7 @@ $$P_{n}=\lbrace e^{ij_{0}\pi/2}\sigma_{j_{1}}\otimes\cdots\sigma_{j_{n}}:j_{k}\i
 
 1. there exists a one-to-one mapping $P_{n}\cong \mathbb{F}_{2}^{2n+2}$ (group isomorphism)
 
-     $$ x \in P_{n},x=\left(-1\right)^{a_{0}}\left(i\right)^{a_{0}^{\prime}}\prod_{i=1}^{n}X_{i}^{x_{i}}Z_{i}^{x_{i+n}}\sim x_{\mathbb{F}}=\left(x_{0},x_{0}^{\prime},x_{1},x_{2},x_{3},\cdots,x_{2n}\right) $$
+     $$ x \in P_{n},x=\left(-1\right)^{x_0}\left(i\right)^{x_{0}^{\prime}}\prod_{i=1}^{n}X_{i}^{x_{i}}Z_{i}^{x_{i+n}}\sim x_{\mathbb{F}}=\left(x_{0},x_{0}^{\prime},x_{1},x_{2},x_{3},\cdots,x_{2n}\right) $$
 
 2. group center $Z(P_n)=\left\{I,-I,iI,-iI\right\}$. $P/Z(P_n)$ is an Abelian group, no phase factor
 3. identity $I_n\sim (0,0,\cdots,0)\in\mathbb{F}^{2n+2}_2$
@@ -106,21 +106,35 @@ $$C_{n}=\lbrace x\in U\left(2^{n}\right):xP_{n}x^{\dagger}=P_{n}\rbrace /U\left(
     $$y_{0}^{\prime}=\Delta\%2,y_{i}=\sum_{j=1}^{2n}S_{ij}x_{j}$$
 
 2. group center $Z(C_n)\cong P_n/Z(P_n)$
-3. inverse *TODO*
-4. multiplication *TODO*
-5. example
+3. identity $I_{2^n} \mapsto 0^{n}\times I_n$
+4. inverse *TODO*
+5. multiplication: $x,y\in C{}_{n},z=y\circ x,x\mapsto r^{(x)}\times S^{(x)},y\mapsto r^{(y)}\times S^{(y)},z\mapsto r^{(z)}\times S^{(z)}$
 
-    $$HXH=Z,HYH=-Y,HZH=X,H\simeq 00\times\begin{bmatrix}0 & 1\\1 & 0\end{bmatrix}$$
+    $$ a=xX_{\alpha}x^{\dagger},xZ_{\alpha}x^{\dagger} $$
 
-    $$XXX=X,XYX=-Y,XZX=-Z,X\simeq 01\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix}$$
+    $$ b=yay^{\dagger} $$
 
-    $$YXY=-X,YYY=Y,YZY=-Z,Y\simeq 11\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix}$$
+    $$ a_{0}=r_{\alpha}^{(x)},a_{0}^{\prime}=\sum_{k=1}^{n}S_{k\alpha}^{(x)}S_{k+n,\alpha}^{(x)},a_{i}=S_{i\alpha}^{(x)} $$
 
-    $$ZXZ=-X,ZYZ=-Y,ZZZ=Z,Z\simeq 01\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix}$$
+    $$ \Delta=a_{0}^{\prime}+\sum_{i=1}^{n}\sum_{j=1}^{2n}a_{j}S_{ij}^{(y)}S_{i+n,j}^{(y)}-\sum_{k}S_{k\alpha}^{(z)}S_{k+n,\alpha}^{(z)} $$
 
-    $$SXS^\dagger=Y,SYS^\dagger=-X,SZS^\dagger=Z,S\simeq 00\times\begin{bmatrix}1 & 0\\1 & 1\end{bmatrix}$$
+    $$ r_{\alpha}^{(z)}=b_{0}=a_{0}+\sum_{i=1}^{2n}a_{i}r_{i}^{(y)}+\sum_{i=1}^{n}\sum_{j=1}^{2n}\sum_{k=j+1}^{2n}a_{j}a_{k}S_{i+n,j}^{(y)}S_{ik}^{(y)}+\left\lfloor \frac{\Delta\%4}{2}\right\rfloor $$
 
-    $$\mathrm{CNOT}\simeq 0000\times\begin{bmatrix}1&0&0&0\\ 1&1&0&0\\0&0&1&1\\0&0&0&1\end{bmatrix}$$
+    $$ S_{i\alpha}^{(z)}=b_{i}=\sum_{j=1}^{2n}S_{ij}^{(y)}a_{j}=\sum_{j=1}^{2n}S_{ij}^{(y)}S_{j\alpha}^{(x)} $$
+
+6. example
+
+    $$ HXH=Z,HYH=-Y,HZH=X,H\simeq 00\times\begin{bmatrix}0 & 1\\1 & 0\end{bmatrix} $$
+
+    $$ XXX=X,XYX=-Y,XZX=-Z,X\simeq 01\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix} $$
+
+    $$ YXY=-X,YYY=Y,YZY=-Z,Y\simeq 11\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix} $$
+
+    $$ ZXZ=-X,ZYZ=-Y,ZZZ=Z,Z\simeq 01\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix} $$
+
+    $$ SXS^\dagger=Y,SYS^\dagger=-X,SZS^\dagger=Z,S\simeq 00\times\begin{bmatrix}1 & 0\\1 & 1\end{bmatrix} $$
+
+    $$ \mathrm{CNOT}\simeq 0000\times\begin{bmatrix}1&0&0&0\\ 1&1&0&0\\0&0&1&1\\0&0&0&1\end{bmatrix} $$
 
 TODO
 
