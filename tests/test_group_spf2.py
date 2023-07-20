@@ -74,5 +74,5 @@ def test_apply_clifford_on_pauli():
         pauli_bit_list = [numqi.group.spf2.int_to_bitarray(x, 2*num_qubit+2) for x in all_integer]
         for _ in range(100):
             cli_r,cli_mat = numqi.random.rand_Clifford_group(num_qubit)
-            z0 = [numqi.group.spf2.bitarray_to_int(numqi.group.spf2.apply_clifford_on_pauli(x, cli_r, cli_mat)) for x in pauli_bit_list]
+            z0 = [numqi.group.spf2.bitarray_to_int(numqi.sim.clifford.apply_clifford_on_pauli(x, cli_r, cli_mat)) for x in pauli_bit_list]
             assert tuple(sorted(z0))==all_integer

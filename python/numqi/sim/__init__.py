@@ -5,3 +5,4 @@ from ._internal import Gate, ParameterGate
 from . import state
 from . import dm
 from . import circuit
+from . import clifford

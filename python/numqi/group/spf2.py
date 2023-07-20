@@ -183,17 +183,3 @@ def inverse(mat):
     N0 = mat.shape[0]//2
     ret = np.roll(mat.T, N0, axis=(0,1))
     return ret
-
-
-def apply_clifford_on_pauli(pauli_bit, cli_r, cli_mat):
-    for x in [pauli_bit, cli_r, cli_mat]:
-        assert x.dtype.type==np.uint8
-    assert pauli_bit.max()<=1
-    N0 = cli_r.shape[0]//2
-    tmp0 = cli_mat * pauli_bit[2:]
-    tmp_jk = tmp0[N0:].T @ tmp0[:N0]
-    bit0 = (pauli_bit[0] + np.dot(pauli_bit[2:], cli_r) + np.triu(tmp_jk, 1).sum()) % 2
-    bit1 = pauli_bit[1]
-    tmp0 = np.array([bit0,bit1], dtype=np.uint8)
-    ret = np.concatenate([tmp0, (cli_mat @ pauli_bit[2:])%2], axis=0)
-    return ret
