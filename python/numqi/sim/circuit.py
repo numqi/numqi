@@ -111,6 +111,21 @@ class Circuit:
             assert not default_requires_grad, 'pytorch is required for default_requires_grad=True'
         self.default_requires_grad = default_requires_grad
 
+    def append_gate(self, gate, index):
+        if gate.kind=='unitary':
+            index = hf_tuple_of_int(index)
+        elif gate.kind=='control':
+            assert len(index)==2
+            control_qubit = set(sorted(hf_tuple_of_int(index[0])))
+            target_qubit = hf_tuple_of_int(index[1])
+            assert all((x not in control_qubit) for x in target_qubit) and len(target_qubit)==len(set(target_qubit))
+            index = control_qubit,target_qubit
+        self.gate_index_list.append((gate,index))
+
+    def extend_circuit(self, circ0):
+        for gate_i,index_i in circ0.gate_index_list:
+            self.append_gate(gate_i,index_i)
+
     def register_custom_gate(self, name, gate_class):
         # gate_class could not be child of Gate if not is_pgate
         # gate_class must be child of ParameterGate if is_pgate
@@ -177,7 +192,7 @@ class Circuit:
 
     X = _unitary_gate('X', numqi.gate.pauli.sx, 1)
     Y = _unitary_gate('Y', numqi.gate.pauli.sy, 1)
-    X = _unitary_gate('Z', numqi.gate.pauli.sz, 1)
+    Z = _unitary_gate('Z', numqi.gate.pauli.sz, 1)
     H = _unitary_gate('H', numqi.gate.H, 1)
     S = _unitary_gate('S', numqi.gate.S, 1)
     T = _unitary_gate('T', numqi.gate.T, 1)
