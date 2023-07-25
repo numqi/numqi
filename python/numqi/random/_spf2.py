@@ -2,6 +2,7 @@ import numpy as np
 
 from ._internal import get_random_rng, get_numpy_rng
 import numqi.group.spf2
+import numqi.sim._clifford_utils
 
 def rand_F2(*size, not_zero=False, not_one=False, seed=None):
     r'''generate random uint8 binary ndarray with shape `size` and values in {0,1}
@@ -51,3 +52,19 @@ def rand_Clifford_group(n:int, seed=None):
     cli_r = rand_F2(2*n)
     cli_mat = rand_SpF2(n, seed=rng.randint(0, 2**32-1))
     return cli_r, cli_mat
+
+
+def random_pauli_F2(num_qubit, with_op=False, is_hermitian=None, seed=None):
+    assert is_hermitian in {None,True,False}
+    np_rng = get_numpy_rng(seed)
+    ret = rand_F2(2*num_qubit+2, seed=np_rng)
+    if is_hermitian is not None:
+        tmp0 = np.dot(ret[2:(2+num_qubit)], ret[(2+num_qubit):]) % 2
+        if is_hermitian:
+            ret[1] = tmp0
+        else:
+            ret[1] = 1-tmp0
+    if with_op:
+        ret = ret, numqi.sim._clifford_utils.pauli_F2_to_pauli_op(ret)
+    return ret
+

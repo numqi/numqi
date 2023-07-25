@@ -8,4 +8,4 @@ from ._internal import (get_numpy_rng, get_random_rng, rand_haar_state, rand_haa
 rand_state = rand_haar_state
 
 
-from ._spf2 import rand_F2, rand_SpF2_int_tuple, rand_SpF2, rand_Clifford_group
+from ._spf2 import rand_F2, rand_SpF2_int_tuple, rand_SpF2, rand_Clifford_group, random_pauli_F2

@@ -2,11 +2,6 @@ import numpy as np
 
 import numqi
 
-## TODO
-# class CliffordCircuit:
-#     def __init__(self):
-#         pass
-
 # TODO given (cli_r,cli_R), find the corresponding unitary matrix, furthermore the clifford quantum circuit
 
 

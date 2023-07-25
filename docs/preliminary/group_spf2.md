@@ -15,6 +15,7 @@ This note explain how Clifford circuit can be simulated efficiently on classical
     * quantumclifford.jl [documentation](https://quantumsavory.github.io/QuantumClifford.jl/stable/) [github-link](https://github.com/QuantumSavory/QuantumClifford.jl)
     * the canonical name of Clifford group: Involutions on the the Barnes-Wall lattices and their fixed point sublattices [arxiv-link](https://arxiv.org/abs/math/0511084)
     * the canonical name of Pauli group: extra special group with $p=2$ [wiki-link](https://en.wikipedia.org/wiki/Extra_special_group) the Heisenberg group over a finite field [stackexchange-link](https://quantumcomputing.stackexchange.com/q/26351)
+    * 6-qubit optimal Clifford circuits [doi-link](https://doi.org/10.1038/s41534-022-00583-7)
 2. notation
     * $\mathbb{F}_n$: finite field
     * $\mathbb{R}$: real field

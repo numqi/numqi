@@ -2,6 +2,8 @@ import numpy as np
 
 import numqi
 
+np_rng = np.random.default_rng()
+
 def test_pauli_array_to_F2():
     example_list = [
         (numqi.gate.I, [0,0,0,0]),
@@ -60,3 +62,29 @@ def test_clifford_multiply():
                 ret_ = numqi.sim.clifford.apply_clifford_on_pauli(tmp0, ry, Sy)
                 ret0 = numqi.sim.clifford.apply_clifford_on_pauli(pauli, rz, Sz)
                 assert np.array_equal(ret_, ret0)
+
+
+def test_CliffordCircuit():
+    num_qubit = 10
+    num_depth = 5
+
+    circ = numqi.sim.CliffordCircuit()
+    for _ in range(num_depth):
+        for _ in range(2):
+            for ind0 in range(num_qubit):
+                circ.random_one_qubit_gate(ind0) #IXYZHS
+        for _ in range(2*num_qubit):
+            ind0,ind1 = np_rng.choice(num_qubit, size=2, replace=False) #CX CY CZ
+            circ.random_two_qubit_gate(ind0, ind1)
+
+    for _ in range(10):
+        pauli_F2,pauli_op = numqi.random.random_pauli_F2(num_qubit, with_op=True, is_hermitian=True)
+        q0 = numqi.random.rand_state(2**num_qubit)
+
+        q1 = circ.to_universal_circuit().apply_state(q0)
+        ret_ = numqi.sim.state.inner_product_psi0_O_psi1(q1, q1, pauli_op).real
+
+        pauli_F2_1,pauli_op1 = circ.apply_pauli_F2(pauli_F2, return_op=True)
+        ret0 = numqi.sim.state.inner_product_psi0_O_psi1(q0, q0, pauli_op1)
+        assert abs(ret0.imag) < 1e-10
+        assert abs(ret_-ret0) < 1e-10

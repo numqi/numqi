@@ -1,6 +1,10 @@
+import functools
 import numpy as np
 
 import numqi.gate
+import numqi.random
+
+from ._clifford_utils import pauli_F2_to_pauli_op
 
 # see numqi.group.spf2
 
@@ -106,3 +110,121 @@ def clifford_multiply(rx, Sx, ry, Sy):
     tmp1 = np.einsum(Sx, [1,0], Sx, [2,0], Sy[N0:], [3,1], Sy[:N0], [3,2], tmp0, [1,2], [0], optimize=True)
     rz = (rx + ry@Sx + tmp1 + delta//2) % 2
     return rz, Sz
+
+
+def _clifford_circuit_single_qubit_gate(key):
+    def hf0(self, index):
+        index = int(index)
+        assert index>=0
+        self.gate_index_list.append((key, index))
+    return hf0
+
+def _clifford_circuit_two_qubit_gate(key):
+    def hf0(self, index0, index1):
+        index0 = int(index0)
+        index1 = int(index1)
+        assert (index0>=0) and (index1>=0) and (index0!=index1)
+        self.gate_index_list.append((key, index0, index1))
+    return hf0
+
+_basic_clifford_dict = {
+    'X': numqi.gate.X,
+    'Y': numqi.gate.Y,
+    'Z': numqi.gate.Z,
+    'H': numqi.gate.H,
+    'S': numqi.gate.S,
+    'CX': numqi.gate.CNOT,
+    'CY': np.block([[numqi.gate.I, numqi.gate.I*0], [numqi.gate.I*0, numqi.gate.Y]]),
+    'CZ': np.block([[numqi.gate.I, numqi.gate.I*0], [numqi.gate.I*0, numqi.gate.Z]]),
+}
+_basic_clifford_dagger_f2_cache = dict()
+def _basic_clifford_dagger_f2(key):
+    if key in _basic_clifford_dagger_f2_cache:
+        ret = _basic_clifford_dagger_f2_cache[key]
+    else:
+        ret = clifford_array_to_F2(_basic_clifford_dict[key].T.conj())
+        _basic_clifford_dagger_f2_cache[key] = ret
+    return ret
+
+
+class CliffordCircuit:
+    _single_gate_list = ['I', 'X', 'Y', 'Z', 'H', 'S']
+    _two_qubit_gate_list = ['CX', 'CY', 'CZ']
+
+    def __init__(self, seed=None):
+        self.gate_index_list = []
+        self.np_rng = numqi.random.get_numpy_rng(seed)
+        self._R = None
+        self._S = None
+
+    def I(self, *index):
+        pass
+
+    X = _clifford_circuit_single_qubit_gate('X')
+    Y = _clifford_circuit_single_qubit_gate('Y')
+    Z = _clifford_circuit_single_qubit_gate('Z')
+    H = _clifford_circuit_single_qubit_gate('H')
+    S = _clifford_circuit_single_qubit_gate('S')
+    CX = _clifford_circuit_two_qubit_gate('CX')
+    CY = _clifford_circuit_two_qubit_gate('CY')
+    CZ = _clifford_circuit_two_qubit_gate('CZ')
+    CNOT = CX
+
+    @property
+    def num_qubit(self):
+        ret = max(y for x in self.gate_index_list for y in x[1:]) + 1
+        return ret
+
+    def random_one_qubit_gate(self, index):
+        tmp0 = self._single_gate_list[self.np_rng.integers(0, len(self._single_gate_list))]
+        getattr(self, tmp0)(index)
+
+    def random_two_qubit_gate(self, index0, index1):
+        assert index0!=index1
+        tmp0 = self._two_qubit_gate_list[self.np_rng.integers(0, len(self._two_qubit_gate_list))]
+        getattr(self, tmp0)(index0, index1)
+
+    def to_symplectic_form(self):
+        if self._R is None:
+            num_qubit = self.num_qubit
+            R0 = np.zeros(2*num_qubit, dtype=np.uint8)
+            S0 = np.eye(2*num_qubit, dtype=np.uint8)
+            retR = R0.copy()
+            retS = S0.copy()
+            for gate in self.gate_index_list[::-1]:
+                if len(gate)==2: #single qubit gate
+                    index = np.array([gate[1], gate[1]+num_qubit], dtype=np.int32)
+                else:
+                    assert len(gate)==3
+                    index = np.array([gate[1], gate[2], gate[1]+num_qubit, gate[2]+num_qubit], dtype=np.int32)
+                tmp0 = _basic_clifford_dagger_f2(gate[0])
+                tmpR = R0.copy()
+                tmpS = S0.copy()
+                tmpR[index] = tmp0[0]
+                tmpS[index[:,np.newaxis], index] = tmp0[1]
+                retR, retS = clifford_multiply(retR, retS, tmpR, tmpS)
+            self._R = retR
+            self._S = retS
+            ret = retR,retS
+        else:
+            ret = self._R, self._S
+        return ret
+
+    def apply_pauli_F2(self, pauli_F2, return_op=False):
+        retR,retS = self.to_symplectic_form()
+        ret = apply_clifford_on_pauli(pauli_F2, retR, retS)
+        if return_op:
+            ret = ret, pauli_F2_to_pauli_op(ret)
+        return ret
+
+    def to_universal_circuit(self):
+        ret = numqi.sim.Circuit()
+        tmp0 = {'X': numqi.gate.X, 'Y': numqi.gate.Y, 'Z': numqi.gate.Z, 'H': numqi.gate.H,
+                'S': numqi.gate.S, 'CX': numqi.gate.X, 'CY': numqi.gate.Y, 'CZ': numqi.gate.Z}
+        for gate in self.gate_index_list:
+            if len(gate)==2: #single qubit gate
+                ret.single_qubit_gate(tmp0[gate[0]], gate[1])
+            else:
+                assert len(gate)==3
+                ret.controlled_single_qubit_gate(tmp0[gate[0]], gate[1], gate[2])
+        return ret
