@@ -261,7 +261,7 @@ def group_algebra_product(vec0, vec1, cayley_table, use_index=False):
     else:
         index = get_index_cayley_table(cayley_table)
     shape = np.broadcast_shapes(vec0.shape, vec1.shape)
-    N0 = np.product(np.array(shape, dtype=np.int64))
+    N0 = np.prod(np.array(shape, dtype=np.int64))
     vec0,vec1 = [np.broadcast_to(x, shape).reshape(-1, dim) for x in (vec0,vec1)]
     ret = (vec0[:,:,np.newaxis] * vec1[:,np.newaxis,:]).reshape(-1, dim*dim)[:, index].reshape(-1, dim, dim).sum(axis=2).reshape(shape)
     return ret

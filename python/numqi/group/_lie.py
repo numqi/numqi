@@ -18,7 +18,7 @@ def get_numpy_rng(np_rng_or_seed_or_none=None):
 def angle_to_su2(alpha, beta, gamma):
     alpha,beta,gamma = [np.asarray(x) for x in (alpha,beta,gamma)]
     shape = np.broadcast_shapes(alpha.shape, beta.shape, gamma.shape)
-    N0 = np.product(np.array(shape, dtype=np.int64))
+    N0 = np.prod(np.array(shape, dtype=np.int64))
     alpha,beta,gamma = [np.broadcast_to(x, shape).reshape(N0) for x in (alpha,beta,gamma)]
     exp_apg = np.exp(0.5j*(alpha+gamma))
     exp_amg = np.exp(0.5j*(alpha-gamma))
@@ -34,7 +34,7 @@ def angle_to_su2(alpha, beta, gamma):
 def angle_to_so3(alpha, beta, gamma):
     alpha,beta,gamma = [np.asarray(x) for x in (alpha,beta,gamma)]
     shape = np.broadcast_shapes(alpha.shape, beta.shape, gamma.shape)
-    N0 = np.product(np.array(shape, dtype=np.int64))
+    N0 = np.prod(np.array(shape, dtype=np.int64))
     alpha,beta,gamma = [np.broadcast_to(x, shape).reshape(N0) for x in (alpha,beta,gamma)]
     ca = np.cos(alpha)
     sa = np.sin(alpha)
@@ -56,7 +56,7 @@ def rand_su2(*size, seed=None):
         N0 = 1
     else:
         shape = size + (2,2)
-        N0 = np.product(np.array(size, dtype=np.int64))
+        N0 = np.prod(np.array(size, dtype=np.int64))
     np_rng = get_numpy_rng(seed)
     tmp0 = np_rng.normal(size=(N0,4))
     tmp0 = tmp0 / np.linalg.norm(tmp0, axis=1, keepdims=True)
@@ -77,7 +77,7 @@ def rand_so3(*size, seed=None):
         N0 = 1
     else:
         shape = size + (3,3)
-        N0 = np.product(np.array(size, dtype=np.int64))
+        N0 = np.prod(np.array(size, dtype=np.int64))
     np_rng = np.random.default_rng(seed)
     alpha = np_rng.uniform(0, 2*np.pi, size=N0) #z-axis
     beta = np_rng.uniform(0, np.pi, size=N0) #y-axis
@@ -230,7 +230,7 @@ def get_su2_irrep(j2, *mat_or_angle, return_matd=False):
         alpha,beta,gamma = [np.asarray(x) for x in mat_or_angle]
         shape = np.broadcast_shapes(alpha.shape, beta.shape, gamma.shape)
         alpha,beta,gamma = [np.broadcast_to(x, shape) for x in (alpha,beta,gamma)]
-    N0 = np.product(np.array(shape, dtype=np.int64))
+    N0 = np.prod(np.array(shape, dtype=np.int64))
     alpha,beta,gamma = [np.broadcast_to(x, shape).reshape(N0) for x in (alpha,beta,gamma)]
     if j2==0:
         ret = np.ones(shape+(1,1))

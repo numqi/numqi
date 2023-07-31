@@ -47,7 +47,7 @@ def get_symmetric_basis(dim, repeat):
     permutation_index = permutation_with_antisymmetric_factor(repeat)[0]
     index = np.array(list(itertools.combinations_with_replacement(list(range(dim)), repeat)), dtype=np.int64).T.copy()
     tmp0 = np.stack([(index==x).sum(axis=0) for x in range(dim)], axis=1)
-    factor = np.sqrt(np.product(scipy.special.factorial(tmp0),axis=1) * (1/scipy.special.factorial(repeat)))
+    factor = np.sqrt(np.prod(scipy.special.factorial(tmp0),axis=1) * (1/scipy.special.factorial(repeat)))
     ret = np.zeros((index.shape[1], dim**repeat), dtype=np.float64)
     for ind0 in permutation_index:
         tmp0 = np.ravel_multi_index(index[list(ind0)], [dim]*repeat)
