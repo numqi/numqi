@@ -142,3 +142,73 @@ def test_custom_gate_with_torch():
     circ.ry_rx(0, alpha, beta)
     model = DummyQNNModel(circ)
     numqi.optimize.check_model_gradient(model)
+
+
+def test_toffoli_gate_decomposition():
+    # wiki/Toffoli-gate https://en.wikipedia.org/wiki/Toffoli_gate
+    np0 = np.block([[np.eye(6),np.zeros((6,2))],[np.zeros((2,6)),np.array([[0,1],[1,0]])]])
+
+    circ0 = numqi.sim.Circuit(default_requires_grad=False)
+    circ0.toffoli((0,1), 2)
+    np1 = circ0.to_unitary()
+    assert np.abs(np0-np1).max() < 1e-10
+
+    circ1 = numqi.sim.Circuit(default_requires_grad=False)
+    circ1.H(2)
+    circ1.cnot(1, 2)
+    T_dagger = numqi.gate.T.conj()
+    circ1.single_qubit_gate(T_dagger, 2)
+    circ1.cnot(0, 2)
+    circ1.T(2)
+    circ1.cnot(1, 2)
+    circ1.single_qubit_gate(T_dagger, 2)
+    circ1.cnot(0, 2)
+    circ1.T(1)
+    circ1.T(2)
+    circ1.cnot(0, 1)
+    circ1.H(2)
+    circ1.T(0)
+    circ1.single_qubit_gate(T_dagger, 1)
+    circ1.cnot(0, 1)
+    np2 = circ1.to_unitary()
+    assert np.abs(np0-np2).max() < 1e-10
+
+
+class ClassicalControlGate:
+    def __init__(self, gateM, op, index, name='classical_control_gate'):
+        self.gateM = gateM
+        self.op = op
+        self.index = index
+        self.name = name
+        self.requires_grad = False
+        self.kind = 'custom'
+
+    def forward(self, q0):
+        if self.gateM.bitstr[0]==1:
+            q0 = numqi.sim.state.apply_gate(q0, self.op, self.index)
+        return q0
+
+
+def test_teleportation():
+    # https://nbviewer.org/urls/qutip.org/qutip-tutorials/tutorials-v4/quantum-circuits/teleportation.ipynb
+    circ = numqi.sim.Circuit(default_requires_grad=False)
+    circ.register_custom_gate('classical_control_gate', ClassicalControlGate)
+    # alice: 0, 1
+    # bob: 2
+    circ.H(1)
+    circ.cnot(1, 2)
+    circ.cnot(0, 1)
+    circ.H(0)
+    gate_M0 = circ.measure(1)
+    gate_M1 = circ.measure(0)
+    circ.classical_control_gate(gate_M0, numqi.gate.X, 2)
+    circ.classical_control_gate(gate_M1, numqi.gate.Z, 2)
+
+    q0 = numqi.random.rand_state(2)
+    tmp0 = np.zeros(4, dtype=np.complex128)
+    tmp0[0] = 1
+    tmp1 = (q0[:,np.newaxis] * tmp0).reshape(-1)
+    q1 = circ.apply_state(tmp1)
+    _,S,V = np.linalg.svd(q1.reshape(4, 2), full_matrices=False)
+    assert S[1] < 1e-7 #product state
+    assert abs(abs(np.vdot(V[0], q0)) - 1) < 1e-7 #fidelity 1

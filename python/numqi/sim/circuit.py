@@ -50,10 +50,12 @@ def _unitary_gate(name_, array, num_index):
     return hf0
 
 
-def _control_gate(name_, array):
+def _control_gate(name_, array, num_control, num_target):
     def hf0(self, control_qubit, target_qubit, name=name_):
         control_qubit = set(sorted(hf_tuple_of_int(control_qubit)))
         target_qubit = hf_tuple_of_int(target_qubit)
+        assert len(control_qubit)==num_control
+        assert len(target_qubit)==num_target
         assert all((x not in control_qubit) for x in target_qubit) and len(target_qubit)==len(set(target_qubit))
         gate = Gate('control', array, name=name)
         self.gate_index_list.append((gate, (control_qubit,target_qubit)))
@@ -198,10 +200,11 @@ class Circuit:
     T = _unitary_gate('T', numqi.gate.T, 1)
     Swap = _unitary_gate('Swap', numqi.gate.Swap, 2)
 
-    cnot = _control_gate('cnot', numqi.gate.pauli.sx)
+    cnot = _control_gate('cnot', numqi.gate.pauli.sx, 1, 1)
     cx = cnot
-    cy = _control_gate('cy', numqi.gate.pauli.sy)
-    cz = _control_gate('cz', numqi.gate.pauli.sz)
+    cy = _control_gate('cy', numqi.gate.pauli.sy, 1, 1)
+    cz = _control_gate('cz', numqi.gate.pauli.sz, 1, 1)
+    toffoli = _control_gate('toffoli', numqi.gate.pauli.sx, 2, 1)
 
     rx = _unitary_parameter_gate('rx', numqi.gate.rx, 1)
     ry = _unitary_parameter_gate('ry', numqi.gate.ry, 1)
