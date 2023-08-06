@@ -1,3 +1,4 @@
+import functools
 import types
 import numpy as np
 
@@ -106,25 +107,91 @@ def u3(theta, phi, lambda_):
     return ret
 
 
-def rx(theta):
+def get_quditX(d):
+    # Weyl–Heisenberg matrices https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices
+    ret = np.diag(np.ones(d-1), 1)
+    ret[-1,0] = 1
+    return ret
+
+
+def get_quditH(d):
+    # Weyl–Heisenberg matrices https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices
+    tmp0 = np.exp(2j*np.pi*np.arange(d)/d)
+    ret = np.vander(tmp0, d, increasing=True) / np.sqrt(d)
+    return ret
+
+
+def get_quditZ(d):
+    # Weyl–Heisenberg matrices https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices
+    ret = np.diag(np.exp(2j*np.pi*np.arange(d)/d))
+    return ret
+
+
+@functools.lru_cache
+def _get_quditX_eigen(d:int, is_torch:bool):
+    tmp0 = np.arange(d) - (np.arange(d)>(d/2))*d
+    EVL_log = tmp0 * (2*np.pi / d)
+    EVC = get_quditH(d)
+    if is_torch:
+        EVL_log_torch = torch.tensor(EVL_log, dtype=torch.complex128)
+        EVC_torch = torch.tensor(EVC, dtype=torch.complex128)
+        ret = EVL_log_torch, EVC_torch
+    else:
+        ret = EVL_log, EVC
+    return ret
+
+
+def _rx_qudit(theta, d):
+    '''qudit Rx rotation
+    1. periodic 4*np.pi
+    2. special unitary
+    3. when d=2, restore to qubit Rx
+    '''
+    assert d>1
+    if is_torch(theta):
+        EVL_log,EVC = _get_quditX_eigen(int(d), True)
+        shape = theta.shape
+        tmp0 = theta.view(-1,1,1)
+        tmp1 = tmp0*EVL_log*(d/(2*np.pi))
+        ret = (EVC*torch.exp(1j*tmp1)) @ EVC.T.conj()
+        if d%2==0:
+            ret = ret * torch.exp(-1j*tmp0/2)
+        ret = ret.view(*shape, d, d)
+    else:
+        theta = np.asarray(theta)
+        shape = theta.shape
+        EVL_log,EVC = _get_quditX_eigen(int(d), False)
+        tmp0 = theta.reshape(-1,1,1)
+        tmp1 = tmp0*EVL_log*(d/(2*np.pi))  #periodic 4*np.pi
+        ret = (EVC*np.exp(1j*tmp1)) @ EVC.T.conj()
+        if d%2==0:
+            ret = ret * np.exp(-1j*tmp0/2)
+        ret = ret.reshape(*shape, d, d)
+    return ret
+
+
+def rx(theta, d=2):
     r'''
     $$ exp \{ -i\theta \sigma _x/2 \} $$
     '''
-    if is_torch(theta):
-        # TODO maybe fixed at some release for pytorch
-        # error when back-propagation without multiplying 1. I have no idea why
-        # if theta.dtype==torch.float32:
-        #     theta = theta*torch.tensor(1, dtype=torch.complex64)
-        # elif theta.dtype==torch.float64:
-        #     theta = theta*torch.tensor(1, dtype=torch.complex128)
-        ca = torch.cos(theta/2)
-        isa = 1j*torch.sin(theta/2)
-        tmp0 = [ca,-isa,-isa,ca]
-        ret = torch.concat([x.view(-1,1) for x in tmp0], axis=-1).view(*theta.shape,2,2)
+    if d==2:
+        if is_torch(theta):
+            # TODO maybe fixed at some release for pytorch
+            # error when back-propagation without multiplying 1. I have no idea why
+            # if theta.dtype==torch.float32:
+            #     theta = theta*torch.tensor(1, dtype=torch.complex64)
+            # elif theta.dtype==torch.float64:
+            #     theta = theta*torch.tensor(1, dtype=torch.complex128)
+            ca = torch.cos(theta/2)
+            isa = 1j*torch.sin(theta/2)
+            tmp0 = [ca,-isa,-isa,ca]
+            ret = torch.concat([x.view(-1,1) for x in tmp0], axis=-1).view(*theta.shape,2,2)
+        else:
+            ca = np.cos(theta/2)
+            isa = 1j*np.sin(theta/2)
+            ret = np.stack([ca,-isa,-isa,ca], axis=-1).reshape(*ca.shape,2,2)
     else:
-        ca = np.cos(theta/2)
-        isa = 1j*np.sin(theta/2)
-        ret = np.stack([ca,-isa,-isa,ca], axis=-1).reshape(*ca.shape,2,2)
+        ret = _rx_qudit(theta, d)
     return ret
 
 
@@ -148,21 +215,62 @@ def ry(theta):
     return ret
 
 
-def rz(theta):
+def _rz_qudit(theta, d, diag_only):
+    assert d>1
+    if isinstance(theta, torch.Tensor):
+        shape = theta.shape
+        tmp0 = torch.exp(1j*theta.view(-1))
+        ret = torch.vander(tmp0, N=d, increasing=True)
+        ret = ret * torch.exp(-1j*(torch.arange(d)>(d/2))*d*theta.view(-1,1))
+        if d%2==0:
+            ret = ret * torch.exp(-1j*theta.reshape(-1,1)/2)
+        if diag_only:
+            ret = ret.view(*theta.shape, d)
+        else:
+            ret = torch.diag_embed(ret).view(*shape, d, d)
+    else:
+        theta = np.asarray(theta)
+        shape = theta.shape
+        tmp0 = np.exp(1j*theta.reshape(-1))
+        ret = np.vander(tmp0, N=d, increasing=True)
+        ret *= np.exp(-1j*(np.arange(d)>(d/2))*d*theta.reshape(-1,1))
+        if d%2==0:
+            ret *= np.exp(-1j*theta.reshape(-1,1)/2)
+        if diag_only:
+            ret = ret.reshape(*theta.shape, d)
+        else:
+            tmp0 = np.zeros((ret.shape[0],d,d), dtype=ret.dtype)
+            ind0 = np.arange(d)
+            tmp0[:,ind0,ind0] = ret
+            ret = tmp0.reshape(*shape, d, d)
+    return ret
+
+
+def rz(theta, d=2, diag_only=False):
     r'''
     $$ exp \{ -i\theta \sigma _z/2 \} $$
     '''
-    if is_torch(theta):
-        ca = torch.cos(theta/2)
-        isa = 1j*torch.sin(theta/2)
-        zero = torch.zeros_like(ca)
-        tmp0 = [ca-isa,zero,zero,ca+isa]
-        ret = torch.concat([x.view(-1,1) for x in tmp0], dim=-1).view(*theta.shape,2,2)
+    if d==2:
+        if is_torch(theta):
+            ca = torch.cos(theta/2)
+            isa = 1j*torch.sin(theta/2)
+            if diag_only:
+                tmp0 = [ca-isa,ca+isa]
+                ret = torch.concat([x.view(-1,1) for x in tmp0], dim=-1).view(*theta.shape,2)
+            else:
+                zero = torch.zeros_like(ca)
+                tmp0 = [ca-isa,zero,zero,ca+isa]
+                ret = torch.concat([x.view(-1,1) for x in tmp0], dim=-1).view(*theta.shape,2,2)
+        else:
+            ca = np.cos(theta/2)
+            isa = 1j*np.sin(theta/2)
+            if diag_only:
+                ret = np.stack([ca-isa,ca+isa], axis=-1).reshape(*ca.shape,2)
+            else:
+                zero = np.zeros_like(ca)
+                ret = np.stack([ca-isa,zero,zero,ca+isa], axis=-1).reshape(*ca.shape,2,2)
     else:
-        ca = np.cos(theta/2)
-        isa = 1j*np.sin(theta/2)
-        zero = np.zeros_like(ca)
-        ret = np.stack([ca-isa,zero,zero,ca+isa], axis=-1).reshape(*ca.shape,2,2)
+        ret = _rz_qudit(theta, d, diag_only)
     return ret
 
 
