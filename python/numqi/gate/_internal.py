@@ -217,7 +217,7 @@ def ry(theta):
 
 def _rz_qudit(theta, d, diag_only):
     assert d>1
-    if isinstance(theta, torch.Tensor):
+    if is_torch(theta):
         shape = theta.shape
         tmp0 = torch.exp(1j*theta.view(-1))
         ret = torch.linalg.vander(tmp0, N=d)
