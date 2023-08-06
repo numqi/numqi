@@ -1,4 +1,3 @@
-import inspect
 import numpy as np
 
 try:
@@ -63,8 +62,7 @@ def _control_gate(name_, array, num_control, num_target):
     return hf0
 
 
-def _unitary_parameter_gate(name_, hf0, num_index):
-    num_parameter = len(inspect.signature(hf0).parameters)
+def _unitary_parameter_gate(name_, hf0, num_index, num_parameter):
     def hf1(self, index, args=None, name=name_, requires_grad=None):
         if requires_grad is None:
             requires_grad = self.default_requires_grad
@@ -79,8 +77,7 @@ def _unitary_parameter_gate(name_, hf0, num_index):
         return gate
     return hf1
 
-def _control_parameter_gate(name_, hf0):
-    num_parameter = len(inspect.signature(hf0).parameters)
+def _control_parameter_gate(name_, hf0, num_parameter):
     def hf1(self, control_qubit, target_qubit, args=None, name=name_, requires_grad=None):
         if requires_grad is None:
             requires_grad = self.default_requires_grad
@@ -206,16 +203,16 @@ class Circuit:
     cz = _control_gate('cz', numqi.gate.pauli.sz, 1, 1)
     toffoli = _control_gate('toffoli', numqi.gate.pauli.sx, 2, 1)
 
-    rx = _unitary_parameter_gate('rx', numqi.gate.rx, 1)
-    ry = _unitary_parameter_gate('ry', numqi.gate.ry, 1)
-    rz = _unitary_parameter_gate('rz', numqi.gate.rz, 1)
-    u3 = _unitary_parameter_gate('u3', numqi.gate.u3, 1)
-    rzz = _unitary_parameter_gate('rzz', numqi.gate.rzz, 2)
+    rx = _unitary_parameter_gate('rx', numqi.gate.rx, 1, 1)
+    ry = _unitary_parameter_gate('ry', numqi.gate.ry, 1, 1)
+    rz = _unitary_parameter_gate('rz', numqi.gate.rz, 1, 1)
+    u3 = _unitary_parameter_gate('u3', numqi.gate.u3, 1, 3)
+    rzz = _unitary_parameter_gate('rzz', numqi.gate.rzz, 2, 1)
 
-    crx = _control_parameter_gate('crx', numqi.gate.rx)
-    cry = _control_parameter_gate('cry', numqi.gate.rx)
-    crz = _control_parameter_gate('crz', numqi.gate.rx)
-    cu3 = _control_parameter_gate('cu3', numqi.gate.u3)
+    crx = _control_parameter_gate('crx', numqi.gate.rx, 1)
+    cry = _control_parameter_gate('cry', numqi.gate.ry, 1)
+    crz = _control_parameter_gate('crz', numqi.gate.rz, 1)
+    cu3 = _control_parameter_gate('cu3', numqi.gate.u3, 3)
 
     dephasing = _kraus_gate('dephasing', numqi.channel.hf_dephasing_kraus_op)
     depolarizing = _kraus_gate('depolarizing', numqi.channel.hf_depolarizing_kraus_op)
