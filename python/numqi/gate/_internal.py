@@ -220,7 +220,9 @@ def _rz_qudit(theta, d, diag_only):
     if isinstance(theta, torch.Tensor):
         shape = theta.shape
         tmp0 = torch.exp(1j*theta.view(-1))
-        ret = torch.vander(tmp0, N=d, increasing=True)
+        ret = torch.linalg.vander(tmp0, N=d)
+        # torch.vander not support autograd, use torch.linalg.vander instead
+        # https://github.com/pytorch/pytorch/issues/60197
         ret = ret * torch.exp(-1j*(torch.arange(d)>(d/2))*d*theta.view(-1,1))
         if d%2==0:
             ret = ret * torch.exp(-1j*theta.reshape(-1,1)/2)
