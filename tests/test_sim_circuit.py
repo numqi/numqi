@@ -212,3 +212,11 @@ def test_teleportation():
     _,S,V = np.linalg.svd(q1.reshape(4, 2), full_matrices=False)
     assert S[1] < 1e-7 #product state
     assert abs(abs(np.vdot(V[0], q0)) - 1) < 1e-7 #fidelity 1
+
+
+def test_build_graph_state():
+    for N0 in [3,5,7]:
+        adjacent_mat = numqi.random.rand_adjacent_matrix(N0)
+        q0, stabilizer_circ_list = numqi.sim.build_graph_state(adjacent_mat, return_stabilizer_circ=True)
+        z0 = np.array([np.vdot(q0, x.apply_state(q0)) for x in stabilizer_circ_list])
+        assert np.abs(z0-1).max() < 1e-10

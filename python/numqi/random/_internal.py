@@ -374,3 +374,20 @@ def rand_orthonormal_matrix_basis(num_orthonormal, dim_qudit, num_qudit=1, num_s
     if tag_one:
         ret = ret[0]
     return ret
+
+
+def rand_adjacent_matrix(dim:int, seed=None):
+    r'''Generate random adjacent matrix of undirected graph
+
+    Parameters:
+        dim (int): number of verteces
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): adjacent matrix, shape=(dim,dim), dtype=np.uint8
+    '''
+    np_rng = get_numpy_rng(seed)
+    assert dim>=2
+    tmp0 = np.triu(np_rng.integers(0, 2, size=(dim,dim)), 1)
+    ret = (tmp0 + tmp0.T).astype(np.uint8)
+    return ret
