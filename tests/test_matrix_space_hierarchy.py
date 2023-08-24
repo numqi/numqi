@@ -1,3 +1,4 @@
+import time
 import itertools
 import functools
 import numpy as np
@@ -23,35 +24,45 @@ def test_tensor2d_project_to_sym_antisym_basis():
 
 
 def test_symmetrical_is_all_permutation():
+    rank = 4
     dim = 3
-    num_matrix = 4
-    np_rng = np.random.default_rng()
+    np0 = np_rng.uniform(-1,1,size=[dim]*rank)
 
-    np_list = [np_rng.normal(size=dim) for _ in range(num_matrix)]
-    z0 = numqi.matrix_space.get_symmetric_basis(dim, num_matrix)
-    ret_ = z0.T @ (z0 @ hf_kron([x[:,np.newaxis] for x in np_list])[:,0])
+    sym_basis = numqi.matrix_space.get_symmetric_basis(dim, rank)
+    ret_ = (sym_basis.T @ (sym_basis @ np0.reshape(-1))).reshape(np0.shape)
 
     ret0 = 0
-    for ind0 in itertools.permutations(list(range(num_matrix))):
-        tmp0 = np_list[ind0[0]]/scipy.special.factorial(num_matrix)
-        for x in ind0[1:]:
-            tmp0 = (tmp0[:,np.newaxis] * np_list[x]).reshape(-1)
-        ret0 = ret0 + tmp0
+    for ind0 in itertools.permutations(list(range(rank))):
+        ret0 = ret0 + np0.transpose(*ind0)
+    ret0 /= scipy.special.factorial(rank)
     assert np.abs(ret_-ret0).max() < 1e-10
 
 
+def test_project_nd_tensor_to_antisymmetric_basis():
+    rank = 3
+    dim = 5
+    np0 = np_rng.uniform(-1,1,size=[dim]*rank)
+    ret0 = numqi.matrix_space.project_nd_tensor_to_antisymmetric_basis(np0, rank=rank)
+    basis = numqi.matrix_space.get_antisymmetric_basis(dim, rank)
+    ret1 = basis @ np0.reshape(-1)
+    assert np.abs(ret0-ret1).max() < 1e-10
+
+    N0 = 4
+    np0 = np_rng.uniform(-1,1,size=([dim]*rank+[N0]))
+    ret0 = numqi.matrix_space.project_nd_tensor_to_antisymmetric_basis(np0, rank=rank)
+    basis = numqi.matrix_space.get_antisymmetric_basis(dim, rank)
+    ret1 = basis @ np0.reshape(-1,N0)
+    assert np.abs(ret0-ret1).max() < 1e-10
+
+
 def test_project_to_antisymmetric_basis():
-    np_rng = np.random.default_rng()
     num_batch = 23
     for dim,repeat in [(5,2),(5,3),(5,4)]:
         np_list = [np_rng.normal(size=(dim,num_batch)) for _ in range(repeat)]
 
-        antisym_basis = numqi.matrix_space.get_antisymmetric_basis(dim, repeat)
-        ret_ = []
-        for ind0 in range(num_batch):
-            tmp0 = [x[:,ind0] for x in np_list]
-            ret_.append(antisym_basis @ functools.reduce(lambda x,y: (x.reshape(-1,1)*y).reshape(-1), tmp0))
-        ret_ = np.stack(ret_, axis=1)
+        tmp0 = [y for i,x in enumerate(np_list) for y in (x,[i,repeat])]
+        np_tensor = np.einsum(*tmp0, list(range(repeat+1)), optimize=True)
+        ret_ = numqi.matrix_space.project_nd_tensor_to_antisymmetric_basis(np_tensor, rank=repeat)
 
         ret0 = numqi.matrix_space.project_to_antisymmetric_basis(np_list)
         assert np.abs(ret_-ret0).max() < 1e-10
@@ -84,10 +95,9 @@ def test_get_antisymmetric_basis():
             z1 = z0.transpose(*([0] + (r_index+1).tolist()))*factor
             assert np.abs(z0-z1).max() < 1e-10
 
-
 def test_tensor2d_project_to_antisym_basis():
-    np_rng = np.random.default_rng()
-    for dim0,dim1,repeat in [(4,4,2),(4,5,2),(7,8,3),(8,8,4)]:
+    case_list = [(4,4,2),(4,5,2),(7,8,3),(8,8,4)]
+    for dim0,dim1,repeat in case_list:
         np_list = [np_rng.normal(size=(dim0,dim1)) for _ in range(repeat)]
 
         antisym_basis0 = numqi.matrix_space.get_antisymmetric_basis(dim0, repeat)
@@ -96,7 +106,6 @@ def test_tensor2d_project_to_antisym_basis():
 
         ret0 = numqi.matrix_space.tensor2d_project_to_antisym_basis(np_list)
         assert np.abs(ret_-ret0).max() < 1e-10
-
 
 def test_has_rank_hierarchical_method():
     matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('hierarchy-ex1')
@@ -107,3 +116,32 @@ def test_has_rank_hierarchical_method():
     assert not numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=1)
     assert not numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=2)
     assert numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=3)
+
+def benchmark_has_rank_hierarchical_method():
+    # table 1 https://arxiv.org/abs/2210.16389v1
+    case_list = [(3,3,1), (4,8,3), (5,13,7), (6,20,12), (7,29,18), (8,39,25), (9,50), (10,63)]
+    # tmp0 = [(3,3), (4,8), (5,13), (6,20), (7,29), (8,39), (9,50), (10,63)]
+    # tmp1 = [(3,1), (4,3), (5,7), (6,12), (7,18)]
+    # case_list = [x+(1,) for x in tmp0] + [x+(2,) for x in tmp1]
+    time_list = []
+    for case_i in case_list:
+        dim = case_i[0]
+        time_list.append([])
+        for r,num_matrix in enumerate(case_i[1:], start=1):
+            matrix_subspace = [hf_randc(dim,dim) for _ in range(num_matrix)]
+            t0 = time.time()
+            numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=r+1, hierarchy_k=1)
+            time_list[-1].append(time.time() - t0)
+            tmp0 = time.time() - t0
+        tmp0 = ', '.join([f'time(r={r})={x:.4f}s' for r,x in enumerate(time_list[-1],start=1)])
+        print(f'[{dim}x{dim}]^{num_matrix} {tmp0}')
+
+    # mac-studio 20230824
+    # [3x3]^1 time(r=1)=0.0004s, time(r=2)=0.0007s
+    # [4x4]^3 time(r=1)=0.0551s, time(r=2)=0.0278s
+    # [5x5]^7 time(r=1)=0.1607s, time(r=2)=0.1374s
+    # [6x6]^12 time(r=1)=0.4782s, time(r=2)=0.7921s
+    # [7x7]^18 time(r=1)=0.5862s, time(r=2)=1.6246s
+    # [8x8]^25 time(r=1)=1.0535s, time(r=2)=4.7641s
+    # [9x9]^50 time(r=1)=1.8132s
+    # [10x10]^63 time(r=1)=1.6689s

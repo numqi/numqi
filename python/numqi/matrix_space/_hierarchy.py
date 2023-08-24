@@ -22,51 +22,70 @@ def permutation_with_antisymmetric_factor(N0):
 
 # bad performance
 @functools.lru_cache
-def get_antisymmetric_basis(dim, repeat):
+def get_antisymmetric_basis(dim, rank):
     # (ret) (np,float64,(N0,N1))
     #    N0: number of basis
-    #    N1=dim**repeat
-    assert (0<repeat) and (repeat<=dim)
-    permutation_index, permutation_value = permutation_with_antisymmetric_factor(repeat)
-    index = np.array(list(itertools.combinations(list(range(dim)), repeat)), dtype=np.int64).T.copy()
-    ret = np.zeros((index.shape[1], dim**repeat), dtype=np.float64)
-    factor = 1/np.sqrt(scipy.special.factorial(repeat))
+    #    N1=dim**rank
+    assert (0<rank) and (rank<=dim)
+    permutation_index, permutation_value = permutation_with_antisymmetric_factor(rank)
+    index = np.array(list(itertools.combinations(list(range(dim)), rank)), dtype=np.int64).T.copy()
+    ret = np.zeros((index.shape[1], dim**rank), dtype=np.float64)
+    factor = 1/np.sqrt(scipy.special.factorial(rank))
     for ind0,value in zip(permutation_index, permutation_value):
-        tmp0 = np.ravel_multi_index(index[list(ind0)], [dim]*repeat)
+        tmp0 = np.ravel_multi_index(index[list(ind0)], [dim]*rank)
         ret[np.arange(len(tmp0)), tmp0] = value * factor
     return ret
 
 
 # bad performance
 @functools.lru_cache
-def get_symmetric_basis(dim, repeat):
+def get_symmetric_basis(dim, rank):
     # (ret) (np,float64,(N0,N1))
     #    N0: number of basis
-    #    N1=dim**repeat
-    assert 0<repeat
-    permutation_index = permutation_with_antisymmetric_factor(repeat)[0]
-    index = np.array(list(itertools.combinations_with_replacement(list(range(dim)), repeat)), dtype=np.int64).T.copy()
+    #    N1=dim**rank
+    assert 0<rank
+    permutation_index = permutation_with_antisymmetric_factor(rank)[0]
+    index = np.array(list(itertools.combinations_with_replacement(list(range(dim)), rank)), dtype=np.int64).T.copy()
     tmp0 = np.stack([(index==x).sum(axis=0) for x in range(dim)], axis=1)
-    factor = np.sqrt(np.prod(scipy.special.factorial(tmp0),axis=1) * (1/scipy.special.factorial(repeat)))
-    ret = np.zeros((index.shape[1], dim**repeat), dtype=np.float64)
+    factor = np.sqrt(np.prod(scipy.special.factorial(tmp0),axis=1) * (1/scipy.special.factorial(rank)))
+    ret = np.zeros((index.shape[1], dim**rank), dtype=np.float64)
     for ind0 in permutation_index:
-        tmp0 = np.ravel_multi_index(index[list(ind0)], [dim]*repeat)
+        tmp0 = np.ravel_multi_index(index[list(ind0)], [dim]*rank)
         ret[np.arange(len(tmp0)), tmp0] = factor
     return ret
 
 
 @functools.lru_cache
-def _project_to_antisymmetric_basis_index(dim, repeat):
+def get_antisymmetric_basis_index(dim, repeat):
     permutation_index, permutation_value = permutation_with_antisymmetric_factor(repeat)
     index = np.array(list(itertools.combinations(list(range(dim)), repeat)), dtype=np.int64).T.copy()
     return permutation_index, permutation_value, index
 
 
+def project_nd_tensor_to_antisymmetric_basis(np0, rank):
+    shape = np0.shape
+    is_single_item = len(shape)==rank
+    assert len(shape)>=rank
+    dim = shape[0]
+    N0 = 1 if is_single_item else np.prod(shape[rank:])
+    assert shape[:rank]==((dim,)*rank)
+    np0 = np0.reshape([dim]*rank+[N0])
+    if rank>dim:
+        ret = np.zeros((0,)+shape[rank:], dtype=np0.dtype)
+    else:
+        permutation_index, permutation_value, index = get_antisymmetric_basis_index(dim, rank)
+        factor = 1/np.sqrt(scipy.special.factorial(rank))
+        ret = 0
+        for ind0,value in zip(permutation_index, permutation_value):
+            ret = ret + (value*factor)*np0[tuple(index[x] for x in ind0)]
+        ret = ret.reshape((-1,)+shape[rank:])
+    return ret
+
 # TODO replace with np.einsum with indexing
 def project_to_antisymmetric_basis(np_list):
     repeat = len(np_list)
     dim = np_list[0].shape[0]
-    permutation_index, permutation_value, index = _project_to_antisymmetric_basis_index(dim, repeat)
+    permutation_index, permutation_value, index = get_antisymmetric_basis_index(dim, repeat)
     ret = 0
     factor = 1/np.sqrt(scipy.special.factorial(repeat))
     for ind0,value in zip(permutation_index, permutation_value):
@@ -82,19 +101,19 @@ def tensor2d_project_to_antisym_basis(np_list):
     assert all(x.ndim==2 for x in np_list)
     dimA,dimB = np_list[0].shape
     assert all(x.shape==(dimA,dimB) for x in np_list)
-    pindex, pvalue, indI = _project_to_antisymmetric_basis_index(dimA, repeat)
-    _, _, indJ = _project_to_antisymmetric_basis_index(dimB, repeat) #pindex0==pindex1
+    pindex, pvalue, indI = get_antisymmetric_basis_index(dimA, repeat)
+    _, _, indJ = get_antisymmetric_basis_index(dimB, repeat) #pindex0==pindex1
     # pindex(np,int,(N0,r))
     # pvalue(np,float,(N0,))
     # indI(np,int,(r,N1))
     # indJ(np,int,(r,N2))
     # ret(np,float,(N1,N2))
     ret = 0
-    tmp0 = ((x0,x1,y0,y1) for x0,x1 in zip(pindex, pvalue) for y0,y1 in zip(pindex, pvalue))
     factor = 1/scipy.special.factorial(repeat)
-    for ind0,value0,ind1,value1 in tmp0:
-        tmp1 = hf_multiply(np_list[x0][indI[x1,:,np.newaxis],indJ[y]] for x0,(x1,y) in enumerate(zip(ind0,ind1)))
-        ret = ret + (value0*value1*factor)*tmp1
+    for ind0,value0 in zip(pindex, pvalue):
+        tmp0 = [x0[indI[x1]] for x0,x1 in zip(np_list,ind0)]
+        for ind1,value1 in zip(pindex, pvalue):
+            ret = ret + (value0*value1*factor)*hf_multiply(x0[:,indJ[x1]] for x0,x1 in zip(tmp0,ind1))
     return ret
 
 
