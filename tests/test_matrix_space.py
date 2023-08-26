@@ -378,3 +378,16 @@ def test_get_vector_plane():
     assert np.abs(hf_theta(angle) - vec1).max() < 1e-10
     vec2 = hf_theta(np_rng.normal())
     assert not numqi.matrix_space.is_vector_linear_independent(np.stack([vec0,vec1,vec2]), 'real')
+
+
+def test_get_completed_entangled_subspace():
+    case_list = [(2,2,2), (2,3,2), (3,3,3)]
+    for dimA,dimB,dimC in case_list:
+        mat = numqi.matrix_space.get_completed_entangled_subspace(dimA, dimB, dimC, dtype=np.float64)
+        tmp0 = mat.reshape(-1, dimA*dimB*dimC)
+        EVL = np.linalg.eigvalsh(tmp0 @ tmp0.T)
+        # all eigenvalue are integer
+        EVL_int = np.round(EVL).astype(np.int64)
+        assert np.all(np.abs(EVL-EVL_int)<1e-7)
+        rank = np.sum(EVL_int>0)
+        assert rank==(dimA*dimB*dimC-dimA-dimB-dimC+2)

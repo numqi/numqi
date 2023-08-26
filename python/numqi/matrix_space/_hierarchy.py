@@ -5,7 +5,7 @@ import functools
 import operator
 import numpy as np
 import scipy.special
-import concurrent.futures
+import opt_einsum
 
 hf_kron = lambda x: functools.reduce(np.kron, x)
 hf_multiply = lambda x: functools.reduce(operator.mul, x)
@@ -249,35 +249,99 @@ def tensor2d_project_to_sym_antisym_basis(np_list, r, INDEX=None):
         INDEX = np.asarray(INDEX, dtype=np.int64)
     k = len(INDEX) - r
     if k==1:
-        ret = tensor2d_project_to_antisym_basis(np_list, INDEX)
+        ret0 = tensor2d_project_to_antisym_basis(np_list, INDEX)[:,:,np.newaxis]
+        ret1 = np.array([[1]])
     else:
         assert (r>0) and (k>0)
         assert all(x.ndim==2 for x in np_list)
         dimA,dimB = np_list[0].shape
         assert all(x.shape==(dimA,dimB) for x in np_list)
-        ret = 0
+        ret = []
+        factor = 1/scipy.special.binom(r+k, r+1)
         for indI0 in itertools.combinations(list(range(r+k)), r+1):
-            tmp0 = tensor2d_project_to_antisym_basis(np_list, INDEX[list(indI0)])
-            tmp1 = project_to_symmetric_basis([x.reshape(-1) for x in np_list], INDEX[sorted(set(range(r+k))-set(indI0))])
-            ret = ret + tmp0[:,:,np.newaxis]*tmp1
-        ret /= scipy.special.binom(r+k, r+1)
+            tmp0 = tensor2d_project_to_antisym_basis(np_list, [INDEX[x] for x in indI0]) * factor
+            tmp1 = [INDEX[x] for x in sorted(set(range(r+k))-set(indI0))]
+            tmp2 = project_to_symmetric_basis([x.reshape(-1) for x in np_list], tmp1)
+            ret.append((tmp0, tmp2))
+        ret0 = np.stack([x[0] for x in ret], axis=2)
+        ret1 = np.stack([x[1] for x in ret], axis=1)
+    return ret0,ret1
+
+def has_rank_hierarchical_method(matrix_subspace, rank, hierarchy_k=1, zero_eps=1e-7):
+    # "r-entangled" (defined in the paper) means that the matrix_subspace has at-least rank (r+1)
+    assert rank>1
+    np_list = np.asarray(matrix_subspace)
+    r = rank-1
+    tmp0 = np_list.reshape(np_list.shape[0], -1)
+    assert np.linalg.eigvalsh(tmp0 @ tmp0.T.conj())[0] > 1e-7, 'matrix_subspace must be independent'
+
+    factor = 1/scipy.special.binom(r+hierarchy_k, r+1)
+    vec_list = []
+    for INDEX in itertools.combinations_with_replacement(list(range(len(np_list))), r+hierarchy_k):
+        vec_i = []
+        for indI0 in itertools.combinations(list(range(r+hierarchy_k)), r+1):
+            tmp0 = tensor2d_project_to_antisym_basis(np_list, [INDEX[x] for x in indI0]).reshape(-1) * factor
+            if hierarchy_k==1:
+                vec_i.append((tmp0, np.array([1])))
+            else:
+                tmp1 = [INDEX[x] for x in sorted(set(range(r+hierarchy_k))-set(indI0))]
+                tmp2 = project_to_symmetric_basis([x.reshape(-1) for x in np_list], tmp1)
+                vec_i.append((tmp0,tmp2))
+        tmp0 = np.stack([x[0] for x in vec_i], axis=1)
+        tmp1 = np.stack([x[1] for x in vec_i], axis=1)
+        vec_list.append((tmp0,tmp1))
+    TAlpha = np.stack([x[0] for x in vec_list], axis=0)
+    TBeta = np.stack([x[1] for x in vec_list], axis=0)
+
+    # To save momery, one can explicitly calculate the vector product of TAlpha and TBeta,
+    tmp0 = opt_einsum.contract(TAlpha, [0,1,2], TBeta, [0,3,2], [0,1,3]).reshape(len(TAlpha),-1)
+    ret = np.abs(np.diag(scipy.linalg.lu(tmp0@tmp0.T.conj())[2])).min() > zero_eps
+
+    # but for simplicity, we use the following line to calculate the matrix product of TAlpha and TBeta
+    # TAlphaBeta = opt_einsum.contract(TAlpha, [0,1,2], TBeta, [0,3,2], TAlpha.conj(), [4,1,5], TBeta.conj(), [4,3,5], [0,4])
+    # ret = np.abs(np.diag(scipy.linalg.lu(TAlphaBeta)[2])).min() > zero_eps
+
+    # if ret=True, matrix_subspace must be at least rank
+    # if ret=False, not too much can be predicted
     return ret
 
-def has_rank_hierarchical_method(matrix_space, rank, hierarchy_k=1, zero_eps=1e-7, return_space=False, num_worker=None):
-    # "r-entangled" (defined in the paper) means that the matrix_space has at-least rank (r+1)
-    assert rank>1
-    r = rank-1
-    tmp0 = itertools.combinations_with_replacement(list(range(len(matrix_space))), r+hierarchy_k)
-    # TODO batch indexing
-    if num_worker is None:
-        z0 = np.stack([tensor2d_project_to_sym_antisym_basis(matrix_space, r, x).reshape(-1) for x in tmp0])
-    else:
-        with concurrent.futures.ProcessPoolExecutor(max_workers=10) as executor:
-            job_list = [executor.submit(tensor2d_project_to_sym_antisym_basis, matrix_space, r, x) for x in tmp0]
-            z0 = np.stack([x.result().reshape(-1) for x in job_list])
-    ret = is_vector_linear_independent(z0, 'complex', zero_eps)
-    # if ret=True, matrix_space must be at least rank
-    # if ret=False, not too much can be predicted
-    if return_space:
-        ret = ret, z0
+
+def is_ABC_completely_entangled_subspace(np_list, hierarchy_k=1, zero_eps=1e-7):
+    assert all(x.ndim==3 for x in np_list)
+    dimA,dimB,dimC = np_list[0].shape
+    assert all(x.shape==(dimA,dimB,dimC) for x in np_list)
+    assert hierarchy_k>=1
+    hf0 = lambda x: x.T @ x
+    hf1 = lambda n: hf0(get_antisymmetric_basis(n, 2)).reshape(n,n,n,n)
+    projA = hf1(dimA)
+    projBC = hf1(dimB*dimC)
+    projAB = hf1(dimA*dimB)
+    projC = hf1(dimC)
+    contract_A_BC = opt_einsum.contract_expression((dimA,dimB*dimC), [0,1],
+            (dimA,dimB*dimC), [2,3], (dimA,)*4, [0,2,4,5], (dimB*dimC,)*4, [1,3,6,7], [4,6,5,7])
+    contract_AB_C = opt_einsum.contract_expression((dimA*dimB,dimC), [0,1],
+            (dimA*dimB,dimC), [2,3], (dimA*dimB,)*4, [0,2,4,5], (dimC,)*4, [1,3,6,7], [4,6,5,7])
+    vec_list = []
+    for INDEX in itertools.combinations_with_replacement(list(range(len(np_list))), 1+hierarchy_k):
+        vec_i = []
+        for indI0,indI1 in itertools.combinations(list(range(1+hierarchy_k)), 2):
+            tmp0 = np_list[INDEX[indI0]].reshape(dimA,dimB*dimC)
+            tmp1 = np_list[INDEX[indI1]].reshape(dimA,dimB*dimC)
+            ABC2 = contract_A_BC(tmp0, tmp1, projA, projBC).reshape(-1)
+            tmp0 = np_list[INDEX[indI0]].reshape(dimA*dimB,dimC)
+            tmp1 = np_list[INDEX[indI1]].reshape(dimA*dimB,dimC)
+            ABC2 += contract_AB_C(tmp0, tmp1, projAB, projC).reshape(-1)
+            if hierarchy_k>1:
+                tmp2 = [INDEX[x] for x in sorted(set(range(hierarchy_k+1))-{indI0,indI1})]
+                ABCk1 = project_to_symmetric_basis([x.reshape(-1) for x in np_list], tmp2)
+                vec_i.append((ABC2, ABCk1))
+            else:
+                vec_i.append((ABC2,np.array([1])))
+        tmp0 = np.stack([x[0] for x in vec_i], axis=1)
+        tmp1 = np.stack([x[1] for x in vec_i], axis=1)
+        vec_list.append((tmp0, tmp1))
+    TAlpha = np.stack([x[0] for x in vec_list], axis=0)
+    TBeta = np.stack([x[1] for x in vec_list], axis=0)
+    TAlphaBeta = opt_einsum.contract(TAlpha, [0,1,2], TBeta, [0,3,2], TAlpha.conj(), [4,1,5], TBeta.conj(), [4,3,5], [0,4])
+    ret = np.abs(np.diag(scipy.linalg.lu(TAlphaBeta)[2])).min() > zero_eps
     return ret

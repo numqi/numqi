@@ -1,3 +1,4 @@
+import itertools
 import functools
 import numpy as np
 import scipy.linalg
@@ -23,7 +24,7 @@ def is_vector_linear_independent(np0, field, zero_eps=1e-7):
         ret = False
     else:
         U = scipy.linalg.lu(np0.conj() @ np0.T)[2]
-        ret = np.abs(U[-1,-1]).max()>zero_eps
+        ret = np.abs(np.diag(U)).min() > zero_eps
     return ret
 
 
@@ -314,6 +315,31 @@ def get_hermite_channel_matrix_subspace(matrix_space, zero_eps=1e-10):
     matrix_space_q = scipy.linalg.qr(tmp2.real.T, pivoting=True, mode='economic')[0].T[:N0]
     matrix_space_hermite = gellmann_basis_to_matrix(matrix_space_q)
     return matrix_space_hermite
+
+
+def get_completed_entangled_subspace(dimA:int, dimB:int, dimC:int, dtype=np.int8, tag_reduce=False):
+    assert (dimA>=1) and (dimB>=1) and (dimC>=1)
+    tmp0 = [(a,b,x-a-b) for x in range(dimA+dimB+dimC-2)
+                for a in range(max(0,x+2-dimB-dimC),min(dimA,x+1))
+                for b in range(max(0,x-a-dimC+1),min(dimB,x-a+1))]
+    tmp1 = ((x[0]+x[1]+x[2],x) for x in tmp0)
+    hf0 = lambda x: x[0]
+    abc_list = [[z[1] for z in y] for x,y in itertools.groupby(sorted(tmp1, key=hf0), key=hf0)]
+    tmp0 = sorted({((y,z) if y<z else (z,y)) for x in abc_list for y in x for z in x if y!=z})
+    ret = np.zeros((len(tmp0),dimA,dimB,dimC), dtype=dtype)
+    tmp1 = np.array([x[0] for x in tmp0])
+    ret[np.arange(len(tmp1)), tmp1[:,0], tmp1[:,1], tmp1[:,2]] = 1
+    tmp1 = np.array([x[1] for x in tmp0])
+    ret[np.arange(len(tmp1)), tmp1[:,0], tmp1[:,1], tmp1[:,2]] = -1
+    if tag_reduce:
+        tmp0 = ret.reshape(-1, dimA*dimB*dimC)
+        EVL,EVC = np.linalg.eigh(tmp0 @ tmp0.T)
+        EVL_int = np.round(EVL).astype(np.int64)
+        assert np.all(np.abs(EVL-EVL_int)<1e-7)
+        rank = np.sum(EVL_int>0)
+        assert rank==(dimA*dimB*dimC-dimA-dimB-dimC+2)
+        ret = (EVC[:, EVL_int>=1].T @ tmp0).reshape(rank, dimA, dimB, dimC)
+    return ret
 
 
 def matrix_subspace_to_kraus_op(matrix_space, is_hermite=False, zero_eps=1e-10):
