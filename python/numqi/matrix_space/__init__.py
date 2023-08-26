@@ -12,7 +12,8 @@ from ._gradient import (DetectRankModel, DetectRankOneModel,
 from ._hierarchy import (get_antisymmetric_basis, get_symmetric_basis, project_to_antisymmetric_basis,
     tensor2d_project_to_antisym_basis, tensor2d_project_to_sym_antisym_basis,
     has_rank_hierarchical_method, permutation_with_antisymmetric_factor,
-    project_nd_tensor_to_antisymmetric_basis)
+    project_nd_tensor_to_antisymmetric_basis, project_to_symmetric_basis,
+    project_nd_tensor_to_symmetric_basis)
 # for unittest only
 from ._hierarchy import naive_antisym_sym_projector, naive_tensor2d_project_to_sym_antisym_basis
 from ._numerical_range import (get_matrix_numerical_range, get_matrix_numerical_range_along_direction,

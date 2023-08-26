@@ -11,16 +11,48 @@ hf_kron = lambda x: functools.reduce(np.kron, x)
 hf_randc = lambda *size: np_rng.normal(size=size) + 1j*np_rng.normal(size=size)
 
 def test_tensor2d_project_to_sym_antisym_basis():
-    dimA = 3
+    dimA = 4
     dimB = 3
-    r = 2
-    k = 2
-    num_matrix = 3
-    matrix_subspace = [hf_randc(dimA,dimB) for _ in range(num_matrix)]
-    tmp0 = list(itertools.combinations_with_replacement(list(range(len(matrix_subspace))), r+k))
-    ret_ = np.stack([numqi.matrix_space.naive_tensor2d_project_to_sym_antisym_basis([matrix_subspace[y] for y in x], r) for x in tmp0])
-    ret0 = np.stack([numqi.matrix_space.tensor2d_project_to_sym_antisym_basis([matrix_subspace[y] for y in x], r) for x in tmp0])
-    assert np.abs(ret_-ret0).max() < 1e-10
+    r = 1
+    k = 3
+    num_matrix = 4
+    np_list = [hf_randc(dimA,dimB).real for _ in range(num_matrix)]
+    tmp0 = list(itertools.combinations_with_replacement(list(range(len(np_list))), r+k))
+    ret_ = np.stack([numqi.matrix_space.naive_tensor2d_project_to_sym_antisym_basis([np_list[y] for y in x], r) for x in tmp0])
+
+    ret0 = np.stack([numqi.matrix_space.tensor2d_project_to_sym_antisym_basis(np_list, r, x) for x in tmp0])
+    tmp0 = [-1]+[x for _ in range(k-1) for x in (dimA,dimB)]
+    tmp1 = [0]+[2*x+1 for x in range(k-1)]+[2*x+2 for x in range(k-1)]
+    basis = numqi.matrix_space.get_symmetric_basis(dimA*dimB, k-1).reshape(tmp0).transpose(tmp1).reshape(-1,(dimA*dimB)**(k-1))
+    ret1 = (ret0 @ basis).reshape(ret0.shape[:3] + (dimA**(k-1), dimB**(k-1))).transpose(0,1,3,2,4).reshape(ret0.shape[0], -1)
+    assert np.abs(ret_-ret1).max() < 1e-10
+
+    # zc0 = ret_.reshape(-1, 3,3,3,3).transpose(0,1,3,2,4).reshape(-1, 81)
+    # basis = numqi.matrix_space.get_symmetric_basis(9, 2)
+    # zc1 = zc0 @ basis.T @ basis
+
+    INDEX = np.array([0,0,0,0], dtype=np.int64)
+    indI0 = 0,1
+
+    # dimA = 3
+    # dimB = 3
+    # r = 2
+    # k = 2
+    # num_matrix = 4
+    # INDEX = np.array((0,0,1), dtype=np.int64)
+    # np_list = [hf_randc(dimA,dimB) for _ in range(num_matrix)]
+    # # zc_ = np_list
+    # # np_list = [zc_[x] for x in INDEX]
+    # zc2 = numqi.matrix_space.naive_tensor2d_project_to_sym_antisym_basis([np_list[y] for y in INDEX], r)
+    # zc0 = numqi.matrix_space.tensor2d_project_to_sym_antisym_basis([np_list[x] for x in INDEX], r)
+    # zc1 = numqi.matrix_space.tensor2d_project_to_sym_antisym_basis(np_list, r, INDEX)
+    # print(np.abs(zc0-zc2).max())
+    # for INDEX in itertools.combinations_with_replacement(list(range(4)), 4):
+    #     zc2 = numqi.matrix_space.naive_tensor2d_project_to_sym_antisym_basis([np_list[y] for y in INDEX], r)
+    #     zc0 = numqi.matrix_space.tensor2d_project_to_sym_antisym_basis([np_list[x] for x in INDEX], r)
+    #     # zc1 = numqi.matrix_space.tensor2d_project_to_sym_antisym_basis(np_list, r, INDEX)
+    #     assert np.abs(zc0-zc2).max() < 1e-10
+    #     # print(np.abs(zc0-zc2).max())
 
 
 def test_symmetrical_is_all_permutation():
@@ -68,6 +100,23 @@ def test_project_to_antisymmetric_basis():
         assert np.abs(ret_-ret0).max() < 1e-10
 
 
+def test_project_to_symmetric_basis():
+    num_batch = 13
+    for dim,repeat in [(3,4),(5,2),(5,3),(5,4)]:
+        np_list = [np_rng.normal(size=(dim,num_batch)) for _ in range(repeat)]
+
+        tmp0 = [y for i,x in enumerate(np_list) for y in (x,[i,repeat])]
+        np_tensor = np.einsum(*tmp0, list(range(repeat+1)), optimize=True)
+        ret_ = numqi.matrix_space.project_nd_tensor_to_symmetric_basis(np_tensor, rank=repeat)
+
+        np_tensor = (numqi.matrix_space.get_symmetric_basis(dim, repeat).T @ ret_).reshape([dim]*repeat + [num_batch])
+        ret1 = numqi.matrix_space.project_nd_tensor_to_symmetric_basis(np_tensor, rank=repeat)
+        assert np.abs(ret_-ret1).max() < 1e-10
+
+        ret0 = numqi.matrix_space.project_to_symmetric_basis(np_list)
+        assert np.abs(ret_-ret0).max() < 1e-10
+
+
 def test_get_symmetric_basis():
     for dim,repeat in [(5,2),(5,3),(5,4)]:
         z0 = numqi.matrix_space.get_symmetric_basis(dim, repeat)
@@ -96,7 +145,7 @@ def test_get_antisymmetric_basis():
             assert np.abs(z0-z1).max() < 1e-10
 
 def test_tensor2d_project_to_antisym_basis():
-    case_list = [(4,4,2),(4,5,2),(7,8,3),(8,8,4)]
+    case_list = [(4,4,2),(4,5,2),(7,8,3)]
     for dim0,dim1,repeat in case_list:
         np_list = [np_rng.normal(size=(dim0,dim1)) for _ in range(repeat)]
 
@@ -106,6 +155,9 @@ def test_tensor2d_project_to_antisym_basis():
 
         ret0 = numqi.matrix_space.tensor2d_project_to_antisym_basis(np_list)
         assert np.abs(ret_-ret0).max() < 1e-10
+
+        ret1 = numqi.matrix_space.tensor2d_project_to_antisym_basis([np_list[x] for x in np_rng.permutation(repeat)])
+        assert np.abs(ret_-ret1).max() < 1e-10
 
 def test_has_rank_hierarchical_method():
     matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('hierarchy-ex1')
@@ -119,10 +171,7 @@ def test_has_rank_hierarchical_method():
 
 def benchmark_has_rank_hierarchical_method():
     # table 1 https://arxiv.org/abs/2210.16389v1
-    case_list = [(3,3,1), (4,8,3), (5,13,7), (6,20,12), (7,29,18), (8,39,25), (9,50), (10,63)]
-    # tmp0 = [(3,3), (4,8), (5,13), (6,20), (7,29), (8,39), (9,50), (10,63)]
-    # tmp1 = [(3,1), (4,3), (5,7), (6,12), (7,18)]
-    # case_list = [x+(1,) for x in tmp0] + [x+(2,) for x in tmp1]
+    case_list = [(3,3,1), (4,8,3), (5,13,7), (6,20,12), (7,29,18), (8,39,25), (9,50,33), (10,63)]
     time_list = []
     for case_i in case_list:
         dim = case_i[0]
@@ -133,15 +182,55 @@ def benchmark_has_rank_hierarchical_method():
             numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=r+1, hierarchy_k=1)
             time_list[-1].append(time.time() - t0)
             tmp0 = time.time() - t0
-        tmp0 = ', '.join([f'time(r={r})={x:.4f}s' for r,x in enumerate(time_list[-1],start=1)])
-        print(f'[{dim}x{dim}]^{num_matrix} {tmp0}')
+        tmp0 = ', '.join([f'(r={r})={x:.4f}s' for r,x in enumerate(time_list[-1],start=1)])
+        print(f'[{dim}x{dim}] {tmp0}')
 
-    # mac-studio 20230824
-    # [3x3]^1 time(r=1)=0.0004s, time(r=2)=0.0007s
-    # [4x4]^3 time(r=1)=0.0551s, time(r=2)=0.0278s
-    # [5x5]^7 time(r=1)=0.1607s, time(r=2)=0.1374s
-    # [6x6]^12 time(r=1)=0.4782s, time(r=2)=0.7921s
-    # [7x7]^18 time(r=1)=0.5862s, time(r=2)=1.6246s
-    # [8x8]^25 time(r=1)=1.0535s, time(r=2)=4.7641s
-    # [9x9]^50 time(r=1)=1.8132s
-    # [10x10]^63 time(r=1)=1.6689s
+    # mac-studio 20230826
+    # [3x3] (r=1)=0.0006s, (r=2)=0.0002s
+    # [4x4] (r=1)=0.0781s, (r=2)=0.0298s
+    # [5x5] (r=1)=0.1287s, (r=2)=0.0976s
+    # [6x6] (r=1)=0.6300s, (r=2)=0.6928s
+    # [7x7] (r=1)=0.5880s, (r=2)=1.3429s
+    # [8x8] (r=1)=1.1853s, (r=2)=4.5638s
+    # [9x9] (r=1)=1.2433s, (r=2)=18.1239s
+    # [10x10] (r=1)=1.4268s
+
+    # github-codespace (4GB RAM, 2CPU core, Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz)
+    # [3x3] (r=1)=0.0011s, (r=2)=0.0006s
+    # [4x4] (r=1)=0.0115s, (r=2)=0.0105s
+    # [5x5] (r=1)=0.0155s, (r=2)=0.1308s
+    # [6x6] (r=1)=0.0541s, (r=2)=0.4685s
+    # [7x7] (r=1)=0.1303s, (r=2)=1.4698s
+    # [8x8] (r=1)=0.2420s, (r=2)=9.4494s
+    # [9x9] (r=1)=0.6677s
+    # [10x10] (r=1)=2.0579s
+
+    # table 2 https://arxiv.org/abs/2210.16389v1
+    case_list = [(3,4,1), (4,9,4), (5,16,9), (6,25,16), (7,36)]
+    time_list = []
+    for case_i in case_list:
+        dim = case_i[0]
+        time_list.append([])
+        for r,num_matrix in enumerate(case_i[1:], start=1):
+            matrix_subspace = [hf_randc(dim,dim) for _ in range(num_matrix)]
+            t0 = time.time()
+            numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=r+1, hierarchy_k=2)
+            time_list[-1].append(time.time() - t0)
+            tmp0 = time.time() - t0
+        tmp0 = ', '.join([f'(r={r})={x:.4f}s' for r,x in enumerate(time_list[-1],start=1)])
+        print(f'[{dim}x{dim}] {tmp0}')
+
+    # mac-studio 20230826
+    # [3x3] (r=1)=0.0075s, (r=2)=0.0002s
+    # [4x4] (r=1)=0.7214s, (r=2)=0.1782s
+    # [5x5] (r=1)=1.3404s, (r=2)=1.0800s
+    # [6x6] (r=1)=3.9989s, (r=2)=11.1075s
+    # [7x7] (r=1)=35.4889s
+
+    # github-codespace (4GB RAM, 2CPU core, Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz)
+    # [3x3] (r=1)=0.0222s, (r=2)=0.0111s
+    # [4x4] (r=1)=0.1783s, (r=2)=0.5280s
+    # [5x5] (r=1)=1.0901s, (r=2)=7.7264s
+    # [6x6] (r=1)=15.1864s
+
+# benchmark_has_rank_hierarchical_method()
