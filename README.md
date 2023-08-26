@@ -26,7 +26,7 @@ design philosophy
 1. open and available
    * open source
    * most users can install `numqi`, no matter windows/linux/macOS, no matter CPU/GPU
-   * minimum dependency: `scipy,matplotlib,tqdm,sympy,opt_einsum,torch-wrapper`
+   * minimum dependency: `scipy,matplotlib,tqdm,sympy,opt_einsum`
    * Pytorch is an optional requirement, most functions should work for non `torch.Tensor` input
 2. the fundamental functions should be here. Quantum applications should go to `pyqet` package
    * fundamental: (personally hope) more packages can be developed beyond `pyqet`
