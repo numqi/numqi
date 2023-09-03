@@ -69,16 +69,23 @@ _hf_trace1_torch = lambda x: x/torch.trace(x)
 def hermitian_matrix_to_trace1_PSD(matA):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
-    N0 = len(matA)
-    if is_torch(matA):
-        tmp3 = matA.detach().cpu().numpy()
-        EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
-        eye_mat = torch.eye(matA.shape[1], dtype=matA.dtype, device=matA.device)
-        ret = torch.stack([_hf_trace1_torch(torch.linalg.matrix_exp(matA[x]-EVL[x]*eye_mat)) for x in range(N0)])
+    tag_is_torch = is_torch(matA)
+    N0,N1,_ = matA.shape
+    assert N1>=1
+    if N1==1:
+        ret = torch.ones_like(matA) if tag_is_torch else np.ones_like(matA)
     else:
-        EVL = [scipy.sparse.linalg.eigsh(matA[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
-        eye_mat = np.eye(matA.shape[1])
-        ret = np.stack([_hf_trace1_np(scipy.linalg.expm(matA[x]-EVL[x]*eye_mat)) for x in range(N0)])
+        tmp3 = matA.detach().cpu().numpy() if tag_is_torch else matA
+        if N1==2:
+            EVL = np.linalg.eigvalsh(tmp3)[:,-1]
+        else:
+            EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
+        if tag_is_torch:
+            eye_mat = torch.eye(matA.shape[1], dtype=matA.dtype, device=matA.device)
+            ret = torch.stack([_hf_trace1_torch(torch.linalg.matrix_exp(matA[x]-EVL[x]*eye_mat)) for x in range(N0)])
+        else:
+            eye_mat = np.eye(matA.shape[1])
+            ret = np.stack([_hf_trace1_np(scipy.linalg.expm(matA[x]-EVL[x]*eye_mat)) for x in range(N0)])
     ret = ret.reshape(*shape)
     return ret
 
