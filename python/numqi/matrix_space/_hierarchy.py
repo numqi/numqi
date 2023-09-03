@@ -267,7 +267,7 @@ def tensor2d_project_to_sym_antisym_basis(np_list, r, INDEX=None):
         ret1 = np.stack([x[1] for x in ret], axis=1)
     return ret0,ret1
 
-def has_rank_hierarchical_method(matrix_subspace, rank, hierarchy_k=1, zero_eps=1e-7):
+def has_rank_hierarchical_method(matrix_subspace, rank, hierarchy_k=1, zero_eps=1e-7, return_info=False):
     # "r-entangled" (defined in the paper) means that the matrix_subspace has at-least rank (r+1)
     assert rank>1
     np_list = np.asarray(matrix_subspace)
@@ -295,7 +295,11 @@ def has_rank_hierarchical_method(matrix_subspace, rank, hierarchy_k=1, zero_eps=
 
     # To save momery, one can explicitly calculate the vector product of TAlpha and TBeta,
     tmp0 = opt_einsum.contract(TAlpha, [0,1,2], TBeta, [0,3,2], [0,1,3]).reshape(len(TAlpha),-1)
-    ret = np.abs(np.diag(scipy.linalg.lu(tmp0@tmp0.T.conj())[2])).min() > zero_eps
+    matAAT = tmp0 @ tmp0.T.conj()
+    # TODO return_info=True
+    ret = np.abs(np.diag(scipy.linalg.lu(matAAT)[2])).min() > zero_eps
+    if return_info:
+        ret = ret, matAAT
 
     # but for simplicity, we use the following line to calculate the matrix product of TAlpha and TBeta
     # TAlphaBeta = opt_einsum.contract(TAlpha, [0,1,2], TBeta, [0,3,2], TAlpha.conj(), [4,1,5], TBeta.conj(), [4,3,5], [0,4])
