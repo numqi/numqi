@@ -1,16 +1,29 @@
 import numpy as np
-import pytest
+import torch
 
 import numqi
 
-try:
-    import torch
-    from _torch_model import DummyQNNModel
-except ImportError:
-    torch = None
-    DummyQNNModel = None
-
 np_rng = np.random.default_rng()
+
+class DummyQNNModel(torch.nn.Module):
+    def __init__(self, circuit):
+        super().__init__()
+        self.circuit_torch = numqi.sim.CircuitTorchWrapper(circuit)
+        self.num_qubit = circuit.num_qubit
+        np_rng = np.random.default_rng()
+        tmp0 = np_rng.normal(size=2**self.num_qubit) + 1j*np_rng.normal(size=2**self.num_qubit)
+        self.target_state = torch.tensor(tmp0 / np.linalg.norm(tmp0), dtype=torch.complex128)
+
+        self.q0 = torch.empty(2**self.num_qubit, dtype=torch.complex128, requires_grad=False)
+
+    def forward(self):
+        self.q0[:] = 0
+        self.q0[0] = 1
+        q0 = self.circuit_torch(self.q0)
+        inner_product = torch.dot(self.target_state.conj(), q0)
+        loss = (inner_product*inner_product.conj()).real
+        return loss
+
 
 def build_dummy_circuit(num_depth, num_qubit, seed=None):
     np_rng = numqi.random.get_numpy_rng(seed)
@@ -31,7 +44,6 @@ def build_dummy_circuit(num_depth, num_qubit, seed=None):
     return circ
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_dummy_circuit():
     num_qubit = 5
     num_depth = 2
@@ -134,7 +146,6 @@ def test_custom_gate_without_torch():
     assert np.abs(q1-q2).max() < 1e-10
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_custom_gate_with_torch():
     alpha,beta = np_rng.uniform(0, 2*np.pi, 2)
     circ = numqi.sim.Circuit(default_requires_grad=False)

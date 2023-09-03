@@ -1,16 +1,11 @@
 import numpy as np
 import pytest
-
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 
 import numqi
 
 np_rng = np.random.default_rng()
 
-@pytest.mark.skipif(torch==None, reason="requires torch")
 def test_real_matrix_to_trace1_PSD():
     np_rng = np.random.default_rng()
     N0 = 5

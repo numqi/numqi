@@ -1,15 +1,9 @@
 import numpy as np
-import pytest
-
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 
 import numqi
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_matrix_subspace_XZ_R_XZ_C():
     # XZ_R
     matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('XZ_R')
@@ -30,7 +24,6 @@ def test_matrix_subspace_XZ_R_XZ_C():
     assert residual < 1e-7
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_matrix_subspace_UDA():
     pauli_str = 'XX XY'
     matrix_subspace,matrix_subspace_orth = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
@@ -52,7 +45,6 @@ def test_matrix_subspace_UDA():
     assert residual < 1e-7
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_matrix_subspace_misc():
     dim = 4
     num_op = 7
@@ -75,7 +67,6 @@ def test_matrix_subspace_misc():
     assert np.abs(tmp0-matH).max() < 2e-7
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_matrix_subspace_sparse():
     pauli_str = 'XX XY'
     matrix_subspace,matrix_subspace_orth = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)

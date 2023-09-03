@@ -1,12 +1,8 @@
 import numpy as np
 import pytest
+import torch
 
 import numqi
-
-try:
-    import torch
-except ImportError:
-    torch = None
 
 np_rng = np.random.default_rng()
 
@@ -50,7 +46,6 @@ def test_superactivation_matrix_subspace():
     assert abs(EVL[1]) > 0.01
 
 
-@pytest.mark.skipif(torch is None, reason='pytorch is not installed')
 def test_superactivation_matrix_subspace01():
     npA,npB,npAB,npL,npR,field = numqi.matrix_space.get_matrix_subspace_example('0error-eq537')
     # not a public api yet
