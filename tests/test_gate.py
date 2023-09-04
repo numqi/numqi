@@ -1,12 +1,8 @@
 import numpy as np
 import scipy.linalg
+import torch
 
 import numqi
-
-try:
-    import torch
-except ImportError:
-    torch = None
 
 np_rng = np.random.default_rng()
 
@@ -73,7 +69,6 @@ def test_quditXZH():
         H = numqi.gate.get_quditH(d)
         assert np.abs(X - H @ Z @ H.T.conj()).max() < 1e-10
 
-
 def test_rx_qudit():
     theta = np_rng.uniform(0, 1, size=23)
     z0 = numqi.gate.rx(theta)
@@ -87,9 +82,8 @@ def test_rx_qudit():
         assert np.abs(np.linalg.det(z0)-1).max() < 1e-10
         assert np.abs(z0-z1).max() < 1e-10
 
-        if torch is not None:
-            z2 = numqi.gate.rx(torch.tensor(theta,dtype=torch.float64), d).numpy()
-            assert np.abs(z0-z2).max() < 1e-10
+        z2 = numqi.gate.rx(torch.tensor(theta,dtype=torch.float64), d).numpy()
+        assert np.abs(z0-z2).max() < 1e-10
 
 
 def test_rz_qudit():
@@ -105,6 +99,5 @@ def test_rz_qudit():
         z1 = numqi.gate.rz(theta, d, diag_only=False)
         assert np.abs(z0 - H @ z1 @ H.T.conj()).max() < 1e-10
 
-        if torch is not None:
-            z2 = numqi.gate.rz(torch.tensor(theta, dtype=torch.float64), d, diag_only=False).numpy()
-            assert np.abs(z1-z2).max() < 1e-10
+        z2 = numqi.gate.rz(torch.tensor(theta, dtype=torch.float64), d, diag_only=False).numpy()
+        assert np.abs(z1-z2).max() < 1e-10

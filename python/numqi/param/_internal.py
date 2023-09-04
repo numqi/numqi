@@ -1,22 +1,15 @@
 import numpy as np
 import scipy.sparse.linalg
+import torch
 
-try:
-    import torch
-    from .._torch_op import TorchPSDMatrixSqrtm
-except ImportError:
-    torch = None
-    TorchPSDMatrixSqrtm = None
-
-
-from ..utils import is_torch
+from .._torch_op import TorchPSDMatrixSqrtm
 
 
 def _real_matrix_to_trace1_PSD_cholesky(matA, tag_real):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     N0 = len(matA)
-    if is_torch(matA):
+    if isinstance(matA, torch.Tensor):
         if tag_real:
             tmp0 = torch.tril(matA)
         else:
@@ -45,7 +38,7 @@ def real_matrix_to_trace1_PSD(matA, tag_real=False, use_cholesky=False):
 def real_matrix_to_hermitian(matA, tag_real=False):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
-    if is_torch(matA):
+    if isinstance(matA, torch.Tensor):
         tmp1 = torch.triu(matA)
         if tag_real:
             ret = (tmp1 + tmp1.transpose(1,2))
@@ -69,7 +62,7 @@ _hf_trace1_torch = lambda x: x/torch.trace(x)
 def hermitian_matrix_to_trace1_PSD(matA):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
-    tag_is_torch = is_torch(matA)
+    tag_is_torch = isinstance(matA, torch.Tensor)
     N0,N1,_ = matA.shape
     assert N1>=1
     if N1==1:
@@ -96,7 +89,7 @@ def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
     matA = matA.reshape(-1, shape[-1], shape[-1])
     assert shape[-1]%dim_in==0
     dim_out = shape[-1]//dim_in
-    if is_torch(matA):
+    if isinstance(matA, torch.Tensor):
         tmp0 = torch.tril(matA, -1)
         tmp1 = torch.triu(matA)
         tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
@@ -137,7 +130,7 @@ def real_matrix_to_special_unitary(matA, tag_real=False):
     assert matA.shape[-1]==matA.shape[-2]
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
-    if is_torch(matA):
+    if isinstance(matA, torch.Tensor):
         if tag_real:
             tmp0 = torch.triu(matA, 1)
             tmp1 = tmp0 - tmp0.transpose(1,2)
@@ -183,7 +176,7 @@ def PSD_to_choi_op(matA, dim_in, use_cholesky=False):
     N0 = matA.shape[0]
     assert shape[-1]%dim_in==0
     dim_out = shape[-1]//dim_in
-    if is_torch(matA):
+    if isinstance(matA, torch.Tensor):
         tmp1 = torch.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3])
         if use_cholesky:
             tmp2 = torch.stack([torch.linalg.inv(torch.linalg.cholesky_ex(x, upper=True)[0]) for x in tmp1])

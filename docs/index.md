@@ -17,11 +17,10 @@
 
 ## installation
 
-(TODO, when the repo `numqi` is public available) The following command should be okay for `win/mac/linux`. If you might use `torch` to do gradient backpropagation tasks, then you need add the optional arguments `[torch]`. Without `torch`, most of functions should still be runable.
+(TODO, when the repo `numqi` is public available) The following command should be okay for `win/mac/linux`.
 
 ```bash
 pip install numqi
-# pip install numqi[torch]
 ```
 
 Since `numqi` is still not public available right now, please download the source code and install it manually.
@@ -30,7 +29,6 @@ Since `numqi` is still not public available right now, please download the sourc
 git clone git@github.com:husisy/numqi.git
 cd numqi
 pip install .
-# pip install ".[torch]"
 ```
 
 test whether succuessfully installed (run it in `python/ipython` REPL)

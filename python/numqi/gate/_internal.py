@@ -1,14 +1,7 @@
 import functools
 import types
 import numpy as np
-
-from ..utils import is_torch
-
-try:
-    import torch
-except ImportError:
-    pass
-
+import torch
 
 def _make_pauli():
     s0=np.array([[1.0, 0.0], [0.0, 1.0]])
@@ -57,7 +50,7 @@ def pauli_exponential(a, theta, phi):
 
     see wiki https://en.wikipedia.org/wiki/Pauli_matrices in section "Exponential of a Pauli vector" equation (2)
     '''
-    if is_torch(a):
+    if isinstance(a, torch.Tensor):
         ca = torch.cos(a)
         sa = torch.sin(a)
         ct = torch.cos(theta)
@@ -91,7 +84,7 @@ def u3(theta, phi, lambda_):
 
     https://qiskit.org/documentation/stubs/qiskit.circuit.library.UGate.html?highlight=ugate#qiskit.circuit.library.UGate
     '''
-    if is_torch(theta):
+    if isinstance(theta, torch.Tensor):
         ct = torch.cos(theta/2)
         st = torch.sin(theta/2)
         tmp0 = torch.exp(1j*lambda_)
@@ -148,7 +141,7 @@ def _rx_qudit(theta, d):
     3. when d=2, restore to qubit Rx
     '''
     assert d>1
-    if is_torch(theta):
+    if isinstance(theta, torch.Tensor):
         EVL_log,EVC = _get_quditX_eigen(int(d), True)
         shape = theta.shape
         tmp0 = theta.view(-1,1,1)
@@ -175,7 +168,7 @@ def rx(theta, d=2):
     $$ exp \{ -i\theta \sigma _x/2 \} $$
     '''
     if d==2:
-        if is_torch(theta):
+        if isinstance(theta, torch.Tensor):
             # TODO maybe fixed at some release for pytorch
             # error when back-propagation without multiplying 1. I have no idea why
             # if theta.dtype==torch.float32:
@@ -199,7 +192,7 @@ def ry(theta):
     r'''
     $$ exp \{ -i\theta \sigma _y/2 \} $$
     '''
-    if is_torch(theta):
+    if isinstance(theta, torch.Tensor):
         if theta.dtype==torch.float32:
             theta = theta*torch.tensor(1, dtype=torch.complex64) #if not to(complex), error in the torch.stack later
         elif theta.dtype==torch.float64:
@@ -217,7 +210,7 @@ def ry(theta):
 
 def _rz_qudit(theta, d, diag_only):
     assert d>1
-    if is_torch(theta):
+    if isinstance(theta, torch.Tensor):
         shape = theta.shape
         tmp0 = torch.exp(1j*theta.view(-1))
         ret = torch.linalg.vander(tmp0, N=d)
@@ -253,7 +246,7 @@ def rz(theta, d=2, diag_only=False):
     $$ exp \{ -i\theta \sigma _z/2 \} $$
     '''
     if d==2:
-        if is_torch(theta):
+        if isinstance(theta, torch.Tensor):
             ca = torch.cos(theta/2)
             isa = 1j*torch.sin(theta/2)
             if diag_only:
@@ -280,7 +273,7 @@ def rzz(theta):
     r'''
     $$ exp \{ -i\theta \sigma _z \otimes \sigma_z /2 \} $$
     '''
-    if is_torch(theta):
+    if isinstance(theta, torch.Tensor):
         ca = torch.cos(theta/2)
         isa = 1j*torch.sin(theta/2)
         zero = torch.zeros_like(ca)

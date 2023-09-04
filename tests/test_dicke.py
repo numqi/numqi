@@ -1,11 +1,7 @@
 import itertools
 import numpy as np
 import scipy.special
-
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 
 import numqi
 
@@ -23,11 +19,10 @@ def test_qudit_partial_trace_AC_to_AB():
                 assert abs(np.trace(ret0)-1)<1e-7
                 assert np.all(np.linalg.eigvalsh(ret0)+1e-7>0) #almost PSD (ignoring rounding error)
 
-                if torch is not None:
-                    Bij_torch = [[torch.tensor(y) for y in x] for x in Bij]
-                    ret0 = numqi.dicke.partial_trace_ABk_to_AB(torch.tensor(np0), Bij_torch).numpy()
-                    assert abs(np.trace(ret0)-1)<1e-7
-                    assert np.all(np.linalg.eigvalsh(ret0)+1e-7>0) #almost PSD (ignoring rounding error)
+                Bij_torch = [[torch.tensor(y) for y in x] for x in Bij]
+                ret0 = numqi.dicke.partial_trace_ABk_to_AB(torch.tensor(np0), Bij_torch).numpy()
+                assert abs(np.trace(ret0)-1)<1e-7
+                assert np.all(np.linalg.eigvalsh(ret0)+1e-7>0) #almost PSD (ignoring rounding error)
 
 
 def test_get_dicke_klist():

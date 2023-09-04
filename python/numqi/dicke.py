@@ -1,13 +1,9 @@
 import itertools
 import numpy as np
 import scipy.special
+import torch
 
 import numqi.utils
-
-try:
-    import torch
-except ImportError:
-    torch = None
 
 def get_dicke_basis(num_qudit:int, dim:int):
     '''return Dicke basis for n qudits
@@ -138,7 +134,6 @@ def get_dicke_number(num_qudit:int, dim:int):
 
 # old name: qudit_partial_trace_AC_to_AB
 def partial_trace_ABk_to_AB(state, dicke_Bij):
-    is_torch = numqi.utils.is_torch(state)
     assert state.ndim==2
     dimA,dimBk = state.shape
     dimB = int(np.sqrt(len(dicke_Bij)))
@@ -147,7 +142,7 @@ def partial_trace_ABk_to_AB(state, dicke_Bij):
     state_conj = state.conj()
     for ind0,ind1,value in dicke_Bij:
         ret.append((state[:,ind0] * value) @ state_conj[:,ind1].T)
-    if is_torch:
+    if isinstance(state, torch.Tensor):
         ret = torch.stack(ret, dim=2).reshape(dimA,dimA,dimB,dimB).transpose(1,2).reshape(dimA*dimB,dimA*dimB)
     else:
         ret = np.stack(ret, axis=2).reshape(dimA,dimA,dimB,dimB).transpose(0,2,1,3).reshape(dimA*dimB,dimA*dimB)

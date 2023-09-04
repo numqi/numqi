@@ -20,11 +20,11 @@ dependencies = [
     'scipy',
     'tqdm',
     'sympy',
+    'torch',
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
-torch = ["torch"]
 dev = [
     "twine",
     "pytest",

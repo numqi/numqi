@@ -3,11 +3,7 @@ import contextlib
 import numpy as np
 import scipy.optimize
 from tqdm import tqdm
-
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 
 def _get_sorted_parameter(model):
     tmp0 = sorted([(k,v) for k,v in model.named_parameters() if v.requires_grad], key=lambda x:x[0])

@@ -1,13 +1,7 @@
 import numpy as np
 import functools
 import itertools
-
-try:
-    import torch
-except ImportError:
-    torch = None
-
-from .utils import is_torch
+import torch
 
 def gellmann_matrix(i, j, d):
     # https://en.wikipedia.org/wiki/Gell-Mann_matrices
@@ -69,7 +63,7 @@ def matrix_to_gellmann_basis(A, norm_I='sqrt(2/d)'):
     factor_I = (1/N0) if norm_I=='1/d' else 1/np.sqrt(2*N0)
     assert len(shape0)>=2 and shape0[-2]==N0
     A = A.reshape(-1,N0,N0)
-    if is_torch(A):
+    if isinstance(A, torch.Tensor):
         indU0,indU1 = torch.triu_indices(N0, N0, offset=1)
         aS = (A + A.transpose(1,2))[:,indU0,indU1]/2
         aA = (A - A.transpose(1,2))[:,indU0,indU1] * (0.5j)
@@ -108,7 +102,7 @@ def gellmann_basis_to_matrix(vec, norm_I='sqrt(2/d)'):
     vec2 = vec[:,(N1*(N1-1)):-1]
     vec3 = vec[:,-1:] * factor_I
     assert vec.shape[1]==N1*N1
-    if is_torch(vec):
+    if isinstance(vec, torch.Tensor):
         indU0,indU1 = torch.triu_indices(N1,N1,1)
         indU01 = torch.arange(N1*N1).reshape(N1,N1)[indU0,indU1]
         ind0 = torch.arange(N1)
@@ -149,7 +143,7 @@ def gellmann_basis_to_dm(vec):
     N0 = int(round(np.sqrt(shape[-1]+1).item()))
     assert shape[-1]==N0*N0-1
     vec = vec.reshape(-1, shape[-1])
-    if is_torch(vec):
+    if isinstance(vec, torch.Tensor):
         tmp0 = torch.concat([vec, torch.ones(vec.shape[0], 1, dtype=torch.float64)/N0], axis=1)
     else:
         tmp0 = np.concatenate([vec, np.ones((vec.shape[0],1), dtype=np.float64)/N0], axis=1)
@@ -170,7 +164,7 @@ def dm_to_gellmann_norm(dm):
     # tmp0 = dm_to_gellmann_basis(dm)
     # shape = tmp0.shape
     # tmp1 = tmp0.reshape(-1, shape[-1])
-    # if is_torch(dm):
+    # if isinstance(dm, torch.Tensor):
     #     ret = torch.linalg.norm(tmp1, dim=1)
     # else:
     #     ret = np.linalg.norm(tmp1, axis=1)

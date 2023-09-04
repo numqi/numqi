@@ -1,9 +1,5 @@
 import numpy as np
-
-try:
-    import torch
-except ImportError:
-    torch = None
+import torch
 
 import numqi.gate
 import numqi.channel
@@ -11,11 +7,7 @@ import numqi.sim.state
 from numqi.utils import hf_tuple_of_int, hf_tuple_of_any
 
 from ._internal import Gate, ParameterGate
-
-if torch is not None:
-    from ._torch_utils import CircuitTorchWrapper
-else:
-    CircuitTorchWrapper = None
+from ._torch_utils import CircuitTorchWrapper
 
 CANONICAL_GATE_KIND = {'unitary','control','measure'}
 # TODO kraus
@@ -106,8 +98,6 @@ def _kraus_gate(name_, hf0):
 class Circuit:
     def __init__(self, default_requires_grad=False):
         self.gate_index_list = []
-        if torch is None:
-            assert not default_requires_grad, 'pytorch is required for default_requires_grad=True'
         self.default_requires_grad = default_requires_grad
 
     def append_gate(self, gate, index):
@@ -276,4 +266,3 @@ class Circuit:
         return q0
 
 # TODO ch see qiskit
-# TODO when should we use torch, when should we use numpy only

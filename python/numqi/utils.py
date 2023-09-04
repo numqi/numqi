@@ -1,11 +1,8 @@
 import functools
 import collections
 import numpy as np
+import torch
 
-try:
-    import torch
-except ImportError:
-    torch = None
 
 @functools.lru_cache(maxsize=128)
 def hf_num_state_to_num_qubit(num_state:int, kind:str='exact'):
@@ -45,7 +42,7 @@ def hf_complex_to_real(x):
     shape = x.shape[:-2]
     x = x.reshape(-1, dim0, dim1)
     # ret = np.block([[x.real,-x.imag],[x.imag,x.real]])
-    if is_torch(x):
+    if isinstance(x, torch.Tensor):
         tmp0 = torch.concat([x.real, -x.imag], dim=2)
         tmp1 = torch.concat([x.imag, x.real], dim=2)
         ret = torch.concat([tmp0,tmp1], dim=1)
