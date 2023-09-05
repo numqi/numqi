@@ -14,6 +14,7 @@ from . import maximum_entropy
 from . import qec
 from . import entangle
 from . import unique_determine
+from . import optimal_control
 
 # mainly for debug
 from . import _torch_op
