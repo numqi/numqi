@@ -11,5 +11,9 @@ from . import optimize
 from . import group
 
 from . import maximum_entropy
+from . import qec
+
+# mainly for debug
+from . import _torch_op
 
 from ._version import __version__, __version_tuple__
