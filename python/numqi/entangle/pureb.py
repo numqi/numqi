@@ -85,7 +85,7 @@ class PureBosonicExt(torch.nn.Module):
         ret = []
         kwargs = dict(num_repeat=num_repeat, seed=np_rng, print_every_round=0, tol=converge_tol)
         for theta_i in (tqdm(theta_list) if use_tqdm else theta_list):
-            # see pyqet.entangle.get_ppt_numerical_range, we use the maximization there
+            # see numqi.entangle.get_ppt_numerical_range, we use the maximization there
             self.set_expectation_op(-np.cos(theta_i)*op0 - np.sin(theta_i)*op1)
             numqi.optimize.minimize(self, **kwargs)
             rho = self.dm_torch.detach().numpy()
@@ -103,5 +103,5 @@ class PureBosonicExt(torch.nn.Module):
 #         np_rng = np.random.default_rng()
 #         tmp0 = np_rng.uniform(num_mix)
 #         self.probability = torch.nn.Parameter(torch.tensor(tmp0/tmp0.sum(), dtype=torch.float64))
-#         self.pureb_list = torch.nn.ModuleList([pyqet.pureb.PureBosonicExt(dimA, dimB) for _ in range(num_mix)])
+#         self.pureb_list = torch.nn.ModuleList([numqi.pureb.PureBosonicExt(dimA, dimB) for _ in range(num_mix)])
 

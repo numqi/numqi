@@ -231,7 +231,7 @@ class AutodiffCHAREE(torch.nn.Module):
         ret = []
         kwargs = dict(num_repeat=num_repeat, seed=np_rng, print_every_round=0, tol=converge_tol)
         for theta_i in (tqdm(theta_list) if use_tqdm else theta_list):
-            # see pyqet.entangle.ppt.get_ppt_numerical_range, we use the maximization there
+            # see numqi.entangle.ppt.get_ppt_numerical_range, we use the maximization there
             self.set_expectation_op(-np.cos(theta_i)*op0 - np.sin(theta_i)*op1)
             numqi.optimize.minimize(self, **kwargs)
             rho = self.dm_sep_torch.numpy()
@@ -282,7 +282,7 @@ class CHABoundaryAutodiff(torch.nn.Module):
         assert rho_norm > 1e-10
         self.dm_target = rho.copy()
 
-        import cvxpylayers.torch
+        import cvxpylayers.torch #optional dependenc (not installed by default)
         tmp0 = dimA*dimA*dimB*dimB
         tmp1 = (rho - np.eye(dimA*dimB)/(dimA*dimB)).reshape(-1)/rho_norm
         # tmp1 = np.eye(dimA*dimB, dtype=np.complex128).view(np.float64).reshape(-1)/(dimA*dimB)

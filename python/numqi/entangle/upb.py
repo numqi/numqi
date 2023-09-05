@@ -131,7 +131,7 @@ def load_upb(kind, args=None, return_product=False, return_bes=False, ignore_war
             tmp0 = para[[0,1,3,4]]
             if np.any(np.abs(np.cos(tmp0))<1e-10) or np.any(np.abs(np.sin(tmp0))<1e-10):
                 # #gamma/theta cannot be multiple of np.pi/2
-                print('[WARNING] pyqet.entangle.load_upb(sixparam) is NOT a upb for current parameter')
+                print('[WARNING] numqi.entangle.load_upb(sixparam) is NOT a upb for current parameter')
         gammaA,thetaA,phiA,gammaB,thetaB,phiB = para
         NA = np.maximum(np.sqrt(np.cos(gammaA)**2 + np.sin(gammaA)**2 * np.cos(thetaA)**2), 1e-12)
         NB = np.maximum(np.sqrt(np.cos(gammaB)**2 + np.sin(gammaB)**2 * np.cos(thetaB)**2), 1e-12)

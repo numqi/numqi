@@ -113,7 +113,7 @@ class DensityMatrixLocalUnitaryEquivalentModel(torch.nn.Module):
         u1H = u1.conj()
         dm0 = self.dm0.reshape(self.dimA,self.dimB,self.dimA,self.dimB)
         ret = torch.einsum(dm0, [0,1,2,3], u0, [8,4,0], u0H, [8,5,2], u1, [8,6,1], u1H, [8,7,3], probability, [8], [4,6,5,7]).reshape(self.dm1.shape)
-        # loss = pyqet.utils.get_relative_entropy(ret, self.dm1)
+        # loss = numqi.utils.get_relative_entropy(ret, self.dm1)
         tmp0 = (ret - self.dm1).reshape(-1)
         loss = torch.dot(tmp0, tmp0.conj()).real
         return loss
