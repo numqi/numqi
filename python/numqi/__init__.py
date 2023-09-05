@@ -13,6 +13,7 @@ from . import group
 from . import maximum_entropy
 from . import qec
 from . import entangle
+from . import unique_determine
 
 # mainly for debug
 from . import _torch_op
