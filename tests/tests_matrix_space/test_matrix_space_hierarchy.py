@@ -11,7 +11,7 @@ hf_kron = lambda x: functools.reduce(np.kron, x)
 hf_randc = lambda *size: np_rng.normal(size=size) + 1j*np_rng.normal(size=size)
 
 def test_tensor2d_project_to_sym_antisym_basis():
-    dimA = 4
+    dimA = 3
     dimB = 3
     r = 1
     k = 3

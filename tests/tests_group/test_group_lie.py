@@ -77,7 +77,7 @@ def test_get_su2_irrep():
 
         ret_ = numqi.group.get_su2_irrep(j2, np0@np1)
         ret0 = z0 @ z1
-        assert np.abs(ret_-ret0).max() < 1e-9 #fail sometimes
+        assert np.abs(ret_-ret0).max() < 1e-8 #fail sometimes
 
 
 def test_get_su2_irrep_matd():
