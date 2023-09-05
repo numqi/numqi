@@ -2,7 +2,7 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-import pyqet
+import numqi
 
 np_rng = np.random.default_rng()
 
@@ -15,7 +15,7 @@ num_bins = 30
 
 count_np = []
 for kext in kext_list:
-    matGext = pyqet.maximum_entropy.get_ABk_gellmann_preimage_op(dimA, dimB, kext, kind='boson')
+    matGext = numqi.maximum_entropy.get_ABk_gellmann_preimage_op(dimA, dimB, kext, kind='boson')
     for _ in tqdm(range(num_sample)):
         tmp0 = np_rng.uniform(-1, 1, size=matGext.shape[0])
         tmp0 /= np.linalg.norm(tmp0)

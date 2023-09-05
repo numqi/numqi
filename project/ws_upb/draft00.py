@@ -3,22 +3,22 @@ import scipy.linalg
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-import pyqet
+import numqi
 
 np_rng = np.random.default_rng()
 
 # Pyramid(3x3) UPB
-pbA,pbB = pyqet.entangle.load_upb('pyramid')
+pbA,pbB = numqi.entangle.load_upb('pyramid')
 tmp0 = np.einsum(pbA, [0,1], pbB, [0,2], [0,1,2], optimize=True)
-basis,basis_orth,space_char = pyqet.matrix_space.get_matrix_orthogonal_basis(tmp0, field='complex')
+basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(tmp0, field='complex')
 
-model = pyqet.matrix_space.DetectRankOneModel(basis_orth)
-theta_optim = pyqet.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-13)
+model = numqi.matrix_space.DetectRankOneModel(basis_orth)
+theta_optim = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-13)
 theta_optim.fun #0.177
 
 
 # Pyr34(3x4) UCPB, not SUCPB
-pbA,_ = pyqet.entangle.load_upb('pyramid')
+pbA,_ = numqi.entangle.load_upb('pyramid')
 tmp0 = np.sqrt(np.cos(np.pi/5))
 tmp1 = np.sqrt(np.cos(np.pi*2/5))
 tmp2 = [(tmp0*np.cos(2*x*np.pi/5), tmp0*np.sin(2*x*np.pi/5), tmp1*np.cos(4*x*np.pi/5), tmp1*np.sin(4*x*np.pi/5)) for x in range(5)]
@@ -93,7 +93,7 @@ def get_genshifts_graph(k:int):
 def test_upb_genshifts():
     for k in [2,3,4,5]:
         graph = get_genshifts_graph(k)
-        pb_list = pyqet.entangle.load_upb('genshifts', args=2*k-1)
+        pb_list = numqi.entangle.load_upb('genshifts', args=2*k-1)
         for x,pb_i in zip(graph,pb_list):
             tmp0 = np.abs(pb_i.conj() @ pb_i.T)
             assert (x*tmp0).max() < 1e-10
@@ -160,12 +160,12 @@ def demo_genshifts():
 
 def demo_gentiles1():
     fig,(ax0,ax1) = plt.subplots(1, 2, figsize=(8,4))
-    pb_list = pyqet.entangle.load_upb('gentiles1', args=4)
+    pb_list = numqi.entangle.load_upb('gentiles1', args=4)
     graph = pb_to_graph(pb_list)
     plot_pb_graph(graph, ax=ax0)
     ax0.set_title(r'$4\otimes 4$')
 
-    pb_list = pyqet.entangle.load_upb('gentiles1', args=6)
+    pb_list = numqi.entangle.load_upb('gentiles1', args=6)
     graph = pb_to_graph(pb_list)
     plot_pb_graph(graph, ax=ax1)
     ax1.set_title(r'$6\otimes 6$')
@@ -175,17 +175,17 @@ def demo_gentiles1():
 
 def demo_gentiles1():
     fig,(ax0,ax1,ax2) = plt.subplots(1, 3, figsize=(12,4))
-    pb_list = pyqet.entangle.load_upb('gentiles2', args=(3,4))
+    pb_list = numqi.entangle.load_upb('gentiles2', args=(3,4))
     graph = pb_to_graph(pb_list)
     plot_pb_graph(graph, ax=ax0)
     ax0.set_title(r'$3\otimes 4$')
 
-    pb_list = pyqet.entangle.load_upb('gentiles2', args=(3,5))
+    pb_list = numqi.entangle.load_upb('gentiles2', args=(3,5))
     graph = pb_to_graph(pb_list)
     plot_pb_graph(graph, ax=ax1)
     ax1.set_title(r'$3\otimes 5$')
 
-    pb_list = pyqet.entangle.load_upb('gentiles2', args=(4,4))
+    pb_list = numqi.entangle.load_upb('gentiles2', args=(4,4))
     graph = pb_to_graph(pb_list)
     plot_pb_graph(graph, ax=ax2)
     ax2.set_title(r'$4\otimes 4$')
@@ -199,12 +199,12 @@ graph = get_genshifts_graph(2)
 graph = get_genshifts_graph(3)
 # plot_pb_graph(graph)
 
-pb_list = pyqet.entangle.load_upb('gentiles1', args=4)
+pb_list = numqi.entangle.load_upb('gentiles1', args=4)
 graph = pb_to_graph(pb_list)
 # plot_pb_graph(graph)
 
 # genshift graph
 N0 = 7
-pb_list = pyqet.entangle.load_upb('genshifts', args=N0)
+pb_list = numqi.entangle.load_upb('genshifts', args=N0)
 graph = pb_to_graph(pb_list)
 print(graph)

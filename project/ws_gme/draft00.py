@@ -1,11 +1,10 @@
 import itertools
 import numpy as np
 import torch
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 import opt_einsum
 
-import pyqet
+import numqi
 
 def get_bipartition_list(num_part):
     ret = []
@@ -129,7 +128,7 @@ dim_list = [2]*num_part
 dm_ghz = get_ghz_state(num_part, return_dm=True)
 
 alpha_list = np.linspace(0, 1, 101)
-dm_target_list = [pyqet.entangle.hf_interpolate_dm(dm_ghz, alpha=x) for x in alpha_list]
+dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_ghz, alpha=x) for x in alpha_list]
 
 ret_list = []
 model = AutodiffCHAGMEModel(dim_list)
@@ -138,18 +137,18 @@ kwargs = dict(num_step=10000, theta0='uniform', tqdm_update_freq=200, early_stop
 prob_list = []
 for ind0,dm_target_i in enumerate(dm_target_list):
     model.set_dm_target(dm_target_i)
-    # theta_optim = pyqet.optimize.minimize(model, **kwargs)
+    # theta_optim = numqi.optimize.minimize(model, **kwargs)
     # ret_list.append(theta_optim.fun)
-    loss = pyqet.optimize.minimize_adam(model, **kwargs)
+    loss = numqi.optimize.minimize_adam(model, **kwargs)
     print(f"loss={loss:.2e}, alpha={alpha_list[ind0]:.3f}")
     ret_list.append(loss)
     prob_list.append(model.probability_p.numpy().copy())
 # with dm_target_list as pbar:
 #     for ind0,dm_target_i in enumerate(pbar):
 #         model.set_dm_target(dm_target_i)
-#         # theta_optim = pyqet.optimize.minimize(model, **kwargs)
+#         # theta_optim = numqi.optimize.minimize(model, **kwargs)
 #         # ret_list.append(theta_optim.fun)
-#         loss = pyqet.optimize.minimize_adam(model, **kwargs)
+#         loss = numqi.optimize.minimize_adam(model, **kwargs)
 #         pbar.set_postfix(loss=f'{loss:.2e}', alpha=f'{alpha_list[ind0]:.3f}')
 #         ret_list.append(loss)
 #         prob_list.append(model.probability_p.numpy().copy())

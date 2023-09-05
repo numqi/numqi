@@ -1,7 +1,7 @@
 import time
 import numpy as np
 
-import pyqet
+import numqi
 
 case_dict = {
     2: [6,8,10,16,32,64],
@@ -15,12 +15,12 @@ alpha_irrep_list = []
 alpha_analytic_list = []
 alpha_list = []
 ret_list = []
-dm_werner = pyqet.entangle.get_werner_state(dim, alpha=1)
-dm_norm = pyqet.gellmann.dm_to_gellmann_norm(dm_werner)
+dm_werner = numqi.entangle.get_werner_state(dim, alpha=1)
+dm_norm = numqi.gellmann.dm_to_gellmann_norm(dm_werner)
 for kext in kext_list:
-    _ = pyqet.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
+    _ = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
     t0 = time.time()
-    beta = pyqet.entangle.symext.get_ABk_symmetric_extension_boundary(dm_werner, (dim,dim), kext, use_ppt=False, use_boson=False)
+    beta = numqi.entangle.symext.get_ABk_symmetric_extension_boundary(dm_werner, (dim,dim), kext, use_ppt=False, use_boson=False)
     alpha_irrep = (beta/dm_norm)*dim/(beta/dm_norm+dim-1)
     alpha_analytical = (kext+dim*dim-dim)/(kext*dim+dim-1)
     tmp0 = time.time() - t0
@@ -45,7 +45,7 @@ for kext in kext_list:
 dim = 3
 kext_list = [3,4,5,6]
 for kext in kext_list:
-    coeffB_list,multiplicity_list = pyqet.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
+    coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
     dim_list = [x.shape[0] for x in coeffB_list]
     assert sum(x*y for x,y in zip(dim_list,multiplicity_list))==dim**kext
     tmp0 = ' + '.join([f'{x}x{y}' for x,y in zip(dim_list,multiplicity_list)])
@@ -64,7 +64,7 @@ for kext in kext_list:
 dim = 4
 kext_list = [3,4,5]
 for kext in kext_list:
-    coeffB_list,multiplicity_list = pyqet.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
+    coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
     dim_list = [x.shape[0] for x in coeffB_list]
     assert sum(x*y for x,y in zip(dim_list,multiplicity_list))==dim**kext
     tmp0 = ' + '.join([f'{x}x{y}' for x,y in zip(dim_list,multiplicity_list)])

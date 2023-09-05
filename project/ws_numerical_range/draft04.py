@@ -4,7 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-import pyqet
+import numqi
 
 np_rng = np.random.default_rng()
 tableau = ['#006BA4', '#FF800E', '#ABABAB', '#595959', '#5F9ED1', '#C85200', '#898989', '#A2C8EC', '#FFBC79', '#CFCFCF']
@@ -15,20 +15,20 @@ dim = 2
 kext = 3
 
 kind = 'boson' if dim==2 else 'symmetric'
-matGext = pyqet.maximum_entropy.get_ABk_gellmann_preimage_op(dim, dim, kext, kind=kind)
+matGext = numqi.maximum_entropy.get_ABk_gellmann_preimage_op(dim, dim, kext, kind=kind)
 
 alpha_boundary = (kext+dim*dim-dim)/(kext*dim+dim-1)
-tstar = pyqet.gellmann.dm_to_gellmann_norm(pyqet.entangle.get_werner_state(dim, alpha_boundary))
+tstar = numqi.gellmann.dm_to_gellmann_norm(numqi.entangle.get_werner_state(dim, alpha_boundary))
 
-model = pyqet.maximum_entropy.MaximumEntropyTangentModel(matGext, factor=0.5)
-vecB = pyqet.gellmann.dm_to_gellmann_basis(pyqet.entangle.get_werner_state(dim, 1))
+model = numqi.maximum_entropy.MaximumEntropyTangentModel(matGext, factor=0.5)
+vecB = numqi.gellmann.dm_to_gellmann_basis(numqi.entangle.get_werner_state(dim, 1))
 model.set_target_vec(vecB)
 
-# theta_optim = pyqet.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10,
+# theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10,
 #                 print_every_round=1, print_freq=10)
 # print(abs(tstar-theta_optim.fun)) #1e-2
 
-loss = pyqet.optimize.minimize_adam(model, num_step=2000, theta0='uniform',
+loss = numqi.optimize.minimize_adam(model, num_step=2000, theta0='uniform',
                     optim_args=('adam',0.03,0.003), tqdm_update_freq=50)
 abs(tstar-loss) #1e-3
 
@@ -39,32 +39,32 @@ dim = 3
 dimA = dim
 dimB = dim
 kext = 3
-dm0 = pyqet.entangle.get_werner_state(dim, 1)
-dm1 = pyqet.entangle.get_isotropic_state(dim, 1)
-dm1 = pyqet.entangle.load_upb('tiles', return_bes=True)[1]
-theta_dm1,hf_theta = pyqet.entangle.get_density_matrix_plane(dm0, dm1)
+dm0 = numqi.entangle.get_werner_state(dim, 1)
+dm1 = numqi.entangle.get_isotropic_state(dim, 1)
+dm1 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
+theta_dm1,hf_theta = numqi.entangle.get_density_matrix_plane(dm0, dm1)
 theta_list = np.linspace(0, 2*np.pi, 201)
 
-beta_dm = np.array([pyqet.entangle.get_density_matrix_boundary(hf_theta(x))[1] for x in theta_list])
+beta_dm = np.array([numqi.entangle.get_density_matrix_boundary(hf_theta(x))[1] for x in theta_list])
 
 kwargs = dict(dim=(dim,dim), kext=kext, xtol=1e-5, use_ppt=False, use_boson=True, return_info=False, use_tqdm=False)
 tmp0 = np.stack([hf_theta(x) for x in theta_list])
-beta_kext_list = pyqet.entangle.get_ABk_symmetric_extension_boundary(tmp0, **kwargs)
+beta_kext_list = numqi.entangle.get_ABk_symmetric_extension_boundary(tmp0, **kwargs)
 
-matGext = pyqet.maximum_entropy.get_ABk_gellmann_preimage_op(dimA, dimB, kext, kind='boson')
-model = pyqet.maximum_entropy.MaximumEntropyTangentModel(matGext, factor=0.5)
+matGext = numqi.maximum_entropy.get_ABk_gellmann_preimage_op(dimA, dimB, kext, kind='boson')
+model = numqi.maximum_entropy.MaximumEntropyTangentModel(matGext, factor=0.5)
 vecAN_list = []
 for theta_i in tqdm(theta_list):
-    model.set_target_vec(pyqet.gellmann.dm_to_gellmann_basis(hf_theta(theta_i)))
-    # theta_optim = pyqet.optimize.minimize(model, num_repeat=3, tol=1e-10, print_every_round=0)
-    pyqet.optimize.minimize_adam(model, num_step=5000, theta0='uniform', optim_args=('adam',0.03,1e-4), tqdm_update_freq=0)
+    model.set_target_vec(numqi.gellmann.dm_to_gellmann_basis(hf_theta(theta_i)))
+    # theta_optim = numqi.optimize.minimize(model, num_repeat=3, tol=1e-10, print_every_round=0)
+    numqi.optimize.minimize_adam(model, num_step=5000, theta0='uniform', optim_args=('adam',0.03,1e-4), tqdm_update_freq=0)
     vecAN_list.append(model.get_vector())
 vecA_list = np.stack([x[0] for x in vecAN_list])
 vecN_list = np.stack([x[1] for x in vecAN_list])
 
-tmp0 = pyqet.gellmann.dm_to_gellmann_basis(dm0)
+tmp0 = numqi.gellmann.dm_to_gellmann_basis(dm0)
 basis0 = tmp0/np.linalg.norm(tmp0)
-tmp0 = pyqet.gellmann.dm_to_gellmann_basis(dm1)
+tmp0 = numqi.gellmann.dm_to_gellmann_basis(dm1)
 tmp0 = tmp0 - np.dot(tmp0, basis0)*basis0
 basis1 = tmp0/np.linalg.norm(tmp0)
 tmp0 = vecN_list @ basis0
@@ -77,8 +77,8 @@ vec_proj_A = np.stack([tmp3*np.cos(theta_list), tmp3*np.sin(theta_list)], axis=1
 
 fig,ax = plt.subplots()
 tmp0 = slice(None,None,1)
-# pyqet.maximum_entropy.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='tangent', color='#CCCCCC', radius=0.15, label='maxent tangent')
-pyqet.maximum_entropy.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='norm', color='#CCCCCC', radius=0.03, label='maxent tangent')
+# numqi.maximum_entropy.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='tangent', color='#CCCCCC', radius=0.15, label='maxent tangent')
+numqi.maximum_entropy.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='norm', color='#CCCCCC', radius=0.03, label='maxent tangent')
 tmp0 = beta_dm*np.cos(theta_list)
 tmp1 = beta_dm*np.sin(theta_list)
 ax.plot(tmp0, tmp1, linestyle='solid', color=tableau[4], label='dm boundary')

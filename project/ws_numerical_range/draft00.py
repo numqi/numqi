@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import pyqet
+import numqi
 
 np_rng = np.random.default_rng()
 tableau = ['#006BA4', '#FF800E', '#ABABAB', '#595959', '#5F9ED1', '#C85200', '#898989', '#A2C8EC', '#FFBC79', '#CFCFCF']
@@ -17,7 +17,7 @@ def demo_maxent_2op():
     # tmp0 = np_rng.normal(size=(2,N0,N0)) + 1j*np_rng.normal(size=(2,N0,N0))
     # op0,op1 = [hf_trace0(x) for x in (tmp0 + tmp0.transpose(0,2,1).conj())]
 
-    # tmp0 = pyqet.matrix_space.get_matrix_numerical_range(op0+1j*op1, num_point=num_point)
+    # tmp0 = numqi.matrix_space.get_matrix_numerical_range(op0+1j*op1, num_point=num_point)
     # op_nr = np.stack([tmp0.real, tmp0.imag], axis=1)
 
     num_point = 200
@@ -39,7 +39,7 @@ def demo_maxent_2op():
     fig,(ax0,ax1) = plt.subplots(1, 2, figsize=(8,4))
     ax0.plot(op_nr_list[:,0], op_nr_list[:,1], color=tableau[4])
     ind0 = slice(None, None, 5)
-    pyqet.maximum_entropy.draw_line_list(ax0, op_nr_list[ind0], theta_list[ind0], kind='norm', radius=0.5, color=tableau[2])
+    numqi.maximum_entropy.draw_line_list(ax0, op_nr_list[ind0], theta_list[ind0], kind='norm', radius=0.5, color=tableau[2])
     tmp0 = ax0.get_xlim()[1]*0.8
     ax0.plot([0,tmp0], [0,tmp0*np.tan(phi_target)], color=tableau[0])
     ax0.set_aspect('equal')
