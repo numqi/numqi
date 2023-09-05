@@ -12,6 +12,7 @@ from . import group
 
 from . import maximum_entropy
 from . import qec
+from . import entangle
 
 # mainly for debug
 from . import _torch_op

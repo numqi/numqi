@@ -1,0 +1,277 @@
+import functools
+import numpy as np
+import cvxpy
+import torch
+from tqdm import tqdm
+
+import numqi.dicke
+import numqi.group
+import numqi.gellmann
+import numqi.param
+
+from .ppt import cvx_matrix_mlogx
+from ._misc import _sdp_ree_solve, _check_input_rho_SDP, get_density_matrix_boundary, hf_interpolate_dm
+
+
+@functools.lru_cache
+def get_symmetric_extension_index_list(dimA, dimB, kext, kind='2d'):
+    assert kind in {'1d','2d'}
+    tmp0 = np.arange(dimA*dimB**kext)
+    ret = [tmp0.reshape(dimA*dimB**(kext-2), dimB, dimB).transpose(0,2,1).reshape(-1)]
+    if kext>2:
+        ret.append(np.transpose(tmp0.reshape((dimA,)+(dimB,)*kext), [0]+list(range(2,kext+1))+[1]).reshape(-1))
+    if kind=='1d':
+        ind_list = ret
+        tmp0 = np.arange(dimA*dimA*dimB**(2*kext)).reshape(dimA*dimB**kext, -1)
+        ret = []
+        for ind0 in ind_list:
+            ret.append(np.reshape(tmp0[ind0[:,np.newaxis], ind0].T, -1, order='F'))
+    for x in ret:
+        x.flags.writeable = False
+    return ret
+
+
+# dimA=2 dimB=3 kext=3 MOSEK: 8GB 10second
+# dimA=3 dimB=3 kext=3 MOSEK: 12GB 50s
+def check_ABk_symmetric_extension_naive(rho, dim, kext, index_kind='2d'):
+    assert len(dim)==2
+    assert index_kind in {'1d', '2d'} #2d is a little bit more faster
+    dimA = int(dim[0])
+    dimB = int(dim[1])
+    assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1]) and (rho.shape[0]==dimA*dimB)
+    assert kext>=2
+    indP_list = get_symmetric_extension_index_list(dimA, dimB, kext, kind=index_kind)
+    cvxX = cvxpy.Variable((dimA*dimB**(kext),dimA*dimB**(kext)), hermitian=True)
+    constraints = [
+        cvxX>>0,
+        cvxpy.trace(cvxX)==1,
+        cvxpy.partial_trace(cvxX, (dimA*dimB,dimB**(kext-1)), 1)==np.asfortranarray(rho),
+    ]
+    if index_kind=='1d':
+        tmp0 = cvxpy.reshape(cvxX, (dimA*dimA*dimB**(2*kext)), order='F')
+        constraints += [cvxpy.reshape(tmp0[x],shape=cvxX.shape,order='F')==cvxX for x in indP_list]
+    else:
+        constraints += [(cvxX[indP[:,np.newaxis],indP]==cvxX) for indP in indP_list]
+    obj = cvxpy.Minimize(1)
+    prob = cvxpy.Problem(obj, constraints)
+    prob.solve()
+
+    if np.isinf(prob.value):
+        ret = False, None
+    else:
+        ret = True, np.ascontiguousarray(cvxX.value)
+    return ret
+
+
+@functools.lru_cache
+def get_cvxpy_transpose0213_indexing(N0, N1, N2=None, N3=None):
+    if N2 is None:
+        assert N3 is None
+        N2 = N0
+        N3 = N1
+    ret = np.arange(N0*N1*N2*N3).reshape(N2,N3,N0,N1).transpose(3,1,2,0).reshape(-1)
+    ret.flags.writeable = False
+    return ret
+
+
+def get_ABk_symmetric_extension_ree(rho, dim, kext, use_ppt=False, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=False):
+    # TODO use_boson
+    rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm)
+
+    coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
+    dim_coeffB_list = [x.shape[0] for x in coeffB_list]
+
+    cvxP_list = [cvxpy.Variable((x*dimA,x*dimA), hermitian=True) for x in dim_coeffB_list]
+    index0213_list = [get_cvxpy_transpose0213_indexing(dimA,x) for x in dim_coeffB_list]
+    index0213_ab = get_cvxpy_transpose0213_indexing(dimA,dimB)
+    # TODO replace indexing-matmul with indexing-sum
+    cvx_rdm_list = []
+    #TODO trace(cvx_rdm) is not correct
+    for ind0 in range(len(coeffB_list)):
+        tmp0 = cvxP_list[ind0]
+        tmp1 = index0213_list[ind0]
+        tmp2 = dim_coeffB_list[ind0]**2
+        tmp3 = cvxpy.reshape(cvxpy.reshape(tmp0, tmp0.size, order='F')[tmp1], (dimA*dimA,tmp2), order='F')
+        cvx_rdm_list.append(tmp3 @ np.asfortranarray(coeffB_list[ind0].reshape(tmp2, dimB*dimB)))
+    tmp0 = sum(cvx_rdm_list) #(dimA*dimA,dimB*dimB)
+    cvx_rdm = cvxpy.reshape(cvxpy.reshape(tmp0, tmp0.size, order='F')[index0213_ab], (dimA*dimB,dimA*dimB), order='F')
+    constraints = [x>>0 for x in cvxP_list]
+    if use_ppt:
+        constraints = +[cvxpy.partial_transpose(x, [dimA,x.shape[0]//dimA], [1])>>0 for x in cvxP_list]
+    constraints += [sum(cvxpy.trace(x)*y for x,y in zip(cvxP_list,multiplicity_list))==1]
+    cvxP, tmp0 = cvx_matrix_mlogx(cvx_rdm, sqrt_order=sqrt_order, pade_order=pade_order)
+    constraints += tmp0
+    # cvxP['X'] is cvxX
+    cvx_rho = cvxpy.Parameter((dimA*dimB,dimA*dimB), hermitian=True)
+    obj = cvxpy.Minimize(cvxpy.real(cvxpy.trace(cvx_rho @ cvxP['mlogX'])))
+    prob = cvxpy.Problem(obj, constraints)
+    ret = _sdp_ree_solve(rho, use_tqdm, cvx_rho, cvxP, prob, obj, return_info, is_single_item)
+    return ret
+
+
+def _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_rho):
+    coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
+    if use_boson:
+        assert numqi.dicke.get_dicke_number(kext, dimB)==coeffB_list[0].shape[0]
+        coeffB_list = coeffB_list[:1]
+        multiplicity_list = multiplicity_list[:1]
+    dim_coeffB_list = [x.shape[0] for x in coeffB_list]
+
+    cvxP_list = [cvxpy.Variable((x*dimA,x*dimA), hermitian=True) for x in dim_coeffB_list]
+    index0213_list = [get_cvxpy_transpose0213_indexing(dimA,x) for x in dim_coeffB_list]
+    cvx_rdm_list = []
+    for ind0 in range(len(coeffB_list)):
+        tmp0 = cvxP_list[ind0]
+        tmp1 = index0213_list[ind0]
+        tmp2 = dim_coeffB_list[ind0]**2
+        tmp3 = cvxpy.reshape(cvxpy.reshape(tmp0, tmp0.size, order='F')[tmp1], (dimA*dimA,tmp2), order='F')
+        cvx_rdm_list.append(tmp3 @ np.asfortranarray(coeffB_list[ind0].reshape(tmp2, dimB*dimB)))
+    cvx_rdm = sum(cvx_rdm_list) #(dimA,dimA,dimB,dimB)
+    constraints = [x>>0 for x in cvxP_list]
+    if use_ppt:
+        constraints += [cvxpy.partial_transpose(x, [dimA,x.shape[0]//dimA], axis=1)>>0 for x in cvxP_list]
+    constraints += [sum(cvxpy.trace(x)*y for x,y in zip(cvxP_list,multiplicity_list))==1]
+    constraints += [cvx_rdm==cvx_rho]
+    return cvxP_list, constraints
+
+
+def check_ABk_symmetric_extension(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
+    '''check if rho has symmetric extension of kext copies on B-party
+
+    Parameters:
+        rho (np.ndarray,list): density matrix, or list of density matrices (3d array)
+        dim (tuple(int)): tuple of length 2, dimension of A-party and B-party
+        kext (int): number of copies of symmetric extension
+        use_ppt (bool): if True, use PPT (positive partial transpose) constraint
+        use_boson (bool): if True, use bosonic symmetry
+        use_tqdm (bool): if True, use tqdm to show progress bar
+        return_info (bool): if True, return information of the SDP solver
+
+    Returns:
+        ret (bool): If `return_info=False` and rho is single density matrix, `ret` is a bool indicates if rho has symmetric extension.
+            If `return_info=False` and rho is list of density matrices, `ret` is a 1d `np.array` of bool
+            If `return_info=True` and `rho` is single density matrix, `ret` is a tuple of (bool, info) where
+            `info` is a list of information of the SDP solver.
+            If `return_info=True` and `rho` is list of density matrices, `ret` is a tuple of (np.array, info) where
+            `info` is a dict of information of the SDP solver.
+    '''
+    rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm)
+    rho = rho.reshape(-1,dimA,dimB,dimA,dimB).transpose(0,1,3,2,4).reshape(-1,dimA*dimA,dimB*dimB)
+    cvx_rho = cvxpy.Parameter((dimA*dimA,dimB*dimB), complex=True)
+    cvxP_list, constraints = _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_rho)
+    prob = cvxpy.Problem(cvxpy.Minimize(1), constraints)
+    ret = []
+    for rho_i in (tqdm(rho) if use_tqdm else rho):
+        cvx_rho.value = rho_i
+        try:
+            prob.solve()
+            tmp0 = not np.isinf(prob.value)
+        except cvxpy.error.SolverError: #seems error when fail to solve
+            tmp0 = False
+        if return_info:
+            tmp1 = [np.ascontiguousarray(x.value) for x in cvxP_list] if tmp0 else None
+            ret.append((tmp0,tmp1))
+        else:
+            ret.append(tmp0)
+    if not return_info:
+        ret = np.array(ret)
+    if is_single_item:
+        ret = ret[0]
+    return ret
+
+
+def get_ABk_symmetric_extension_boundary(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
+    '''get the boundary (in Euclidean space) of k-ext symmetric extension on B-party along rho direction
+
+    Parameters:
+        rho (np.ndarray,list): density matrix, or list of density matrices (3d array)
+        dim (tuple(int)): tuple of length 2, dimension of A-party and B-party
+        kext (int): number of copies of symmetric extension
+        use_ppt (bool): if True, use PPT (positive partial transpose) constraint
+        use_boson (bool): if True, use bosonic symmetry
+        use_tqdm (bool): if True, use tqdm to show progress bar
+        return_info (bool): if True, return information of the SDP solver
+
+    Returns:
+        ret (bool): If `return_info=False` and rho is single density matrix, `ret` is a float indicates Euclidean distance.
+            If `return_info=False` and rho is list of density matrices, `ret` is a 1d `np.array` of float
+            If `return_info=True` and `rho` is single density matrix, `ret` is a tuple of (float, info) where
+            `info` is a list of information of the SDP solver.
+            If `return_info=True` and `rho` is list of density matrices, `ret` is a tuple of (np.array, info) where
+            `info` is a list of information of the SDP solver.
+    '''
+    # no need to be positive, only direction matters
+    rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm, tag_positive=False)
+    dm_norm = numqi.gellmann.dm_to_gellmann_norm(rho)
+    tmp0 = (rho - np.eye(dimA*dimB)/(dimA*dimB))/dm_norm.reshape(-1,1,1)
+    rho_vec_list = tmp0.reshape(-1,dimA,dimB,dimA,dimB).transpose(0,1,3,2,4).reshape(-1,dimA*dimA,dimB*dimB)
+
+    cvx_rho = cvxpy.Parameter((dimA*dimA,dimB*dimB), complex=True)
+    cvx_beta = cvxpy.Variable()
+    tmp0 = np.eye(dimA*dimB).reshape(dimA,dimB,dimA,dimB).transpose(0,2,1,3).reshape(dimA*dimA,dimB*dimB)/(dimA*dimB)
+    cvx_sigma = tmp0 + cvx_beta * cvx_rho
+    cvxP_list,constraints = _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_sigma)
+    prob = cvxpy.Problem(cvxpy.Maximize(cvx_beta), constraints)
+    ret = []
+    for ind0 in (tqdm(range(len(rho))) if use_tqdm else range(len(rho))):
+        cvx_rho.value = rho_vec_list[ind0]
+        prob.solve()
+        if return_info:
+            tmp0 = numqi.gellmann.dm_to_gellmann_basis(rho[ind0])
+            dual = np.ascontiguousarray(constraints[-1].dual_value).reshape(dimA,dimA,dimB,dimB).transpose(0,2,1,3).reshape(dimA*dimB,dimA*dimB)
+            tmp1 = numqi.gellmann.dm_to_gellmann_basis(dual + dual.T.conj())
+            info = {
+                'dual': dual,
+                'vecA': (cvx_beta.value/np.linalg.norm(tmp0))*tmp0,
+                'vecN': -tmp1/np.linalg.norm(tmp1), #strange minus sign
+            }
+            ret.append((cvx_beta.value,info))
+        else:
+            ret.append(cvx_beta.value)
+    if not return_info:
+        ret = np.array(ret)
+    if is_single_item:
+        ret = ret[0]
+    return ret
+
+
+class SymmetricExtABkIrrepModel(torch.nn.Module):
+    def __init__(self, dimA, dimB, kext, use_cholesky=False) -> None:
+        super().__init__()
+        assert dimA>=2
+        self.dimA = int(dimA)
+        self.dimB = int(dimB)
+        self.kext = int(kext)
+        self.use_cholesky = use_cholesky
+        coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
+        self.coeffB_list = [torch.tensor(x.reshape(-1,self.dimB**2), dtype=torch.complex128) for x in coeffB_list] #TODO complex128?
+        self.multiplicity_list = torch.tensor(multiplicity_list, dtype=torch.int64) #absorbed into self.coeffB_list
+        np_rng = np.random.default_rng()
+        hf0 = lambda x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=(x,x)), dtype=torch.float64))
+        self.theta_list = torch.nn.ParameterList([hf0(self.dimA*x.shape[0]) for x in coeffB_list])
+        self.theta_portion = torch.nn.Parameter(torch.tensor(np_rng.uniform(0, 1, size=len(self.coeffB_list)), dtype=torch.float64))
+
+        self.dm_target_transpose = None
+        self.rhoAB_transpose = None
+
+    def set_dm_target(self, rhoAB, zero_eps=1e-7):
+        assert (rhoAB.ndim==2) and (rhoAB.shape[0]==rhoAB.shape[1]) and (rhoAB.shape[0]==self.dimA*self.dimB)
+        assert (abs(np.trace(rhoAB)-1)<zero_eps) and (np.abs(rhoAB-rhoAB.T.conj()).max()<zero_eps)
+        assert (np.linalg.eigvalsh(rhoAB)[0] + zero_eps) > 0
+        tmp0 = rhoAB.reshape(self.dimA, self.dimB, self.dimA, -1).transpose(0,2,1,3).reshape(self.dimA**2,-1)
+        self.dm_target_transpose = torch.tensor(tmp0, dtype=torch.complex128)
+
+    def forward(self):
+        assert self.dm_target_transpose is not None
+        rhoAB_list = []
+        for ind0 in range(len(self.coeffB_list)):
+            tmp0 = numqi.param.real_matrix_to_trace1_PSD(self.theta_list[ind0], use_cholesky=self.use_cholesky)
+            tmp1 = tmp0.reshape(self.dimA, tmp0.shape[0]//self.dimA, self.dimA, -1)
+            rhoAB_list.append(tmp1.transpose(1,2).reshape(self.dimA**2,-1) @ self.coeffB_list[ind0])
+        tmp0 = torch.nn.functional.softplus(self.theta_portion)
+        tmp1 = tmp0 / (torch.sum(tmp0)*self.multiplicity_list)
+        rhoAB_transpose = sum([rhoAB_list[x]*tmp1[x] for x in range(len(rhoAB_list))])
+        self.rhoAB_transpose = rhoAB_transpose
+        tmp0 = (rhoAB_transpose-self.dm_target_transpose).reshape(-1)
+        loss = torch.dot(tmp0.conj(), tmp0).real
+        return loss
