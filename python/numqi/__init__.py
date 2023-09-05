@@ -10,4 +10,6 @@ from . import matrix_space
 from . import optimize
 from . import group
 
+from . import maximum_entropy
+
 from ._version import __version__, __version_tuple__

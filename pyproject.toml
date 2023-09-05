@@ -21,6 +21,8 @@ dependencies = [
     'tqdm',
     'sympy',
     'torch',
+    'cvxpy',
+    'matplotlib',
 ]
 dynamic = ["version"]
 
