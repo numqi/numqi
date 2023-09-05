@@ -1,5 +1,7 @@
 # numqi: a quantum information toolbox implemented in numpy
 
+[![codecov](https://codecov.io/gh/husisy/numqi/graph/badge.svg?token=50YC4KD4M1)](https://codecov.io/gh/husisy/numqi)
+
 WARNING: no backward compatibility guarantee until version `1.0.0`
 
 1. A numpy based quantum simulator, for quick development only, not performance-optimized
@@ -15,13 +17,69 @@ WARNING: no backward compatibility guarantee until version `1.0.0`
 4. quantum operation
    * `.gate`: various unitary matrix, like Pauli gate, Clifford gate, etc.
    * `.channel`: different representation of quantum channel, like Choi, Kraus, Super-op, partial trace of unitary
-5. Pytorch is an optional requirement, most functions should work for non `torch.Tensor` input.
-   * pytorch and cvxpy should be put in `pyqet` package
-6. must dependency
-   * `pytorch`: without it, gradient related functions will not work
-   * `matplotlib`: with it, `MaxEntModel`
+5. `numqi.entangle` detect entanglement
+   * Positive Partial transpose
+   * convex hull approximation
+   * Pure Bosonic extension, pure bonsonic extension model on nisq quantum circuits
+   * unextendible product state, bound extangled state
+6. `numqi.qec` quantum error correction
+   * well known QECC, like `((5,2,3))`, `((8,8,3))`
+   * `VarQEC`: variational learning for quantum error-correcting codes
+7. `numqi.query`: TODO
+8. `numqi.maximum_entropy`: witness about the quantum state
 
-design philosophy
+## quickstart
+
+more detailed installation instructions see [docs/installation](./docs/installation.md)
+
+```bash
+# TODO upload to pypi.org
+pip install pyqet
+```
+
+A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangle or not using positive partial transpose (PPT) criteria.
+
+```Python
+import numqi
+bell_state = numqi.entangle.get_werner_state(d=2, alpha=1)
+print(bell_state) #a numpy array
+# [[ 0.   0.   0.   0. ]
+#  [ 0.   0.5 -0.5  0. ]
+#  [ 0.  -0.5  0.5  0. ]
+#  [ 0.   0.   0.   0. ]]
+print(numqi.entangle.is_ppt(bell_state)) #True if seperable state, False is entangle state (small probability also return True)
+# False
+```
+
+```mermaid
+mindmap
+   root((numqi))
+      entangle
+         Pure Bonsonic Extension
+         IRREP
+         SDP
+      qec
+         VarQECC
+      maximum entropy
+      optimal control
+         GRAPE
+      unique determine
+         UDA
+         UDP
+      Query
+         VarQQA
+         SDP
+      sim
+         CPU/GPU simulator
+         Clifford simulator
+      misc
+         parameterization
+         random
+         optimize
+         group
+```
+
+## design philosophy
 
 1. open and available
    * open source

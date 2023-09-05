@@ -18,9 +18,12 @@ theme:
         name: Switch to light mode
 nav:
   - Home: index.md
+  - Installation: installation.md
   - Preliminary:
     - Clifford: preliminary/group_spf2.md
-    - Dicke Basis: preliminary/dicke_basis.md
+    - Dicke Basic: preliminary/dicke_basis.md
+    - Entanglement Basic: preliminary/entanglement_basic.md
+    - Entanglement Advanced: preliminary/entanglement_advanced.md
   - Tutorial:
     - Gell-Mann: tutorial/gellmann.md
     - optimize: tutorial/optimize.md
@@ -28,6 +31,12 @@ nav:
     - group:
       - group: tutorial/group.md
       - symmetric extension: tutorial/group-symext.md
+    - maximum entropy: tutorial/maxent.md
+    - quantum error correction: tutorial/qecc.md
+    - entanglement / CHA: tutorial/entangle/cha.md
+    - entanglement / PPT: tutorial/entangle/ppt.md
+    - entanglement / pure bosonic extension: tutorial/entangle/pureb.md
+    - entanglement / symmetric extension: tutorial/entangle/symext.md
   - API:
     - matrix space: api/matrix_space.md
     - random: api/random.md
