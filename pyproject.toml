@@ -31,7 +31,7 @@ dev = [
     "twine",
     "pytest",
     "pytest-cov",
-    "torch",
+    "pytest-xdist",
     # below for building documentation
     "mkdocs",
     "mkdocs-material",

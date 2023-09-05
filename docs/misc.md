@@ -56,6 +56,7 @@ run the unittest
 
 ```bash
 pytest --cov=python/numqi
+# OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
 ```
 
 build the documentation

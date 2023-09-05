@@ -25,11 +25,16 @@ jobs:
       - name: install torch-cpu
         run: python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 
-      - name: Install the package
+      - name: install numqi
         run: python3 -m pip install -e .[dev]
 
-      - name: Test with pytest
-        run: python3 -m pytest --cov=python/numqi --cov-report=xml tests/
+      - name: run pytest
+        run: OMP_NUM_THREADS=1 python3 -m pytest -n auto --cov=python/numqi --cov-report=xml tests/
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
       # TODO
       # - name: Upload coverage report

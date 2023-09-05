@@ -17,7 +17,7 @@ WARNING: no backward compatibility guarantee until version `1.0.0`
    * `.channel`: different representation of quantum channel, like Choi, Kraus, Super-op, partial trace of unitary
 5. Pytorch is an optional requirement, most functions should work for non `torch.Tensor` input.
    * pytorch and cvxpy should be put in `pyqet` package
-6. optional dependency
+6. must dependency
    * `pytorch`: without it, gradient related functions will not work
    * `matplotlib`: with it, `MaxEntModel`
 
