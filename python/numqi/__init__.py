@@ -15,6 +15,7 @@ from . import qec
 from . import entangle
 from . import unique_determine
 from . import optimal_control
+from . import query
 
 # mainly for debug
 from . import _torch_op
