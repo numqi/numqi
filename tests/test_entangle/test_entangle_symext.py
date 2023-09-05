@@ -186,7 +186,7 @@ def test_get_ABk_symmetric_extension_ree_werner():
             alpha_list = np.linspace(0, alpha_kext_boundary, num_point)
         dm_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
         ret0 = numqi.entangle.get_ABk_symmetric_extension_ree(dm_list, (dim,dim), kext, use_ppt=False)
-        assert abs(np.abs(ret0).max()) < 1e-5
+        assert abs(np.abs(ret0).max()) < (1e-5 if USE_MOSEK else 1e-4)
 
         if alpha_kext_boundary<(1-1e-4):
             alpha_list = np.linspace(alpha_kext_boundary, 1, num_point, endpoint=False)
@@ -194,4 +194,4 @@ def test_get_ABk_symmetric_extension_ree_werner():
             dm_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
             ret0 = numqi.entangle.get_ABk_symmetric_extension_ree(dm_list, (dim,dim), kext, use_ppt=False)
             ret_ = np.array([numqi.utils.get_relative_entropy(x, dm_kext_boundary) for x in dm_list])
-            assert np.abs(ret0-ret_).max() < 1e-5
+            assert np.abs(ret0-ret_).max() < (1e-5 if USE_MOSEK else 1e-4)

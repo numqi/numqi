@@ -4,6 +4,13 @@ import scipy.linalg
 
 import numqi
 
+try:
+    import mosek
+    USE_MOSEK = True
+except ImportError:
+    USE_MOSEK = False
+
+
 def test_is_ppt():
     # false positive example from https://qetlab.com/Main_Page
     # tiles UPB/BES
@@ -176,7 +183,7 @@ def test_get_ppt_numerical_range():
     z0 = numqi.entangle.get_ppt_numerical_range(op0, op1, dim=(2,2), theta_list=theta_list, use_tqdm=False)
     s12 = 1/np.sqrt(2)
     ret_ = np.array([[s12,0],[0,1/2], [-s12,0],[0,-1/2]])
-    assert np.abs(ret_-z0).max() < 1e-6
+    assert np.abs(ret_-z0).max() < (1e-6 if USE_MOSEK else 1e-4)
 
 
 def test_get_generalized_ppt_boundary():

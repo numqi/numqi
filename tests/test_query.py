@@ -3,6 +3,12 @@ import torch
 
 import numqi
 
+try:
+    import mosek
+    USE_MOSEK = True
+except ImportError:
+    USE_MOSEK = False
+
 
 # 24 seconds
 def test_QueryGroverModel():
@@ -65,9 +71,9 @@ def test_grover_sdp():
     ]
     for num_qubit,num_query,ret_ in case_list:
         ret0 = numqi.query.grover_sdp(num_qubit, num_query, use_limit=False)
-        assert abs(ret_-ret0) < 1e-4
+        assert abs(ret_-ret0) < (1e-4 if USE_MOSEK else 1e-3)
         ret1 = numqi.query.grover_sdp(num_qubit, num_query, use_limit=True)
-        assert abs(ret_-ret1) < 1e-4
+        assert abs(ret_-ret1) < (1e-4 if USE_MOSEK else 1e-3)
 
 
 # about 30 seconds
