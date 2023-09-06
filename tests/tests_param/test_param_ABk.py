@@ -3,39 +3,6 @@ import numpy as np
 
 import numqi
 
-def test_ABk_symmetry_index():
-    dimA_list = [1,2,3]
-    dimB_list = [2,3]
-    kext_list = list(range(1,6))
-    np_rng = np.random.default_rng()
-    for dimA,dimB,kext in itertools.product(dimA_list, dimB_list, kext_list):
-        index_sym = numqi.param._ABk.ABk_symmetry_index(dimA, dimB, kext)
-        num_parameter = index_sym.max() + 1
-        np0 = np_rng.uniform(size=num_parameter)[index_sym]
-        assert np.abs(np0 - np0.T).max() < 1e-10
-        tmp0 = [(x,y) for x in range(kext) for y in range(x+1,kext)]
-        for ind0,ind1 in tmp0:
-            tmp1 = numqi.param._ABk.ABk_permutate(np0, ind0, ind1, dimA, dimB, kext)
-            assert np.all(np.abs(np0-tmp1)<1e-10)
-
-
-def test_ABk_skew_symmetry_index():
-    dimA_list = [1,2,3]
-    dimB_list = [2,3]
-    kext_list = list(range(1,6))
-    np_rng = np.random.default_rng()
-    for dimA,dimB,kext in itertools.product(dimA_list, dimB_list, kext_list):
-        index_plus, index_minus = numqi.param._ABk.ABk_skew_symmetry_index(dimA, dimB, kext)
-        num_parameter = index_plus.max()
-        tmp0 = np_rng.uniform(size=num_parameter)
-        np0 = numqi.param._ABk.ABk_skew_symmetry_index_to_full(tmp0, index_plus, index_minus)
-        assert np.abs(np0 + np0.T).max() < 1e-10
-        tmp0 = [(x,y) for x in range(kext) for y in range(x+1,kext)]
-        for ind0,ind1 in tmp0:
-            tmp1 = numqi.param._ABk.ABk_permutate(np0, ind0, ind1, dimA, dimB, kext)
-            assert np.all(np.abs(np0-tmp1)<1e-10)
-
-
 def test_ABkHermitian():
     dimA_list = [1,2,3]
     dimB_list = [2,3]

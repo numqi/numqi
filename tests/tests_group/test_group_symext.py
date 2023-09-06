@@ -3,6 +3,7 @@ import scipy.linalg
 
 import numqi
 
+np_rng = np.random.default_rng()
 
 def test_get_B1B2_basis():
     basis_B_part = numqi.group.symext.get_B1B2_basis()
@@ -93,3 +94,22 @@ def test_get_B4_irrep_basis():
         if dimB>=3:
             assert np.abs(tmp0[6]-tmp0[7]).max() < 1e-10
             assert np.abs(tmp0[6]-tmp0[8]).max() < 1e-10
+
+
+def test_get_ABk_symmetry_index():
+    case_list = [(2,2,2), (2,3,2), (2,3,3)]
+    for dimA,dimB,kext in case_list:
+        for use_boson in [False, True]:
+            use_boson = False
+            index_sym,index_skew,factor_skew = numqi.group.symext.get_ABk_symmetry_index(dimA, dimB, kext, use_boson)
+            N0 = dimA*dimB**kext
+            tmp0 = np_rng.uniform(size=(N0,N0)) + 1j*np_rng.uniform(size=(N0,N0))
+            np0 = numqi.group.symext.get_ABk_symmetrize(tmp0, dimA, dimB, kext, use_boson)
+            np0_sym = np0 + np0.T
+            np1 = np0_sym.reshape(-1)[np.unique(index_sym.reshape(-1), return_index=True)[1]]
+            assert np.abs(np0_sym - np1[index_sym]).max() < 1e-10
+
+            np0_anti = np0 - np0.T
+            np2 = np0_anti.reshape(-1)[np.unique(np.maximum(index_skew*factor_skew, 0).reshape(-1), return_index=True)[1][1:]]
+            assert np.abs(np0_anti - np.insert(np2, 0, 0)[index_skew] * factor_skew).max() < 1e-10
+

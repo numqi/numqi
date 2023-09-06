@@ -4,25 +4,24 @@ import scipy.sparse
 import torch
 import collections
 
+import numqi.group.symext
+
 class ABkHermitian(torch.nn.Module):
     def __init__(self, dimA, dimB, kext, dtype=torch.float64, device='cpu'):
         super().__init__()
+        index_sym,index_skew,factor_skew = numqi.group.symext.get_ABk_symmetry_index(dimA, dimB, kext, use_boson=False)
+        self.index_sym = torch.tensor(index_sym, dtype=torch.int64, device=device)
+        self.index_skew = torch.tensor(index_skew, dtype=torch.int64, device=device)
+        self.factor_skew = torch.tensor(factor_skew, dtype=dtype, device=device)
         np_rng = np.random.default_rng()
-        self.index_sym = torch.tensor(ABk_symmetry_index(dimA, dimB, kext), dtype=torch.int64, device=device)
-        index_plus,index_minus = ABk_skew_symmetry_index(dimA, dimB, kext)
-        self.index_plus = torch.tensor(index_plus, dtype=torch.int64, device=device)
-        self.index_minus = torch.tensor(index_minus, dtype=torch.int64, device=device)
-        tmp0 = np_rng.uniform(-1, 1, size=self.index_sym.max().item()+1)
-        self.theta_sym = torch.nn.Parameter(torch.tensor(tmp0, dtype=dtype, device=device))
-        tmp0 = np_rng.uniform(-1, 1, size=self.index_plus.max().item()+1)
-        self.theta_skew_sym = torch.nn.Parameter(torch.tensor(tmp0, dtype=dtype, device=device))
-        self.c_dtype = torch.complex64 if dtype==torch.float32 else torch.complex128
+        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=x), dtype=dtype, device=device))
+        self.theta_sym = hf0(index_sym.max()+1)
+        self.theta_skew_sym = hf0(index_skew.max())
 
     def forward(self):
-        tmp0 = (self.theta_sym).to(self.c_dtype)[self.index_sym]
-        tmp1 = 1j*self.theta_skew_sym.to(self.c_dtype)
-        tmp2 = ABk_skew_symmetry_index_to_full(tmp1, self.index_plus, self.index_minus)
-        ret = tmp0 + tmp2
+        zero0 = torch.zeros([1], dtype=self.theta_skew_sym.dtype, device=self.theta_skew_sym.device)
+        tmp1 = torch.concat([zero0, self.theta_skew_sym], dim=0)
+        ret = (1j*tmp1)[self.index_skew]*self.factor_skew + self.theta_sym[self.index_sym]
         return ret
 
 class ABk2localHermitian(torch.nn.Module):
@@ -63,46 +62,6 @@ def ABk_permutate(mat, ind0, ind1, dimA, dimB, kext):
     tmp1[kext+1+ind0+1],tmp1[kext+1+ind1+1] = tmp1[kext+1+ind1+1],tmp1[kext+1+ind0+1]
     ret = mat.reshape(tmp0).transpose(tmp1).reshape(mat.shape)
     return ret
-
-
-def ABk_symmetry_index(dimA, dimB, kext):
-    index_to_set = np.arange((dimA*dimB**kext)**2, dtype=np.int64).reshape(dimA*dimB**kext, -1)
-    index_to_set = np.minimum(index_to_set, index_to_set.T)
-    tmp0 = [(x,y) for x in range(kext) for y in range(x+1,kext)]
-    for ind0,ind1 in tmp0:
-        index_to_set = np.minimum(index_to_set, ABk_permutate(index_to_set, ind0, ind1, dimA, dimB, kext))
-    tmp0 = index_to_set.reshape(-1)
-    tmp1 = np.unique(tmp0)
-    tmp2 = -np.ones(tmp1.max()+1, dtype=np.int64)
-    tmp2[tmp1] = np.arange(tmp1.shape[0])
-    index = tmp2[index_to_set]
-    # num_parameter = index.max() + 1
-    return index
-
-
-def ABk_skew_symmetry_index(dimA, dimB, kext):
-    assert kext>=1
-    tmp0 = dimA*dimB**kext
-    index_to_set = np.arange(tmp0**2, dtype=np.int64).reshape(tmp0,tmp0)
-    index_to_set = np.minimum(index_to_set, index_to_set.T)
-    np.fill_diagonal(index_to_set, 0) #0 is for 0
-    tmp0 = np.arange(tmp0)
-    factor_set = (2 * (tmp0[:,np.newaxis]>tmp0).astype(np.int32) - 1)*(tmp0[:,np.newaxis]!=tmp0)
-    tmp0 = [(x,y) for x in range(kext) for y in range(x+1,kext)]
-    for ind0,ind1 in tmp0:
-        tmp0 = factor_set + ABk_permutate(factor_set, ind0, ind1, dimA, dimB, kext)
-        factor_set = (tmp0>0).astype(np.int64) - (tmp0<0).astype(np.int64)
-        index_to_set = np.minimum(index_to_set, ABk_permutate(index_to_set, ind0, ind1, dimA, dimB, kext))
-        index_to_set[factor_set==0] = 0
-    tmp0 = index_to_set.reshape(-1)
-    tmp1 = np.unique(tmp0)
-    tmp2 = -np.ones(tmp1.max()+1, dtype=np.int64)
-    tmp2[tmp1] = np.arange(tmp1.shape[0])
-    index_plus = tmp2[np.maximum(0, index_to_set*factor_set)]
-    index_minus = tmp2[np.maximum(0, -index_to_set*factor_set)]
-    # num_parameter = index_plus.max()
-    return index_plus, index_minus
-
 
 def ABk_skew_symmetry_index_to_full(vector, index_plus, index_minus):
     if isinstance(vector, torch.Tensor):

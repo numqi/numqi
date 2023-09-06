@@ -1,9 +1,74 @@
 import math
+import itertools
 import functools
 import numpy as np
 
 import numqi.dicke
 from ._symmetric import get_all_young_tableaux, get_young_diagram_mask, young_tableau_to_young_symmetrizer, get_sym_group_young_diagram
+
+
+def _ABk_permutate(mat, ind0, ind1, dimA, dimB, kext, kind):
+    assert kind in {1,2,3}
+    tmp0 = [dimA] + [dimB]*kext + [dimA] + [dimB]*kext
+    tmp1 = list(range(2*kext+2))
+    if (kind==2) or (kind==3):
+        tmp1[ind0+1],tmp1[ind1+1] = tmp1[ind1+1],tmp1[ind0+1]
+    if (kind==1) or (kind==3):
+        tmp1[kext+1+ind0+1],tmp1[kext+1+ind1+1] = tmp1[kext+1+ind1+1],tmp1[kext+1+ind0+1]
+    ret = mat.reshape(tmp0).transpose(tmp1).reshape(mat.shape)
+    return ret
+
+
+def get_ABk_symmetry_index(dimA, dimB, kext, use_boson=False):
+    index_to_set = np.arange((dimA*dimB**kext)**2, dtype=np.int64).reshape(dimA*dimB**kext, -1)
+    tmp0 = [(x,y) for x in range(kext) for y in range(x+1,kext)]
+    for ind0,ind1 in tmp0:
+        if use_boson:
+            index_to_set = np.minimum(index_to_set, _ABk_permutate(index_to_set, ind0, ind1, dimA, dimB, kext, kind=1))
+            index_to_set = np.minimum(index_to_set, _ABk_permutate(index_to_set, ind0, ind1, dimA, dimB, kext, kind=2))
+        else:
+            index_to_set = np.minimum(index_to_set, _ABk_permutate(index_to_set, ind0, ind1, dimA, dimB, kext, kind=3))
+    index_to_set_sym = np.minimum(index_to_set, index_to_set.T)
+    tmp0 = index_to_set_sym.reshape(-1)
+    tmp1 = np.unique(tmp0)
+    tmp2 = -np.ones(tmp1.max()+1, dtype=np.int64)
+    tmp2[tmp1] = np.arange(tmp1.shape[0])
+    index_sym = tmp2[index_to_set_sym]
+
+    tag_zero = index_to_set == index_to_set.T
+    factor_skew = 2*(index_to_set < index_to_set.T) - 1
+    factor_skew[tag_zero] = 0
+    index_to_set_skew = np.minimum(index_to_set, index_to_set.T)+1
+    index_to_set_skew[tag_zero] = 0
+    tmp0 = np.abs(index_to_set_skew)
+    tmp1 = np.unique(tmp0)
+    tmp2 = -np.ones(tmp1.max()+1, dtype=np.int64)
+    tmp2[tmp1] = np.arange(tmp1.shape[0])
+    index_skew = tmp2[tmp0]
+    return index_sym,index_skew,factor_skew
+
+def get_ABk_symmetrize(np0, dimA, dimB, kext, use_boson=False):
+    assert kext>=1
+    assert (np0.ndim==2) and (np0.shape[0]==np0.shape[1]) and (np0.shape[0]==dimA*dimB**kext)
+    if kext==1:
+        ret = np0.copy()
+    else:
+        np0 = np0.reshape([dimA]+[dimB]*kext+[dimA]+[dimB]*kext) / math.factorial(kext)
+        ret = np0 * (3 if use_boson else 1)
+        for indI in list(itertools.permutations(list(range(kext))))[1:]:
+            tmp0 = [[0] + [(1+x) for x in indI] + [kext+1] + [(2+kext+x) for x in indI]]
+            if use_boson:
+                tmp0 += [
+                    [0] + [(1+x) for x in indI] + list(range(1+kext,2+kext+kext)),
+                    list(range(kext+2)) + [(2+kext+x) for x in indI],
+                ]
+            for ind0 in tmp0:
+                ret += np.transpose(np0, ind0)
+        ret = ret.reshape(dimA*dimB**kext, dimA*dimB**kext)
+        if use_boson:
+            ret /= 3
+    return ret
+
 
 def get_B1B2_basis():
     basis_b = np.zeros((6,9), dtype=np.float64)
