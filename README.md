@@ -51,6 +51,22 @@ print(numqi.entangle.is_ppt(bell_state)) #True if seperable state, False is enta
 # False
 ```
 
+folder structure
+
+1. `python/numqi/`: source code
+2. `docs/`: kinds of markdown files for generating website
+3. `tests/`: unit tests
+4. `examples/`: single file scripts to demonstrate how to use `numqi`
+5. `project/`: some projects based on `numqi`, whether finished or not
+6. misc
+   * `README.md`: this file
+   * `pyproject.toml`: to make a pip-instalable package
+   * `mkdocs.yml`: to generate website
+   * `LICENSE`
+   * `.gitignore`
+
+## design philosophy (deprecated)
+
 ```mermaid
 mindmap
    root((numqi))
@@ -79,13 +95,12 @@ mindmap
          group
 ```
 
-## design philosophy
+there was another package `pyqet`, but now it is merged into `numqi`
 
 1. open and available
    * open source
    * most users can install `numqi`, no matter windows/linux/macOS, no matter CPU/GPU
-   * minimum dependency: `scipy,matplotlib,tqdm,sympy,opt_einsum`
-   * Pytorch is an optional requirement, most functions should work for non `torch.Tensor` input
+   * minimum dependency: `scipy,matplotlib,tqdm,sympy,opt_einsum,torch,cvxpy`
 2. the fundamental functions should be here. Quantum applications should go to `pyqet` package
    * fundamental: (personally hope) more packages can be developed beyond `pyqet`
 
