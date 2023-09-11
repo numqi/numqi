@@ -11,3 +11,8 @@ quickstart
 1. follow the `docs/installation.md` to install `numqi`
 2. `draft00.py`: spectrum structure of some iUDP states
 3. `draft01.py`: demostrate random pure states can be iUDP under random measurement
+
+## constrained optimization
+
+1. link
+   * test functions for optimization [wiki-link](https://en.wikipedia.org/wiki/Test_functions_for_optimization)
