@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import scipy.optimize
+import cvxpy
 
 import numqi
 
@@ -177,3 +178,53 @@ def demo_test_function():
     model = MishraBirdModel()
     theta_optim = augumented_lagrangian_minimize(model, num_step=30, penalty_weight=1, tol=1e-7)
     # f(-3.1302468,-1.5821422)=-106.7645367
+
+
+
+class ConvexProblemModel(torch.nn.Module):
+    def __init__(self, vecX, vecU):
+        super().__init__()
+        np_rng = np.random.default_rng()
+        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=torch.float64))
+        self.alpha_para = hf0(1)
+        self.lambda_para = hf0(len(vecX))
+        self.vecX = torch.tensor(vecX, dtype=torch.float64)
+        self.vecU = torch.tensor(vecU, dtype=torch.float64)
+
+    def forward(self):
+        alpha = torch.nn.functional.softplus(self.alpha_para[0])
+        loss = -alpha
+        return loss
+
+    def constraint_equality(self):
+        tmp0 = torch.nn.functional.softplus(self.lambda_para)
+        lambda_ = tmp0 / torch.sum(tmp0)
+        alpha = torch.nn.functional.softplus(self.alpha_para)
+        ret = alpha * self.vecU - lambda_ @ self.vecX
+        return ret
+
+
+def demo_convex_hard_problem():
+    np_rng = np.random.default_rng(233)
+
+    N0 = 20
+    N1 = 6
+    vecX = np_rng.normal(size=(N0,N1))
+    vecU = np_rng.normal(size=(N1))
+
+    cvxLambda = cvxpy.Variable(N0)
+    cvxAlpha = cvxpy.Variable()
+    objective = cvxpy.Maximize(cvxAlpha)
+    constraints = [
+        vecU*cvxAlpha==(cvxLambda@vecX),
+        cvxLambda>=0,
+        cvxpy.sum(cvxLambda)==1,
+        cvxAlpha>=0,
+    ]
+    prob = cvxpy.Problem(objective, constraints)
+    prob.solve()
+    print('alpha:', cvxAlpha.value)
+    print('lambda:', cvxLambda.value)
+
+    model = ConvexProblemModel(vecX, vecU)
+    theta_optim = augumented_lagrangian_minimize(model, num_step=30, penalty_weight=50, tol=1e-10)
