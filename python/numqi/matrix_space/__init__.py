@@ -8,7 +8,7 @@ from ._misc import (build_matrix_with_index_value, is_vector_linear_independent,
 from ._clebsch_gordan import (get_angular_momentum_op, get_clebsch_gordan_coeffient,
     get_irreducible_tensor_operator, get_irreducible_hermitian_matrix_basis)
 from ._gradient import (DetectRankModel, DetectRankOneModel,
-        DetectOrthogonalRankOneModel, DetectOrthogonalRankOneEigenModel)
+        DetectOrthogonalRankOneModel, DetectOrthogonalRankOneEigenModel, DetectCPRankModel)
 from ._hierarchy import (get_antisymmetric_basis, get_symmetric_basis, project_to_antisymmetric_basis,
     tensor2d_project_to_antisym_basis, tensor2d_project_to_sym_antisym_basis,
     has_rank_hierarchical_method, permutation_with_antisymmetric_factor,

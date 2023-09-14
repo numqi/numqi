@@ -210,9 +210,9 @@ def benchmark_has_rank_hierarchical_method():
 def test_is_ABC_completely_entangled_subspace():
     case_list = [(2,2,2,2), (2,2,3,2), (2,2,4,2), (2,2,5,2), (2,2,6,2), (2,2,7,2)]
     for dimA,dimB,dimC,kmax in case_list:
-        np_list = numqi.matrix_space.get_completed_entangled_subspace(dimA, dimB, dimC, tag_reduce=True)
-        assert not numqi.matrix_space.is_ABC_completely_entangled_subspace(np_list, hierarchy_k=kmax-1)
-        assert numqi.matrix_space.is_ABC_completely_entangled_subspace(np_list, hierarchy_k=kmax)
+        matrix_subspace = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
+        assert not numqi.matrix_space.is_ABC_completely_entangled_subspace(matrix_subspace, hierarchy_k=kmax-1)
+        assert numqi.matrix_space.is_ABC_completely_entangled_subspace(matrix_subspace, hierarchy_k=kmax)
 
 
 def benchmark_is_ABC_completely_entangled_subspace():
@@ -220,7 +220,7 @@ def benchmark_is_ABC_completely_entangled_subspace():
                 (2,2,8,2), (2,2,9,2),]# (2,3,3,3), (2,3,4,3), (2,3,5,3)]
     info_list = []
     for dimA,dimB,dimC,kmax in case_list:
-        np_list = numqi.matrix_space.get_completed_entangled_subspace(dimA, dimB, dimC, tag_reduce=True)
+        np_list = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
         for k in [kmax-1,kmax]:
             t0 = time.time()
             ret = numqi.matrix_space.is_ABC_completely_entangled_subspace(np_list, hierarchy_k=k)

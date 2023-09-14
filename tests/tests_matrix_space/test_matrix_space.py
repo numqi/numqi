@@ -383,7 +383,7 @@ def test_get_vector_plane():
 def test_get_completed_entangled_subspace():
     case_list = [(2,2,2), (2,3,2), (3,3,3)]
     for dimA,dimB,dimC in case_list:
-        mat = numqi.matrix_space.get_completed_entangled_subspace(dimA, dimB, dimC, dtype=np.float64)
+        mat = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[3].astype(np.float64)
         tmp0 = mat.reshape(-1, dimA*dimB*dimC)
         EVL = np.linalg.eigvalsh(tmp0 @ tmp0.T)
         # all eigenvalue are integer

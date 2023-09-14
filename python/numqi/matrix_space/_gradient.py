@@ -1,4 +1,5 @@
 import numpy as np
+import opt_einsum
 import torch
 
 import numqi.utils
@@ -155,7 +156,50 @@ class DetectRankModel(torch.nn.Module):
         return matH,coeff,residual
 
 
+class DetectCPRankModel(torch.nn.Module):
+    def __init__(self, basis_orth, rank, dtype='float64'):
+        r'''
+        Args:
+            basis_orth (np.ndarray): shape (N0, N1, N2)
+            space_char (str): see numqi.matrix_space.get_matrix_orthogonal_basis
+            rank (tuple,int): if int or tuple of length 1, then search for matrix of rank `rank` in the space.
+                If tuple (must be of length 3), then search for hermitian matrix in the space of matrices with
+                with the inertia `(EVL_free, EVL_positive, EVL_negative)`
+            dtype (str): 'float32' or 'float64'
+        '''
+        super().__init__()
+        rank = int(rank)
+        assert rank>=1
+        self.rank = rank
+        self.dim_list = basis_orth.shape[1:]
+        np_rng = np.random.default_rng()
+        assert basis_orth.ndim>=3
+        assert dtype in {'float32','float64'}
+        self.dtype = torch.float32 if dtype=='float32' else torch.float64
+        self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
+        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=self.dtype))
+        self.theta_EVC = torch.nn.ParameterList([hf0(rank,x,2) for x in self.dim_list])
+        self.theta_EVL = hf0(2,rank)
+        self.basis_orth = torch.tensor(basis_orth, dtype=self.cdtype)
+
+        N0 = basis_orth.ndim-1
+        tmp0 = [(rank,x) for x in self.dim_list]
+        tmp1 = [(N0+1,x+1) for x in range(N0)]
+        tmp2 = [y for x in zip(tmp0,tmp1) for y in x]
+        self.contract_expr = opt_einsum.contract_expression(basis_orth.shape, list(range(N0+1)), *tmp2, [rank], (N0+1,), [0])
+
+    def forward(self):
+        tmp0 = self.theta_EVL / torch.linalg.norm(self.theta_EVL)
+        EVL = torch.complex(tmp0[0], tmp0[1])
+        tmp0 = [x/torch.linalg.norm(x,dim=(1,2),keepdims=True) for x in self.theta_EVC]
+        EVC_list = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
+        tmp0 = self.contract_expr(self.basis_orth, *EVC_list, EVL)
+        loss = torch.vdot(tmp0, tmp0).real
+        return loss
+
+
 # old name: DetectOrthogonalRank1Model
+# TODO merge with DetectCPRankModel
 class DetectOrthogonalRankOneModel(torch.nn.Module):
     def __init__(self, matB, dtype='float64'):
         super().__init__()

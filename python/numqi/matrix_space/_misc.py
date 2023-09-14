@@ -4,6 +4,7 @@ import numpy as np
 import scipy.linalg
 
 from ..gellmann import matrix_to_gellmann_basis, gellmann_basis_to_matrix
+from ..random import get_numpy_rng
 
 def build_matrix_with_index_value(dim0, dim1, index_value):
     value = np.array([x[2] for x in index_value])
@@ -317,29 +318,51 @@ def get_hermite_channel_matrix_subspace(matrix_space, zero_eps=1e-10):
     return matrix_space_hermite
 
 
-def get_completed_entangled_subspace(dimA:int, dimB:int, dimC:int, dtype=np.int8, tag_reduce=False):
-    assert (dimA>=1) and (dimB>=1) and (dimC>=1)
-    tmp0 = [(a,b,x-a-b) for x in range(dimA+dimB+dimC-2)
-                for a in range(max(0,x+2-dimB-dimC),min(dimA,x+1))
-                for b in range(max(0,x-a-dimC+1),min(dimB,x-a+1))]
-    tmp1 = ((x[0]+x[1]+x[2],x) for x in tmp0)
-    hf0 = lambda x: x[0]
-    abc_list = [[z[1] for z in y] for x,y in itertools.groupby(sorted(tmp1, key=hf0), key=hf0)]
-    tmp0 = sorted({((y,z) if y<z else (z,y)) for x in abc_list for y in x for z in x if y!=z})
-    ret = np.zeros((len(tmp0),dimA,dimB,dimC), dtype=dtype)
-    tmp1 = np.array([x[0] for x in tmp0])
-    ret[np.arange(len(tmp1)), tmp1[:,0], tmp1[:,1], tmp1[:,2]] = 1
-    tmp1 = np.array([x[1] for x in tmp0])
-    ret[np.arange(len(tmp1)), tmp1[:,0], tmp1[:,1], tmp1[:,2]] = -1
-    if tag_reduce:
-        tmp0 = ret.reshape(-1, dimA*dimB*dimC)
-        EVL,EVC = np.linalg.eigh(tmp0 @ tmp0.T)
-        EVL_int = np.round(EVL).astype(np.int64)
-        assert np.all(np.abs(EVL-EVL_int)<1e-7)
-        rank = np.sum(EVL_int>0)
-        assert rank==(dimA*dimB*dimC-dimA-dimB-dimC+2)
-        ret = (EVC[:, EVL_int>=1].T @ tmp0).reshape(rank, dimA, dimB, dimC)
-    return ret
+# TODO maybe add "kwargs"
+def get_completed_entangled_subspace(dim_tuple, kind, seed=None):
+    kind = kind.lower()
+    assert kind in {'quant-ph/0409032', 'quant-ph/0405077'}
+    dim_tuple = tuple(int(x) for x in dim_tuple)
+    assert (len(dim_tuple)>=2) and all(x>=1 for x in dim_tuple)
+    if kind=='quant-ph/0409032':
+        # A completely entangled subspace of maximal dimension
+        # https://arxiv.org/abs/quant-ph/0409032
+        assert len(dim_tuple)==3, 'check arxiv paper for more general implementation' #TODO
+        dimA,dimB,dimC = dim_tuple
+        tmp0 = [(a,b,x-a-b) for x in range(dimA+dimB+dimC-2)
+                    for a in range(max(0,x+2-dimB-dimC),min(dimA,x+1))
+                    for b in range(max(0,x-a-dimC+1),min(dimB,x-a+1))]
+        tmp1 = ((x[0]+x[1]+x[2],x) for x in tmp0)
+        hf0 = lambda x: x[0]
+        abc_list = [[z[1] for z in y] for x,y in itertools.groupby(sorted(tmp1, key=hf0), key=hf0)]
+        tmp0 = sorted({((y,z) if y<z else (z,y)) for x in abc_list for y in x for z in x if y!=z})
+        z0 = np.zeros((len(tmp0),dimA,dimB,dimC), dtype=np.int8)
+        tmp1 = np.array([x[0] for x in tmp0])
+        z0[np.arange(len(tmp1)), tmp1[:,0], tmp1[:,1], tmp1[:,2]] = 1
+        tmp1 = np.array([x[1] for x in tmp0])
+        z0[np.arange(len(tmp1)), tmp1[:,0], tmp1[:,1], tmp1[:,2]] = -1
+        tmp2 = z0.reshape(-1,dimA,dimB*dimC).astype(np.float64)
+        matrix_subspace,matrix_subspace_orth,space_char = get_matrix_orthogonal_basis(tmp2, field='complex')
+        ret_other = z0
+    elif kind=='quant-ph/0405077':
+        # On the maximal dimension of a completely entangled subspace for finite level quantum systems
+        # https://arxiv.org/abs/quant-ph/0405077
+        np_rng = get_numpy_rng(seed)
+        dim_tuple = tuple(int(x) for x in dim_tuple)
+        N0 = sum(dim_tuple) - len(dim_tuple) + 1
+        assert all(x>1 for x in dim_tuple) and len(dim_tuple)>=2
+        tmp0 = np_rng.normal(0,1,size=N0) + np_rng.normal(0,1,size=N0)*1j
+        tmp1 = np.vander(tmp0, N=max(dim_tuple), increasing=True)
+        tmp2 = [tmp1[:,:x] for x in dim_tuple]
+        tmp3 = [(0,x+1) for x in range(len(dim_tuple))]
+        tmp4 = [y for x in zip(tmp2,tmp3) for y in x]
+        tmp5 = np.einsum(*tmp4, tuple(range(len(dim_tuple)+1)), optimize=True)
+        # the orth(tmp5) is the required entangled matrix subspace
+        matrix_subspace_orth,matrix_subspace,space_char = get_matrix_orthogonal_basis(tmp5.reshape(N0,dim_tuple[0],-1), field='complex')
+        ret_other = None
+    matrix_subspace = matrix_subspace.reshape(-1, *dim_tuple)
+    matrix_subspace_orth = matrix_subspace_orth.reshape(-1, *dim_tuple)
+    return matrix_subspace,matrix_subspace_orth,space_char,ret_other
 
 
 def matrix_subspace_to_kraus_op(matrix_space, is_hermite=False, zero_eps=1e-10):
