@@ -34,7 +34,7 @@ jobs:
         run: python3 -m pip install --upgrade pip
 
       - name: Install the documentation dependencies
-        run: python3 -m pip install mkdocs mkdocs-material pymdown-extensions "mkdocstrings[python]"
+        run: python3 -m pip install mkdocs mkdocs-material pymdown-extensions mkdocs-jupyter "mkdocstrings[python]"
 
       - run: mkdocs build
 
