@@ -33,10 +33,13 @@ nav:
       - symmetric extension: tutorial/group-symext.md
     - maximum entropy: tutorial/maxent.md
     - quantum error correction: tutorial/qecc.md
-    - entanglement / CHA: tutorial/entangle/cha.md
-    - entanglement / PPT: tutorial/entangle/ppt.md
-    - entanglement / pure bosonic extension: tutorial/entangle/pureb.md
-    - entanglement / symmetric extension: tutorial/entangle/symext.md
+    - entanglement:
+      - CHA: tutorial/entangle/cha.md
+      - PPT: tutorial/entangle/ppt.md
+      - pure bosonic extension: tutorial/entangle/pureb.md
+      - symmetric extension: tutorial/entangle/symext.md
+    - optimal-control:
+      - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
   - API:
     - matrix space: api/matrix_space.md
     - random: api/random.md
@@ -46,6 +49,9 @@ nav:
   - misc: misc.md
 plugins:
   search:
+  mkdocs-jupyter:
+    include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
+    execute: true
   mkdocstrings:
     default_handler: python
     handlers:

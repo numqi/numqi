@@ -12,3 +12,5 @@ site/
 python/*/_version.py
 
 .coverage
+
+*.ipynb filter=strip-notebook-output

@@ -35,6 +35,7 @@ dev = [
     # below for building documentation
     "mkdocs",
     "mkdocs-material",
+    "mkdocs-jupyter",
     "pymdown-extensions",
     "mkdocstrings[python]",
 ]

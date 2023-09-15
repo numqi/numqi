@@ -80,9 +80,7 @@ conda create -n env-numqi python
 conda activate env-numqi
 ```
 
-Then install `numqi` (see documentation there)
-
-Then install `numqi` using `pip`
+install `numqi`
 
 ```bash
 git clone git@github.com:husisy/numqi.git
@@ -94,8 +92,11 @@ pip install -e ".[dev]"
 run the unittest
 
 ```bash
-pytest --cov=python/numqi
-# OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
+# take about for 300 seconds on my laptop, "OMP_NUM_THREADS=1" usually runs faster (some unnecessay threads are disabled)
+OMP_NUM_THREADS=1 pytest --cov=python/numqi
+
+# if you have a multi-core CPU, you can run the unittest in parallel (take about 70 seconds on my laptop)
+OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
 ```
 
 build and Serve the documentation locally, then brower the website `127.0.0.1:8000`
@@ -115,3 +116,12 @@ mkdocs serve
    * `._xxx.py`: internal functions, not for users
    * `._internal.py`: private to submodules. E.g., `numqi.A._internal` can only be imported in `numqi.A.xxx`
    * `._lib_public.py`: library public functions. E.g., `numqi.A._lib_public` can be imported by `numqi.B`
+
+strip the jupyter notebook output before commit (only setup once), add following lines to `.git/config` or global `.gitconfig`
+
+```text
+[filter "strip-notebook-output"]
+    clean = "jupyter nbconvert --ClearOutputPreprocessor.enabled=True --to=notebook --stdin --stdout --log-level=ERROR"
+```
+
+**VSCODE-USER**: if you are using `vscode`, please click the button `clear all ouputs` manually before commit.

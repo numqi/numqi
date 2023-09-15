@@ -34,7 +34,7 @@ more detailed installation instructions see [docs/installation](./docs/installat
 
 ```bash
 # TODO upload to pypi.org
-pip install pyqet
+pip install numqi
 ```
 
 A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangle or not using positive partial transpose (PPT) criteria.
@@ -64,6 +64,10 @@ folder structure
    * `mkdocs.yml`: to generate website
    * `LICENSE`
    * `.gitignore`
+
+## How to contribute
+
+see [docs/installation/for-developer](./docs/installation.md/#for-developer)
 
 ## design philosophy (deprecated)
 
