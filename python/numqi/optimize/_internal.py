@@ -30,10 +30,10 @@ def set_model_flat_parameter(model, theta, index01=None):
         tmp0 = np.cumsum(np.array([0] + [x.numel() for x in parameter_sorted])).tolist()
         index01 = list(zip(tmp0[:-1],tmp0[1:]))
     for ind0,(x,y) in enumerate(index01):
-        tmp0 = theta[x:y].reshape(*parameter_sorted[ind0].shape)
+        tmp0 = theta[x:y].reshape(parameter_sorted[ind0].shape)
         if not parameter_sorted[ind0].is_cuda:
             tmp0 = tmp0.cpu()
-        parameter_sorted[ind0].data[:] = tmp0
+        parameter_sorted[ind0].data.copy_(tmp0)
 
 
 def hf_model_wrapper(model):
