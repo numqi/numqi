@@ -26,7 +26,8 @@ nav:
     - Entanglement Advanced: preliminary/entanglement_advanced.md
   - Tutorial:
     - Gell-Mann: tutorial/gellmann.md
-    - optimize: tutorial/optimize.md
+    - optimize:
+      - tutorial/optimize/basic.ipynb
     - gradient: tutorial/gradient_descent.md
     - group:
       - group: tutorial/group.md
