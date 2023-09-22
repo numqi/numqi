@@ -59,6 +59,7 @@ model name
 4. [ ] coverage
 5. [ ] documentation
     * [ ] numerical range
+    * [ ] jupyter notebook: numqi.optimize.minimize_adam
 6. [ ] learn from QETLAB
 7. [ ] make a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 8. [x] go through cvxquad [github-link](https://github.com/hfawzi/cvxquad) and replace `numqi.entangle.qetlab` module [arxiv-link](https://arxiv.org/abs/1705.00812)

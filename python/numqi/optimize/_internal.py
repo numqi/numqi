@@ -63,15 +63,18 @@ def hf_model_wrapper(model):
     return hf0
 
 
-def hf_callback_wrapper(hf_fval, state:dict=None, print_freq:int=1):
+def hf_callback_wrapper(hf_fval, state:dict=None, print_freq:int=1, tag_record_path=False):
     if state is None:
         state = dict()
     state['step'] = 0
     state['time'] = time.time()
     state['fval'] = []
     state['time_history'] = []
+    state['path'] = []
     def hf0(theta):
         step = state['step']
+        if tag_record_path:
+            state['path'].append(theta.copy())
         if (print_freq>0) and (step%print_freq==0):
             t0 = state['time']
             t1 = time.time()
@@ -141,28 +144,38 @@ def _get_hf_theta(np_rng, key=None):
 
 
 def minimize(model, theta0=None, num_repeat=3, tol=1e-7, print_freq=-1, method='L-BFGS-B',
-            print_every_round=1, maxiter=None, early_stop_threshold=None, return_all_result=False, seed=None):
+            print_every_round=1, maxiter=None, early_stop_threshold=None, return_all_result=False,
+            tag_record_path=False, seed=None):
     np_rng = np.random.default_rng(seed)
     hf_theta = _get_hf_theta(np_rng, theta0)
     num_parameter = len(get_model_flat_parameter(model))
     hf_model = hf_model_wrapper(model)
     theta_optim_list = []
     theta_optim_best = None
+    path_best = None
     options = dict() if maxiter is None else {'maxiter':maxiter}
     for ind0 in range(num_repeat):
         theta0 = hf_theta(num_parameter)
-        hf_callback = hf_callback_wrapper(hf_model, print_freq=print_freq)
+        callback_state = dict()
+        hf_callback = hf_callback_wrapper(hf_model, callback_state, print_freq=print_freq, tag_record_path=tag_record_path)
         theta_optim = scipy.optimize.minimize(hf_model, theta0, jac=True, method=method, tol=tol, callback=hf_callback, options=options)
         if return_all_result:
             theta_optim_list.append(theta_optim)
         if (theta_optim_best is None) or (theta_optim.fun<theta_optim_best.fun):
             theta_optim_best = theta_optim
+            if tag_record_path:
+                path_best = callback_state['path']
         if (print_every_round>0) and (ind0%print_every_round==0):
             print(f'[round={ind0}] min(f)={theta_optim_best.fun}, current(f)={theta_optim.fun}')
         if (early_stop_threshold is not None) and (theta_optim_best.fun<=early_stop_threshold):
             break
     hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property (sometimes)
-    ret = (theta_optim_best,theta_optim_list) if return_all_result else theta_optim_best
+    info = dict()
+    if tag_record_path:
+        info['path'] = path_best
+    if return_all_result:
+        info['theta_optim_list'] = theta_optim_list
+    ret = (theta_optim_best, info) if len(info) else theta_optim_best
     return ret
 
 
