@@ -53,13 +53,13 @@ pip install .
 
 test whether succuessfully installed (run it in `python/ipython` REPL)
 
-```Python
+```python
 import numqi
 ```
 
 A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangle or not using positive partial transpose (PPT) criteria.
 
-```Python
+```python
 import numqi
 bell_state = numqi.entangle.get_werner_state(d=2, alpha=1)
 print(bell_state) #a numpy array
@@ -73,7 +73,7 @@ print(numqi.entangle.is_ppt(bell_state)) #True if seperable state, False is enta
 
 `numqi` also include a `numpy` based quantum simulator. Let's try a "non-trival" quantum circuit (we will re-visit this circuit in quantum error correction section)
 
-```Python
+```python
 import numpy as np
 import numqi
 circ = numqi.sim.Circuit()
