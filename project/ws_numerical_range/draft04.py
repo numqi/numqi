@@ -77,8 +77,8 @@ vec_proj_A = np.stack([tmp3*np.cos(theta_list), tmp3*np.sin(theta_list)], axis=1
 
 fig,ax = plt.subplots()
 tmp0 = slice(None,None,1)
-# numqi.maximum_entropy.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='tangent', color='#CCCCCC', radius=0.15, label='maxent tangent')
-numqi.maximum_entropy.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='norm', color='#CCCCCC', radius=0.03, label='maxent tangent')
+# numqi.matrix_space.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='tangent', color='#CCCCCC', radius=0.15, label='maxent tangent')
+numqi.matrix_space.draw_line_list(ax, vec_proj_A[tmp0], vec_proj_N[tmp0], kind='norm', color='#CCCCCC', radius=0.03, label='maxent tangent')
 tmp0 = beta_dm*np.cos(theta_list)
 tmp1 = beta_dm*np.sin(theta_list)
 ax.plot(tmp0, tmp1, linestyle='solid', color=tableau[4], label='dm boundary')

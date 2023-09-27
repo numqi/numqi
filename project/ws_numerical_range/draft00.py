@@ -39,7 +39,7 @@ def demo_maxent_2op():
     fig,(ax0,ax1) = plt.subplots(1, 2, figsize=(8,4))
     ax0.plot(op_nr_list[:,0], op_nr_list[:,1], color=tableau[4])
     ind0 = slice(None, None, 5)
-    numqi.maximum_entropy.draw_line_list(ax0, op_nr_list[ind0], theta_list[ind0], kind='norm', radius=0.5, color=tableau[2])
+    numqi.matrix_space.draw_line_list(ax0, op_nr_list[ind0], theta_list[ind0], kind='norm', radius=0.5, color=tableau[2])
     tmp0 = ax0.get_xlim()[1]*0.8
     ax0.plot([0,tmp0], [0,tmp0*np.tan(phi_target)], color=tableau[0])
     ax0.set_aspect('equal')

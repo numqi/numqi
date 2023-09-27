@@ -32,6 +32,8 @@ nav:
       - tutorial/optimize/wiki-test-function.ipynb
       - tutorial/optimize/adam-vs-lbfgs.ipynb
       - tutorial/optimize/wiki-test-function-ALM.ipynb
+    - matrix space:
+      - tutorial/matrix_space/numerical_range.ipynb
     - group:
       - group: tutorial/group.md
       - symmetric extension: tutorial/group-symext.md
