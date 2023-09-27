@@ -17,7 +17,8 @@ from ._hierarchy import (get_antisymmetric_basis, get_symmetric_basis, project_t
 # for unittest only
 from ._hierarchy import naive_antisym_sym_projector, naive_tensor2d_project_to_sym_antisym_basis
 from ._numerical_range import (get_matrix_numerical_range, get_matrix_numerical_range_along_direction,
-    get_real_bipartite_numerical_range, detect_real_matrix_subspace_rank_one)
+    get_real_bipartite_numerical_range, detect_real_matrix_subspace_rank_one,
+    get_joint_algebraic_numerical_range, draw_line_list)
 
 from . import _misc
 from . import _hierarchy

@@ -209,27 +209,6 @@ class NANGradientToNumber(torch.autograd.Function):
         return ret,None
 
 
-def draw_line_list(ax, xydata, norm_theta_list, kind='norm', color='#ABABAB', radius=2.5, label=None):
-    assert kind in {'norm', 'tangent'}
-    N0 = len(norm_theta_list)
-    assert xydata.shape==(N0,2)
-    xdata = np.zeros((N0,3), dtype=np.float64)
-    ydata = np.zeros((N0,3), dtype=np.float64)
-    xdata[:,2] = np.nan
-    ydata[:,2] = np.nan
-    if kind=='tangent':
-        xdata[:,0] = xydata[:,0] + radius*np.cos(norm_theta_list-np.pi/2)
-        xdata[:,1] = xydata[:,0] + radius*np.cos(norm_theta_list+np.pi/2)
-        ydata[:,0] = xydata[:,1] + radius*np.sin(norm_theta_list-np.pi/2)
-        ydata[:,1] = xydata[:,1] + radius*np.sin(norm_theta_list+np.pi/2)
-    else:
-        xdata[:,0] = xydata[:,0]
-        xdata[:,1] = xydata[:,0] + radius*np.cos(norm_theta_list)
-        ydata[:,0] = xydata[:,1]
-        ydata[:,1] = xydata[:,1] + radius*np.sin(norm_theta_list)
-    ax.plot(xdata.reshape(-1), ydata.reshape(-1), color=color, label=label)
-
-
 def get_supporting_plane_2d_projection(vecA, vecN, basis0, basis1, theta_list):
     assert (vecA.ndim==2) and (vecA.shape==vecN.shape)
     dim = vecA.shape[1]
@@ -245,30 +224,3 @@ def get_supporting_plane_2d_projection(vecA, vecN, basis0, basis1, theta_list):
     tmp3 = tmp2 / (np.cos(theta_list)*tmp0 + np.sin(theta_list)*tmp1)
     vec_proj_A = np.stack([tmp3*np.cos(theta_list), tmp3*np.sin(theta_list)], axis=1)
     return vec_proj_A, vec_proj_N
-
-
-def op_list_numerical_range_SDP(op_list, theta_list):
-    op_list = np.stack(op_list, axis=0)
-    num_op,dim,_ = op_list.shape
-    assert num_op==2
-    cvxX = cvxpy.Variable((dim,dim), hermitian=True)
-    cvxB = cvxpy.Parameter(num_op)
-    cvx_beta = cvxpy.Variable()
-    cvxO = cvxpy.real(op_list.transpose(0,2,1).reshape(-1, dim*dim) @ cvxpy.reshape(cvxX, dim*dim, order='F'))
-    constraints = [
-        cvxX>>0,
-        cvxpy.real(cvxpy.trace(cvxX))==1,
-        cvx_beta*cvxB==cvxO,
-    ]
-    obj = cvxpy.Maximize(cvx_beta)
-    prob = cvxpy.Problem(obj, constraints)
-    theta_list = np.asarray(theta_list).reshape(-1)
-    ret = []
-    for theta_i in theta_list:
-        cvxB.value = np.array([np.cos(theta_i), np.sin(theta_i)])
-        prob.solve()
-        ret.append((cvx_beta.value.item(), cvxO.value.copy(), constraints[-1].dual_value.copy()))
-    tmp0 = np.array([x[0] for x in ret])
-    tmp1 = np.stack([x[1] for x in ret], axis=0)
-    tmp2 = np.stack([x[2] for x in ret], axis=0)
-    return tmp0,tmp1,tmp2

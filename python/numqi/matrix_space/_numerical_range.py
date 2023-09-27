@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse.linalg
 import scipy.optimize
+import cvxpy
 
 from ._misc import get_matrix_orthogonal_basis
 
@@ -165,3 +166,86 @@ def detect_real_matrix_subspace_rank_one(matrix_subspace):
     else:
         tag_rank_one = True #could be wrong
     return tag_rank_one, upper_bound
+
+
+def get_joint_algebraic_numerical_range(op_list, direction, return_info=False):
+    r'''get the joint algebraic numerical range of a list of operators along a direction
+
+    $$ L(A_{1},A_{2},\cdots,A_{r})=\left\{ a\in\mathbb{C}^{r}:\rho\in\mathbb{C}^{d\times d},\rho\succeq0,\mathrm{Tr}[\rho]=1,a_{i}=\mathrm{Tr}[A_{i}\rho]\right\} $$
+
+    Parameters:
+        op_list (list): a list of operators, each operator is a 2d numpy array
+        direction (np.ndarrray): the boundary along the direction will be calculated, if 2d, then each row is a direction
+        return_info (bool): if `True`, then return the boundary and the boundary's normal vector
+
+    Returns:
+        beta (np.ndarray): the distance from the origin to the boundary along the direction.
+            If `direction` is 2d, then `beta` is 1d array.
+        boundary (np.ndarray): the boundary along the direction. only returned if `return_info` is `True`
+        normal_vector (np.ndarray): the normal vector of the boundary. only returned if `return_info` is `True`
+    '''
+    op_list = np.stack(op_list, axis=0)
+    num_op,dim,_ = op_list.shape
+    assert np.abs(op_list-op_list.transpose(0,2,1).conj()).max() < 1e-10, 'op_list must be Hermitian'
+    shift = np.trace(op_list, axis1=1, axis2=2) / dim
+    op_list = op_list - shift[:,None,None]*np.eye(op_list.shape[1]) #for numerical stability
+    direction = np.asarray(direction)
+    assert (direction.ndim==1) or (direction.ndim==2)
+    assert direction.shape[-1]==num_op
+    is_single = (direction.ndim==1)
+    direction = direction.reshape(-1,num_op)
+    cvxX = cvxpy.Variable((dim,dim), hermitian=True)
+    cvxB = cvxpy.Parameter(num_op)
+    cvx_beta = cvxpy.Variable()
+    cvxO = cvxpy.real(op_list.transpose(0,2,1).reshape(-1, dim*dim) @ cvxpy.reshape(cvxX, dim*dim, order='F'))
+    constraints = [
+        cvxX>>0,
+        cvxpy.real(cvxpy.trace(cvxX))==1,
+        cvx_beta*cvxB==cvxO,
+    ]
+    obj = cvxpy.Maximize(cvx_beta)
+    prob = cvxpy.Problem(obj, constraints)
+    beta_list = []
+    boundary_list = []
+    norm_vec_list = []
+    ret = []
+    for vec_i in direction:
+        cvxB.value = vec_i
+        prob.solve()
+        beta_list.append(cvx_beta.value.item())
+        if return_info:
+            boundary_list.append(cvxO.value.copy() + shift)
+            norm_vec_list.append(constraints[-1].dual_value.copy())
+    if is_single:
+        if return_info:
+            ret = (beta_list[0], boundary_list[0], norm_vec_list[0])
+        else:
+            ret = beta_list[0]
+    else:
+        beta_list = np.array(beta_list)
+        if return_info:
+            ret = beta_list, np.stack(boundary_list, axis=0), np.stack(norm_vec_list, axis=0)
+        else:
+            ret = beta_list
+    return ret
+
+
+def draw_line_list(ax, xydata, norm_theta_list, kind='norm', color='#ABABAB', radius=2.5, label=None):
+    assert kind in {'norm', 'tangent'}
+    N0 = len(norm_theta_list)
+    assert xydata.shape==(N0,2)
+    xdata = np.zeros((N0,3), dtype=np.float64)
+    ydata = np.zeros((N0,3), dtype=np.float64)
+    xdata[:,2] = np.nan
+    ydata[:,2] = np.nan
+    if kind=='tangent':
+        xdata[:,0] = xydata[:,0] + radius*np.cos(norm_theta_list-np.pi/2)
+        xdata[:,1] = xydata[:,0] + radius*np.cos(norm_theta_list+np.pi/2)
+        ydata[:,0] = xydata[:,1] + radius*np.sin(norm_theta_list-np.pi/2)
+        ydata[:,1] = xydata[:,1] + radius*np.sin(norm_theta_list+np.pi/2)
+    else:
+        xdata[:,0] = xydata[:,0]
+        xdata[:,1] = xydata[:,0] + radius*np.cos(norm_theta_list)
+        ydata[:,0] = xydata[:,1]
+        ydata[:,1] = xydata[:,1] + radius*np.sin(norm_theta_list)
+    ax.plot(xdata.reshape(-1), ydata.reshape(-1), color=color, label=label)
