@@ -1,8 +1,19 @@
 import numpy as np
 import scipy.sparse.linalg
+import scipy.special
 import torch
 
 from .._torch_op import TorchPSDMatrixSqrtm
+
+
+def real_to_bounded(theta, lower, upper):
+    assert lower < upper
+    if isinstance(theta, torch.Tensor):
+        tmp0 = torch.sigmoid(theta) #1/(1+exp(-theta))
+    else:
+        tmp0 = scipy.special.expit(theta)
+    ret = tmp0 * (upper - lower) + lower
+    return ret
 
 
 def _real_matrix_to_trace1_PSD_cholesky(matA, tag_real):
