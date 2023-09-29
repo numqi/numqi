@@ -193,12 +193,9 @@ def get_ABk_symmetric_extension_boundary(rho, dim, kext, use_ppt=False, use_boso
         return_info (bool): if True, return information of the SDP solver
 
     Returns:
-        ret (bool): If `return_info=False` and rho is single density matrix, `ret` is a float indicates Euclidean distance.
-            If `return_info=False` and rho is list of density matrices, `ret` is a 1d `np.array` of float
-            If `return_info=True` and `rho` is single density matrix, `ret` is a tuple of (float, info) where
-            `info` is a list of information of the SDP solver.
-            If `return_info=True` and `rho` is list of density matrices, `ret` is a tuple of (np.array, info) where
-            `info` is a list of information of the SDP solver.
+        beta (float,np.array):  `beta` is a float indicates Euclidean distance. if `rho` is list of density matrices, `beta` is a 1d `np.array` of float
+        vecA (np.ndarray): `vecA` is a 1d `np.ndarray` of float indicates the position of the boundary. if `rho` is list of density matrices, `vecA` is a 2d `np.ndarray`
+        vecN (np.ndarray): `vecN` is a 1d `np.ndarray` of float indicates the normal vector of the boundary. if `rho` is list of density matrices, `vecA` is a 2d `np.ndarray`
     '''
     # no need to be positive, only direction matters
     rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm, tag_positive=False)
@@ -212,26 +209,25 @@ def get_ABk_symmetric_extension_boundary(rho, dim, kext, use_ppt=False, use_boso
     cvx_sigma = tmp0 + cvx_beta * cvx_rho
     cvxP_list,constraints = _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_sigma)
     prob = cvxpy.Problem(cvxpy.Maximize(cvx_beta), constraints)
-    ret = []
+    beta_list = []
+    vecA_list = []
+    vecN_list = []
     for ind0 in (tqdm(range(len(rho))) if use_tqdm else range(len(rho))):
         cvx_rho.value = rho_vec_list[ind0]
         prob.solve()
+        beta = cvx_beta.value
+        beta_list.append(beta)
         if return_info:
             tmp0 = numqi.gellmann.dm_to_gellmann_basis(rho[ind0])
             dual = np.ascontiguousarray(constraints[-1].dual_value).reshape(dimA,dimA,dimB,dimB).transpose(0,2,1,3).reshape(dimA*dimB,dimA*dimB)
             tmp1 = numqi.gellmann.dm_to_gellmann_basis(dual + dual.T.conj())
-            info = {
-                'dual': dual,
-                'vecA': (cvx_beta.value/np.linalg.norm(tmp0))*tmp0,
-                'vecN': -tmp1/np.linalg.norm(tmp1), #strange minus sign
-            }
-            ret.append((cvx_beta.value,info))
-        else:
-            ret.append(cvx_beta.value)
-    if not return_info:
-        ret = np.array(ret)
+            vecA_list.append((beta/np.linalg.norm(tmp0))*tmp0)
+            vecN_list.append(-tmp1/np.linalg.norm(tmp1))
     if is_single_item:
-        ret = ret[0]
+        ret = beta_list[0] if (not return_info) else (beta_list[0], vecA_list[0], vecN_list[0])
+    else:
+        tmp0 = np.array(beta_list)
+        ret = tmp0 if (not return_info) else (tmp0, np.stack(vecA_list,axis=0), np.stack(vecN_list,axis=0))
     return ret
 
 

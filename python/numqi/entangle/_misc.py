@@ -101,9 +101,14 @@ def get_density_matrix_plane(dm0, dm1):
     basis0 = vec0 / norm0
     basis1 = tmp0 / np.linalg.norm(tmp0)
     theta1 = np.arccos(np.dot(vec0, vec1)/(norm0*norm1))
-    def hf0(theta, norm=1):
-        tmp0 = norm*(basis0*np.cos(theta) + basis1*np.sin(theta))
-        ret = numqi.gellmann.gellmann_basis_to_dm(tmp0)
+    def hf0(theta_or_xy, norm=1):
+        if hasattr(theta_or_xy, '__len__'):
+            x,y = theta_or_xy
+            ret = x * basis0 + y * basis1
+        else:
+            theta = theta_or_xy
+            tmp0 = norm*(basis0*np.cos(theta) + basis1*np.sin(theta))
+            ret = numqi.gellmann.gellmann_basis_to_dm(tmp0)
         return ret
     return theta1,hf0
 

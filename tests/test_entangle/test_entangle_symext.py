@@ -195,3 +195,23 @@ def test_get_ABk_symmetric_extension_ree_werner():
             ret0 = numqi.entangle.get_ABk_symmetric_extension_ree(dm_list, (dim,dim), kext, use_ppt=False)
             ret_ = np.array([numqi.utils.get_relative_entropy(x, dm_kext_boundary) for x in dm_list])
             assert np.abs(ret0-ret_).max() < (1e-5 if USE_MOSEK else 1e-4)
+
+
+def test_witness():
+    dimA = 3
+    dimB = 3
+    kext = 3
+    kwargs = dict(dim=(dimA,dimB), kext=kext, use_ppt=True, use_boson=True, return_info=True, use_tqdm=True)
+    dm0 = numqi.random.rand_density_matrix(dimA*dimB)
+    beta,vecA,vecN = numqi.entangle.get_ABk_symmetric_extension_boundary(dm0, **kwargs)
+    op_witness = numqi.gellmann.gellmann_basis_to_dm(vecN) - np.eye(dimA*dimB)/(dimA*dimB)
+    delta = np.dot(vecA, vecN)*2
+
+    for _ in range(1000):
+        tmp0 = numqi.random.rand_separable_dm(dimA,dimB,k=dimA*dimB)
+        assert np.trace(tmp0@op_witness).real < delta + 1e-7
+
+    model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
+    model.set_expectation_op(-op_witness)
+    tmp0 = -numqi.optimize.minimize(model, theta0='uniform', tol=1e-9, num_repeat=1, print_every_round=0).fun
+    assert tmp0 < delta + 1e-7
