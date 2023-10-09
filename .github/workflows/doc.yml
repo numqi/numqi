@@ -33,6 +33,9 @@ jobs:
       - name: Upgrade pip
         run: python3 -m pip install --upgrade pip
 
+      - name: install jupyter
+        run: python3 -m pip install --upgrade pip jupyter ipywidgets
+
       # pypi defaults to cuda-torch which is not necessary
       - name: install torch-cpu
         run: python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu
