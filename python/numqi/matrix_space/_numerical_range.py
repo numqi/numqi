@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse.linalg
 import scipy.optimize
 import cvxpy
+from tqdm.auto import tqdm
 
 from ._misc import get_matrix_orthogonal_basis
 
@@ -168,15 +169,24 @@ def detect_real_matrix_subspace_rank_one(matrix_subspace):
     return tag_rank_one, upper_bound
 
 
-def get_joint_algebraic_numerical_range(op_list, direction, return_info=False):
-    r'''get the joint algebraic numerical range of a list of operators along a direction
+def get_joint_algebraic_numerical_range(op_list, direction, return_info=False, use_tqdm=True):
+    r'''get the joint algebraic numerical range (JANR) of a list of operators along a direction
 
     $$ L(A_{1},A_{2},\cdots,A_{r})=\left\{ a\in\mathbb{C}^{r}:\rho\in\mathbb{C}^{d\times d},\rho\succeq0,\mathrm{Tr}[\rho]=1,a_{i}=\mathrm{Tr}[A_{i}\rho]\right\} $$
+
+    $$ \max\;\beta $$
+
+    $$ s.t.\;\begin{cases}
+\rho\succeq 0\\
+\mathrm{Tr}[\rho]=1\\
+\mathrm{Tr}[\rho A_{i}]=\beta\hat{n}_{i} & i=1,\cdots,m
+\end{cases} $$
 
     Parameters:
         op_list (list): a list of operators, each operator is a 2d numpy array
         direction (np.ndarrray): the boundary along the direction will be calculated, if 2d, then each row is a direction
         return_info (bool): if `True`, then return the boundary and the boundary's normal vector
+        use_tqdm (bool): if `True`, then use tqdm to show the progress
 
     Returns:
         beta (np.ndarray): the distance from the origin to the boundary along the direction.
@@ -187,46 +197,46 @@ def get_joint_algebraic_numerical_range(op_list, direction, return_info=False):
     op_list = np.stack(op_list, axis=0)
     num_op,dim,_ = op_list.shape
     assert np.abs(op_list-op_list.transpose(0,2,1).conj()).max() < 1e-10, 'op_list must be Hermitian'
-    shift = np.trace(op_list, axis1=1, axis2=2) / dim
-    op_list = op_list - shift[:,None,None]*np.eye(op_list.shape[1]) #for numerical stability
     direction = np.asarray(direction)
     assert (direction.ndim==1) or (direction.ndim==2)
     assert direction.shape[-1]==num_op
     is_single = (direction.ndim==1)
     direction = direction.reshape(-1,num_op)
-    cvxX = cvxpy.Variable((dim,dim), hermitian=True)
-    cvxB = cvxpy.Parameter(num_op)
+    if direction.shape[0]==1:
+        use_tqdm = False
+    cvx_rho = cvxpy.Variable((dim,dim), hermitian=True)
+    cvx_vec = cvxpy.Parameter(num_op)
     cvx_beta = cvxpy.Variable()
-    cvxO = cvxpy.real(op_list.transpose(0,2,1).reshape(-1, dim*dim) @ cvxpy.reshape(cvxX, dim*dim, order='F'))
+    cvx_op = cvxpy.real(op_list.transpose(0,2,1).reshape(-1, dim*dim, order='C') @ cvxpy.reshape(cvx_rho, dim*dim, order='F'))
     constraints = [
-        cvxX>>0,
-        cvxpy.real(cvxpy.trace(cvxX))==1,
-        cvx_beta*cvxB==cvxO,
+        cvx_rho>>0,
+        cvxpy.real(cvxpy.trace(cvx_rho))==1,
+        cvx_beta*cvx_vec==cvx_op,
     ]
-    obj = cvxpy.Maximize(cvx_beta)
-    prob = cvxpy.Problem(obj, constraints)
-    beta_list = []
+    cvx_obj = cvxpy.Maximize(cvx_beta)
+    prob = cvxpy.Problem(cvx_obj, constraints)
+    obj_list = []
     boundary_list = []
     norm_vec_list = []
     ret = []
-    for vec_i in direction:
-        cvxB.value = vec_i
+    for vec_i in (tqdm(direction) if use_tqdm else direction):
+        cvx_vec.value = vec_i
         prob.solve()
-        beta_list.append(cvx_beta.value.item())
+        obj_list.append(cvx_obj.value)
         if return_info:
-            boundary_list.append(cvxO.value.copy() + shift)
+            boundary_list.append(cvx_op.value.copy())
             norm_vec_list.append(constraints[-1].dual_value.copy())
     if is_single:
         if return_info:
-            ret = (beta_list[0], boundary_list[0], norm_vec_list[0])
+            ret = (obj_list[0], boundary_list[0], norm_vec_list[0])
         else:
-            ret = beta_list[0]
+            ret = obj_list[0]
     else:
-        beta_list = np.array(beta_list)
+        obj_list = np.array(obj_list)
         if return_info:
-            ret = beta_list, np.stack(boundary_list, axis=0), np.stack(norm_vec_list, axis=0)
+            ret = obj_list, np.stack(boundary_list, axis=0), np.stack(norm_vec_list, axis=0)
         else:
-            ret = beta_list
+            ret = obj_list
     return ret
 
 

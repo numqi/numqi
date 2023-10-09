@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.sparse.linalg
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 import numqi.gellmann
 import numqi.matrix_space

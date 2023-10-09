@@ -2,7 +2,7 @@ import functools
 import numpy as np
 import cvxpy
 import torch
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 import numqi.dicke
 import numqi.group
@@ -109,7 +109,7 @@ def get_ABk_symmetric_extension_ree(rho, dim, kext, use_ppt=False, return_info=F
     return ret
 
 
-def _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_rho):
+def _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_rho=None):
     coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
     if use_boson:
         assert numqi.dicke.get_dicke_number(kext, dimB)==coeffB_list[0].shape[0]
@@ -131,8 +131,12 @@ def _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_rho
     if use_ppt:
         constraints += [cvxpy.partial_transpose(x, [dimA,x.shape[0]//dimA], axis=1)>>0 for x in cvxP_list]
     constraints += [sum(cvxpy.trace(x)*y for x,y in zip(cvxP_list,multiplicity_list))==1]
-    constraints += [cvx_rdm==cvx_rho]
-    return cvxP_list, constraints
+    if cvx_rho is None:
+        ret = cvxP_list, constraints, cvx_rdm
+    else:
+        constraints += [cvx_rdm==cvx_rho]
+        ret = cvxP_list, constraints
+    return ret
 
 
 def check_ABk_symmetric_extension(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
@@ -180,7 +184,82 @@ def check_ABk_symmetric_extension(rho, dim, kext, use_ppt=False, use_boson=False
     return ret
 
 
-def get_ABk_symmetric_extension_boundary(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
+
+def get_ABk_extension_numerical_range(op_list, direction, dim, kext, use_ppt=False, use_boson=False, use_tqdm=True, return_info=False):
+    r'''get the symmetric extension numerical range of a list of operators
+
+    $$ \max\;\beta $$
+
+    $$ s.t.\;\begin{cases}
+\rho_{AB^{k}}\succeq0\\
+\mathrm{Tr}[\rho_{AB^{k}}]=1\\
+P_{B_{i}B_{j}}\rho_{AB^{k}}P_{B_{i}B_{j}}=\rho_{AB^{k}}\\
+\mathrm{Tr}\left[\mathrm{Tr}_{B^{k-1}}\left[\rho\right]A_{i}\right]=\beta\hat{n}_{i}
+\end{cases} $$
+
+    Parameters:
+        op_list (list): a list of operators, each operator is a 2d numpy array
+        direction (np.ndarrray): the boundary along the direction will be calculated, if 2d, then each row is a direction
+        dim (tuple[int]): the dimension of the density matrix, e.g. (2,2) for 2 qubits, must be of length 2
+        kext (int): the number of copies of symmetric extension
+        use_ppt (bool): if `True`, then use PPT (positive partial transpose) constraint in the pre-image
+        use_bos (bool): if `True`, then use bosonic symmetrical extension
+        return_info (bool): if `True`, then return the boundary and the boundary's normal vector
+        use_tqdm (bool): if `True`, then use tqdm to show the progress
+
+    Returns:
+        beta (np.ndarray): the distance from the origin to the boundary along the direction.
+            If `direction` is 2d, then `beta` is 1d array.
+        boundary (np.ndarray): the boundary along the direction. only returned if `return_info` is `True`
+        normal_vector (np.ndarray): the normal vector of the boundary. only returned if `return_info` is `True`
+    '''
+    op_list = np.stack(op_list, axis=0)
+    num_op = op_list.shape[0]
+    assert np.abs(op_list-op_list.transpose(0,2,1).conj()).max() < 1e-10, 'op_list must be Hermitian'
+    direction = np.asarray(direction)
+    assert (direction.ndim==1) or (direction.ndim==2)
+    assert direction.shape[-1]==num_op
+    is_single = (direction.ndim==1)
+    direction = direction.reshape(-1,num_op)
+    if direction.shape[0]==1:
+        use_tqdm = False
+    dimA,dimB = dim
+    N0 = dimA*dimB
+    cvx_vec = cvxpy.Parameter(num_op)
+    cvx_beta = cvxpy.Variable()
+    cvxP_list,constraints,cvx_rho = _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt)
+    # cvx_rho is of shape (dimA*dimA,dimB*dimB)
+    tmp0 = op_list.reshape(-1,dimA,dimB,dimA,dimB).transpose(0,4,2,3,1).reshape(-1,dimA*dimB*dimA*dimB, order='C')
+    cvx_op = cvxpy.real(tmp0 @ cvxpy.reshape(cvx_rho, N0*N0, order='F'))
+    constraints.append(cvx_beta*cvx_vec==cvx_op)
+    cvx_obj = cvxpy.Maximize(cvx_beta)
+    prob = cvxpy.Problem(cvx_obj, constraints)
+    obj_list = []
+    boundary_list = []
+    norm_vec_list = []
+    ret = []
+    for vec_i in (tqdm(direction) if use_tqdm else direction):
+        cvx_vec.value = vec_i
+        prob.solve()
+        obj_list.append(cvx_obj.value)
+        if return_info:
+            boundary_list.append(cvx_op.value.copy())
+            norm_vec_list.append(constraints[-1].dual_value.copy())
+    if is_single:
+        if return_info:
+            ret = (obj_list[0], boundary_list[0], norm_vec_list[0])
+        else:
+            ret = obj_list[0]
+    else:
+        obj_list = np.array(obj_list)
+        if return_info:
+            ret = obj_list, np.stack(boundary_list, axis=0), np.stack(norm_vec_list, axis=0)
+        else:
+            ret = obj_list
+    return ret
+
+
+def get_ABk_extension_boundary(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
     '''get the boundary (in Euclidean space) of k-ext symmetric extension on B-party along rho direction
 
     Parameters:
@@ -229,6 +308,8 @@ def get_ABk_symmetric_extension_boundary(rho, dim, kext, use_ppt=False, use_boso
         tmp0 = np.array(beta_list)
         ret = tmp0 if (not return_info) else (tmp0, np.stack(vecA_list,axis=0), np.stack(vecN_list,axis=0))
     return ret
+# TODO rename
+get_ABk_symmetric_extension_boundary = get_ABk_extension_boundary
 
 
 class SymmetricExtABkIrrepModel(torch.nn.Module):

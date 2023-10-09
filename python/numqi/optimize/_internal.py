@@ -2,7 +2,7 @@ import time
 import contextlib
 import numpy as np
 import scipy.optimize
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import torch
 
 def _get_sorted_parameter(model):

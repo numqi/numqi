@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import cvxpy
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import contextlib
 import scipy.linalg
 import math

@@ -41,6 +41,7 @@ nav:
     - maximum entropy: tutorial/maxent.md
     - quantum error correction: tutorial/qecc.md
     - entanglement:
+      - tutorial/entangle/dm_numerical_range.ipynb
       - CHA: tutorial/entangle/cha.md
       - PPT: tutorial/entangle/ppt.md
       - pure bosonic extension: tutorial/entangle/pureb.md
@@ -53,6 +54,7 @@ nav:
     - parameterization: api/param.md
     - quantum gate: api/gate.md
     - quantum circuit: api/circuit.md
+    - entanglement detection: api/entangle.md
   - misc: misc.md
 plugins:
   search:

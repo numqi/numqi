@@ -1,7 +1,7 @@
 import functools
 import itertools
 import numpy as np
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import scipy.optimize
 import scipy.sparse.linalg
 import cvxpy
@@ -10,35 +10,79 @@ import numqi.gellmann
 
 from ._misc import get_density_matrix_boundary, _sdp_ree_solve, _check_input_rho_SDP
 
-def get_ppt_numerical_range(op0, op1, dim, num_theta=None, theta_list=None, use_tqdm=True):
-    # num_theta=400 TODO default to None
-    assert (num_theta is None) != (theta_list is None)
-    if num_theta is not None:
-        theta_list = np.linspace(0, 2*np.pi, int(num_theta))
-    else:
-        theta_list = np.asarray(theta_list)
-        assert theta_list.ndim==1
-    assert len(dim)==2
+
+def get_ppt_numerical_range(op_list, direction, dim, return_info=False, use_tqdm=True):
+    r'''get the PPT (positive partial transpose) numerical range of a list of operators
+
+    $$ \max\;\beta $$
+
+    $$ s.t.\;\begin{cases}
+\rho\succeq 0\\
+\mathrm{Tr}[\rho]=1\\
+\rho^{\Gamma}\succeq 0\\
+\mathrm{Tr}[\rho A_{i}]=\beta\hat{n}_{i} & i=1,\cdots,m
+\end{cases} $$
+
+    Parameters:
+        op_list (list): a list of operators, each operator is a 2d numpy array
+        direction (np.ndarrray): the boundary along the direction will be calculated, if 2d, then each row is a direction
+        dim (tuple[int]): the dimension of the density matrix, e.g. (2,2) for 2 qubits, must be of length 2
+        return_info (bool): if `True`, then return the boundary and the boundary's normal vector
+        use_tqdm (bool): if `True`, then use tqdm to show the progress
+
+    Returns:
+        beta (np.ndarray): the distance from the origin to the boundary along the direction.
+            If `direction` is 2d, then `beta` is 1d array.
+        boundary (np.ndarray): the boundary along the direction. only returned if `return_info` is `True`
+        normal_vector (np.ndarray): the normal vector of the boundary. only returned if `return_info` is `True`
+    '''
+    op_list = np.stack(op_list, axis=0)
+    num_op = op_list.shape[0]
+    assert np.abs(op_list-op_list.transpose(0,2,1).conj()).max() < 1e-10, 'op_list must be Hermitian'
+    direction = np.asarray(direction)
+    assert (direction.ndim==1) or (direction.ndim==2)
+    assert direction.shape[-1]==num_op
+    is_single = (direction.ndim==1)
+    direction = direction.reshape(-1,num_op)
+    if direction.shape[0]==1:
+        use_tqdm = False
     dimA,dimB = dim
     N0 = dimA*dimB
-    assert (op0.shape==op1.shape) and (op0.shape==(N0,N0))
-
+    assert op_list.shape[1]==dimA*dimB
     cvx_rho = cvxpy.Variable((N0,N0), hermitian=True)
-    cvx_op = cvxpy.Parameter((N0,N0), hermitian=True)
-    obj = cvxpy.Maximize(cvxpy.real(cvxpy.trace(cvx_op @ cvx_rho)))
+    cvx_vec = cvxpy.Parameter(num_op)
+    cvx_beta = cvxpy.Variable()
+    cvx_op = cvxpy.real(op_list.transpose(0,2,1).reshape(-1, N0*N0, order='C') @ cvxpy.reshape(cvx_rho, N0*N0, order='F'))
     constraints = [
         cvx_rho>>0,
-        cvxpy.trace(cvx_rho)==1,
+        cvxpy.real(cvxpy.trace(cvx_rho))==1,
         cvxpy.partial_transpose(cvx_rho, [dimA,dimB], 0)>>0,
+        cvx_beta*cvx_vec==cvx_op,
     ]
-    prob = cvxpy.Problem(obj, constraints)
+    cvx_obj = cvxpy.Maximize(cvx_beta)
+    prob = cvxpy.Problem(cvx_obj, constraints)
+    obj_list = []
+    boundary_list = []
+    norm_vec_list = []
     ret = []
-    for theta_i in (tqdm(theta_list) if use_tqdm else theta_list):
-        cvx_op.value = np.cos(theta_i)*op0 + np.sin(theta_i)*op1
+    for vec_i in (tqdm(direction) if use_tqdm else direction):
+        cvx_vec.value = vec_i
         prob.solve()
-        tmp0 = cvx_rho.value.copy()
-        ret.append([np.trace(x @ tmp0).real for x in [op0,op1]])
-    ret = np.array(ret)
+        obj_list.append(cvx_obj.value)
+        if return_info:
+            boundary_list.append(cvx_op.value.copy())
+            norm_vec_list.append(constraints[-1].dual_value.copy())
+    if is_single:
+        if return_info:
+            ret = (obj_list[0], boundary_list[0], norm_vec_list[0])
+        else:
+            ret = obj_list[0]
+    else:
+        obj_list = np.array(obj_list)
+        if return_info:
+            ret = obj_list, np.stack(boundary_list, axis=0), np.stack(norm_vec_list, axis=0)
+        else:
+            ret = obj_list
     return ret
 
 

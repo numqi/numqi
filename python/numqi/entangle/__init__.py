@@ -10,7 +10,8 @@ from .bes import (plot_dm0_dm1_plane, DensityMatrixLocalUnitaryEquivalentModel, 
 from .pureb import PureBosonicExt
 from .pureb_quantum import QuantumPureBosonicExt
 from .symext import (SymmetricExtABkIrrepModel, check_ABk_symmetric_extension,
-                get_ABk_symmetric_extension_ree, get_ABk_symmetric_extension_boundary)
+                get_ABk_symmetric_extension_ree, get_ABk_symmetric_extension_boundary,
+                get_ABk_extension_numerical_range, get_ABk_extension_boundary)
 
 from . import upb
 from . import ppt

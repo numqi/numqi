@@ -13,3 +13,7 @@
 ::: numqi.matrix_space.get_real_bipartite_numerical_range
     options:
       heading_level: 3
+
+::: numqi.matrix_space.get_joint_algebraic_numerical_range
+    options:
+      heading_level: 3

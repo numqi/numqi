@@ -180,9 +180,10 @@ def test_get_ppt_numerical_range():
     op0 = np.kron(np.array([[1/np.sqrt(2),0],[0,0]]), sz)
     op1 = (np.kron(sy, sx) - np.kron(sx, sy)) / 2
     theta_list = np.linspace(0, 2*np.pi, 4, endpoint=False)
-    z0 = numqi.entangle.get_ppt_numerical_range(op0, op1, dim=(2,2), theta_list=theta_list, use_tqdm=False)
+    direction = np.stack([np.cos(theta_list), np.sin(theta_list)], axis=1)
+    z0 = numqi.entangle.get_ppt_numerical_range([op0,op1], direction, dim=(2,2), use_tqdm=False)
     s12 = 1/np.sqrt(2)
-    ret_ = np.array([[s12,0],[0,1/2], [-s12,0],[0,-1/2]])
+    ret_ = np.array([s12, 1/2, s12, 1/2])
     assert np.abs(ret_-z0).max() < (1e-6 if USE_MOSEK else 1e-4)
 
 

@@ -2,7 +2,7 @@ import functools
 import numpy as np
 import scipy.sparse.linalg
 import matplotlib.pyplot as plt
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import cvxpy
 import torch
 
