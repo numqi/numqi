@@ -190,12 +190,7 @@ def get_ABk_extension_numerical_range(op_list, direction, dim, kext, use_ppt=Fal
 
     $$ \max\;\beta $$
 
-    $$ s.t.\;\begin{cases}
-\rho_{AB^{k}}\succeq0\\
-\mathrm{Tr}[\rho_{AB^{k}}]=1\\
-P_{B_{i}B_{j}}\rho_{AB^{k}}P_{B_{i}B_{j}}=\rho_{AB^{k}}\\
-\mathrm{Tr}\left[\mathrm{Tr}_{B^{k-1}}\left[\rho\right]A_{i}\right]=\beta\hat{n}_{i}
-\end{cases} $$
+    $$ s.t.\;\begin{cases} \rho_{AB^{k}}\succeq0\\ \mathrm{Tr}[\rho_{AB^{k}}]=1\\ P_{B_{i}B_{j}}\rho_{AB^{k}}P_{B_{i}B_{j}}=\rho_{AB^{k}}\\ \mathrm{Tr}\left[\mathrm{Tr}_{B^{k-1}}\left[\rho\right]A_{i}\right]=\beta\hat{n}_{i} \end{cases} $$
 
     Parameters:
         op_list (list): a list of operators, each operator is a 2d numpy array

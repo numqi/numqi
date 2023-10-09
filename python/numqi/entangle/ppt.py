@@ -16,12 +16,7 @@ def get_ppt_numerical_range(op_list, direction, dim, return_info=False, use_tqdm
 
     $$ \max\;\beta $$
 
-    $$ s.t.\;\begin{cases}
-\rho\succeq 0\\
-\mathrm{Tr}[\rho]=1\\
-\rho^{\Gamma}\succeq 0\\
-\mathrm{Tr}[\rho A_{i}]=\beta\hat{n}_{i} & i=1,\cdots,m
-\end{cases} $$
+    $$ s.t.\;\begin{cases} \rho\succeq 0\\ \mathrm{Tr}[\rho]=1\\ \rho^{\Gamma}\succeq 0\\ \mathrm{Tr}[\rho A_{i}]=\beta\hat{n}_{i} & i=1,\cdots,m \end{cases} $$
 
     Parameters:
         op_list (list): a list of operators, each operator is a 2d numpy array
