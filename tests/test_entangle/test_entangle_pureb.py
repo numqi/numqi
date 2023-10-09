@@ -103,6 +103,8 @@ def test_pureb_ree_seperable():
     # (3,3,8) fail with a relatively low probability
     # (5,3,8) fail with large probability
     para_list = [(3,3,16),(3,3,32),(3,5,8),(3,5,16),(5,5,8),(5,5,16)]
+    kwargs = dict(num_repeat=3, print_every_round=0, tol=1e-10, early_stop_threshold=1e-8)
+    # seed=139861042631808735 dimA=5 dimB=5 kext=8 fails
     for dimA,dimB,kext in para_list:
         model = numqi.entangle.PureBosonicExt(dimA, dimB, kext=kext, distance_kind='ree')
         for _ in range(10):
@@ -110,7 +112,7 @@ def test_pureb_ree_seperable():
             np_rng_i = np.random.default_rng(seed) #for reproducible
             dm_target = numqi.random.rand_separable_dm(dimA, dimB, seed=np_rng_i)
             model.set_dm_target(dm_target)
-            ret = numqi.optimize.minimize(model, num_repeat=3, print_every_round=0, tol=1e-10, early_stop_threshold=1e-8).fun
+            ret = numqi.optimize.minimize(model, **kwargs).fun
             assert ret<1e-8, f'seed={seed} dimA={dimA} dimB={dimB} kext={kext}'
 
 
