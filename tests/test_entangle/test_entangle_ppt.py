@@ -77,7 +77,7 @@ def test_cvx_relative_entropy_entanglement_random():
     sqrt_order = 3
     assert min(dimA,dimB)>1, 'need to be entangled'
     rho = numqi.random.rand_bipartite_state(dimA, dimB, k=min(dimA,dimB), return_dm=True) #entangled
-    ree,z0 = numqi.entangle.get_ppt_ree(rho, dimA, dimB, return_info=True, sqrt_order=sqrt_order, pade_order=3)
+    ree,z0 = numqi.entangle.get_ppt_ree(rho, dimA, dimB, return_info=True, sqrt_order=sqrt_order, pade_order=3, use_tqdm=False)
 
     tau = z0['X']
     assert np.abs(tau - tau.T.conj()).max() < 1e-6
@@ -108,7 +108,7 @@ def test_cvx_relative_entropy_entanglement_werner00():
     dimB = 2
     sqrt_order = 3
     rho = numqi.entangle.get_werner_state(dimA, alpha=0.8)
-    ree,z0 = numqi.entangle.get_ppt_ree(rho, dimA, dimB, return_info=True, sqrt_order=sqrt_order, pade_order=3)
+    ree,z0 = numqi.entangle.get_ppt_ree(rho, dimA, dimB, return_info=True, sqrt_order=sqrt_order, pade_order=3, use_tqdm=False)
 
     tau = z0['X']
     EVL0 = np.linalg.eigvalsh(tau)
@@ -124,7 +124,7 @@ def test_cvx_relative_entropy_entanglement_werner01():
     alpha_list = np.linspace(0, 1, 10, endpoint=False) #alpha=1 is unstable
     ret_ = np.array([numqi.entangle.get_werner_state_ree(dim, x) for x in alpha_list])
     dm_list = [numqi.entangle.get_werner_state(dim,x) for x in alpha_list]
-    ret0 = numqi.entangle.get_ppt_ree(dm_list, dim, dim, sqrt_order=3, pade_order=3)
+    ret0 = numqi.entangle.get_ppt_ree(dm_list, dim, dim, sqrt_order=3, pade_order=3, use_tqdm=False)
     assert np.abs(ret_-ret0).max() < 1e-4 #1e-5 fail for solver=SCS
 
 # TODO rename all rho to dm

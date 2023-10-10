@@ -261,7 +261,7 @@ def cvx_matrix_mlogx(cvxX, sqrt_order=3, pade_order=3):
     return cvxP, constraint
 
 
-def get_ppt_ree(rho, dimA, dimB, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=False):
+def get_ppt_ree(rho, dimA, dimB, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=True):
     rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, (dimA,dimB), use_tqdm)
     dim = dimA * dimB
     cvxX = cvxpy.Variable((dim,dim), hermitian=True)

@@ -42,8 +42,10 @@ nav:
     - quantum error correction: tutorial/qecc.md
     - entanglement:
       - tutorial/entangle/dm_numerical_range.ipynb
+      - tutorial/entangle/entanglement_basic.ipynb
+      - tutorial/entangle/entanglement_advanced.ipynb
+      - tutorial/entangle/cha.ipynb
       - CHA: tutorial/entangle/cha.md
-      - PPT: tutorial/entangle/ppt.md
       - pure bosonic extension: tutorial/entangle/pureb.md
       - symmetric extension: tutorial/entangle/symext.md
     - optimal-control:

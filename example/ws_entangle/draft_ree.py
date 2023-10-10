@@ -159,7 +159,7 @@ def demo_werner_ree():
 
     ree_analytical = np.array([numqi.entangle.get_werner_state_ree(dim, x) for x in alpha_list])
 
-    ree_ppt = numqi.entangle.get_ppt_ree(dm_target_list, dim, dim, use_tqdm=True)
+    ree_ppt = numqi.entangle.get_ppt_ree(dm_target_list, dim, dim)
 
     model = numqi.entangle.AutodiffCHAREE(dim0=dim, dim1=dim, distance_kind='ree')
     ree_cha = []
