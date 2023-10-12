@@ -39,6 +39,10 @@ jobs:
       - name: install jupyter
         run: python3 -m pip install --upgrade pip jupyter ipywidgets
 
+      - name: install cvxpy-1.3
+        # cvxpy-1.4.0 has bad performance issue on SDP see https://github.com/cvxpy/cvxpy/issues/2257
+        run: python3 -m pip install "cvxpy<1.4"
+
       # pypi defaults to cuda-torch which is not necessary
       - name: install torch-cpu
         run: python3 -m pip install torch --index-url https://download.pytorch.org/whl/cpu
