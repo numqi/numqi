@@ -9,6 +9,8 @@ try:
 except ImportError:
     USE_MOSEK = False
 
+if torch.get_num_threads()!=1:
+    torch.set_num_threads(1)
 
 # 24 seconds
 def test_QueryGroverModel():
@@ -51,14 +53,14 @@ def _QueryGroverQuantumModel_build_circuit(num_qubit, num_layer, num_query, use_
 
 def test_QueryGroverQuantumModel():
     case_list = [
-        (3, 2, 8, 0), #about 20 seconds
+        (3, 2, 8, 0), #about 20 seconds (1 round)
         # (4, 3, 24, 0), #about 400 steps
     ]
+    kwargs = dict(theta0=('uniform', 0, 2*np.pi), tol=1e-9, num_repeat=3, print_every_round=0, early_stop_threshold=1e-7)
     for num_qubit,num_query,num_layer,ret_ in case_list:
         circuit = _QueryGroverQuantumModel_build_circuit(num_qubit, num_layer, num_query, use_fractional=False)
         model = numqi.query.QueryGroverQuantumModel(circuit)
-        theta_optim = numqi.optimize.minimize(model, theta0=('uniform', 0, 2*np.pi), tol=1e-12,
-                    num_repeat=3, print_every_round=0, early_stop_threshold=1e-8)
+        theta_optim = numqi.optimize.minimize(model, **kwargs)
         assert abs(model.error_rate-ret_) < 1e-4
 
 
