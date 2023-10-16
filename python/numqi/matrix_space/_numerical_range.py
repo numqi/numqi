@@ -24,11 +24,15 @@ def get_matrix_numerical_range(matA, num_point=100):
     assert num_point>=1
     theta_list = np.linspace(0, 2*np.pi, num_point)
     matA_conj = matA.T.conj()
+    N0 = matA.shape[0]
     ret = []
     for theta_i in theta_list:
         tmp0 = np.exp(1j*theta_i)/2
         tmp1 = tmp0 * matA + tmp0.conj() * matA_conj
-        EVC = scipy.sparse.linalg.eigsh(tmp1, k=1, which='LA', return_eigenvectors=True)[1][:,0]
+        if N0>=5:
+            EVC = scipy.sparse.linalg.eigsh(tmp1, k=1, which='LA', return_eigenvectors=True)[1][:,0]
+        else:
+            EVC = scipy.linalg.eigh(tmp1)[1][:,-1]
         ret.append(np.vdot(EVC, matA @ EVC))
     ret = np.array(ret)
     return ret
@@ -127,11 +131,17 @@ def get_real_bipartite_numerical_range(mat, kind='min', method='eigen'):
     elif method=='eigen':
         assert np.abs(mat - mat.T).max() < 1e-10, 'matrix must be symmetric when method="eigen"'
         if kind=='min':
-            hf0 = lambda p: -scipy.sparse.linalg.eigsh(p*mat+(1-p)*mat_pt, k=1, which='SA', return_eigenvectors=False)[0]
+            if mat.shape[0]>=5: #5 is chosen intuitively
+                hf0 = lambda p: -scipy.sparse.linalg.eigsh(p*mat+(1-p)*mat_pt, k=1, which='SA', return_eigenvectors=False)[0]
+            else:
+                hf0 = lambda p: -np.linalg.eigvalsh(p*mat+(1-p)*mat_pt)[0]
             theta_optim = scipy.optimize.minimize_scalar(hf0)
             ret = -theta_optim.fun
         if kind=='max':
-            hf0 = lambda p: scipy.sparse.linalg.eigsh(p*mat+(1-p)*mat_pt, k=1, which='LA', return_eigenvectors=False)[0]
+            if mat.shape[0]>=5: #5 is chosen intuitively
+                hf0 = lambda p: scipy.sparse.linalg.eigsh(p*mat+(1-p)*mat_pt, k=1, which='LA', return_eigenvectors=False)[0]
+            else:
+                hf0 = lambda p: np.linalg.eigvalsh(p*mat+(1-p)*mat_pt)[-1]
             theta_optim = scipy.optimize.minimize_scalar(hf0)
             ret = theta_optim.fun
     return ret

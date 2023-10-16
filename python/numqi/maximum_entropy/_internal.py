@@ -164,7 +164,7 @@ def eigvalsh_largest_power_iteration(matA, maxiter=20, vec0=None, tol=1e-7, tag_
     N0 = matA.shape[0]
     tmp0 = matA.detach().cpu().numpy()
     assert N0>=2
-    if tag_force_full or (N0<5):
+    if tag_force_full or (N0<5): #5 is chosen intuitively
         EVL = np.linalg.eigvalsh(tmp0)
         EVL_min = EVL[0]
         EVL_max = EVL[-1]

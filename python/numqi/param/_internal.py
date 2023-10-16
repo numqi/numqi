@@ -80,7 +80,7 @@ def hermitian_matrix_to_trace1_PSD(matA):
         ret = torch.ones_like(matA) if tag_is_torch else np.ones_like(matA)
     else:
         tmp3 = matA.detach().cpu().numpy() if tag_is_torch else matA
-        if N1==2:
+        if N1<=5: #5 is chosen intuitively
             EVL = np.linalg.eigvalsh(tmp3)[:,-1]
         else:
             EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
@@ -105,7 +105,11 @@ def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
         tmp1 = torch.triu(matA)
         tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
         # tmp3 = [torch.lobpcg(hf_complex_to_real(x.detach()),k=1)[0] for x in tmp2]
-        tmp3 = [scipy.sparse.linalg.eigsh(tmp2[0].detach().cpu().numpy(), k=1, which='LA', return_eigenvectors=False)[0]]
+        tmp2_np = tmp2.detach().cpu().numpy()
+        if tmp2_np.shape[-1]>5: #5 is chosen intuitively
+            tmp3 = [scipy.sparse.linalg.eigsh(x, k=1, which='LA', return_eigenvectors=False)[0] for x in tmp2_np]
+        else:
+            tmp3 = [np.linalg.eigvalsh(x)[-1] for x in tmp2_np]
         # torch.lobpcg(tmp2, k=1)
         # tmp3 = torch.max(torch.diagonal(tmp2.real, dim1=1, dim2=2), dim=1)[0]
         tmp4 = torch.eye(tmp2.shape[1], device=matA.device)

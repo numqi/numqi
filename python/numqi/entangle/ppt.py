@@ -110,7 +110,10 @@ def is_ppt(rho, dim=None, eps=-1e-7, return_info=False):
         tmp0 = np.prod(dim[:i]) if i>0 else 1
         tmp1 = np.prod(dim[(i+1):]) if (i+1)<len(dim) else 1
         rhoT = rho.reshape(tmp0,dim[i],tmp1,tmp0,dim[i],tmp1).transpose(0,4,2,3,1,5).reshape(N0,N0)
-        EVL = scipy.sparse.linalg.eigsh(rhoT, k=1, sigma=None, which='SA', return_eigenvectors=False)[0]
+        if N0>=5: #5 is chosen intuitively
+            EVL = scipy.sparse.linalg.eigsh(rhoT, k=1, sigma=None, which='SA', return_eigenvectors=False)[0]
+        else:
+            EVL = np.linalg.eigvalsh(rhoT)[0]
         return EVL
     tmp0 = (hf0(i) for i in range(len(dim)))
     if return_info:

@@ -142,7 +142,10 @@ def check_reduction_witness(rho, dim=None, eps=-1e-7):
             tmp3 = np.kron(np.eye(tmp0), tmp3)
         if tmp1!=1:
             tmp3 = np.kron(tmp3, np.eye(tmp1))
-        EVL = scipy.sparse.linalg.eigsh(tmp3-rho, k=1, sigma=None, which='SA', return_eigenvectors=False)[0]
+        if N0>=5: #5 is chosen intuitively
+            EVL = scipy.sparse.linalg.eigsh(tmp3-rho, k=1, sigma=None, which='SA', return_eigenvectors=False)[0]
+        else:
+            EVL = np.linalg.eigvalsh(tmp3-rho).min()
         return EVL
     ret = all(hf0(i)>eps for i in range(len(dim)))
     return ret
