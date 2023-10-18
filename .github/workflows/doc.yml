@@ -1,11 +1,15 @@
 name: mkdocs-github-page
 
 on:
-  # only run it when unittest passed https://stackoverflow.com/a/64733705/7290857
-  workflow_run:
-    workflows: ["unittest"]
-    types:
-      - completed
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # # only run it when unittest passed https://stackoverflow.com/a/64733705/7290857
+  # workflow_run:
+  #   workflows: ["unittest"]
+  #   types:
+  #     - completed
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
