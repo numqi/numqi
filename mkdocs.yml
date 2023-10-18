@@ -20,13 +20,10 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Preliminary:
-    - Clifford: preliminary/group_spf2.md
-    - Dicke Basic: preliminary/dicke_basis.md
-    - Entanglement Basic: preliminary/entanglement_basic.md
-    - Entanglement Advanced: preliminary/entanglement_advanced.md
   - Tutorial:
+    - tutorial/get_started.ipynb
     - tutorial/gellmann.ipynb
+    - Dicke Basis: tutorial/dicke_basis.md
     - optimize:
       - tutorial/optimize/basic.ipynb
       - tutorial/optimize/wiki-test-function.ipynb
@@ -36,15 +33,18 @@ nav:
     - matrix space:
       - tutorial/matrix_space/numerical_range.ipynb
     - group:
-      - group: tutorial/group.md
-      - symmetric extension: tutorial/group-symext.md
+      - basic: tutorial/group/basic.md
+      - Clifford: tutorial/group//spf2.md
+      - symmetric extension: tutorial/group/symext.md
     - maximum entropy: tutorial/maxent.md
     - quantum error correction: tutorial/qecc.md
     - entanglement:
       - tutorial/entangle/dm_numerical_range.ipynb
+      - tutorial/entangle/special_state.md
       - tutorial/entangle/dm_cross_section.ipynb
-      - tutorial/entangle/entanglement_basic.ipynb
-      - tutorial/entangle/entanglement_advanced.ipynb
+      - tutorial/entangle/basic.ipynb
+      - tutorial/entangle/advanced00.ipynb
+      - Advanced-01: tutorial/entangle/advanced01.md
       - tutorial/entangle/cha.ipynb
       - tutorial/entangle/various_JANR.ipynb
       - pure bosonic extension: tutorial/entangle/pureb.md
