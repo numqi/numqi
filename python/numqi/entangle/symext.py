@@ -198,7 +198,7 @@ def get_ABk_extension_numerical_range(op_list, direction, dim, kext, use_ppt=Fal
         dim (tuple[int]): the dimension of the density matrix, e.g. (2,2) for 2 qubits, must be of length 2
         kext (int): the number of copies of symmetric extension
         use_ppt (bool): if `True`, then use PPT (positive partial transpose) constraint in the pre-image
-        use_bos (bool): if `True`, then use bosonic symmetrical extension
+        use_boson (bool): if `True`, then use bosonic symmetrical extension
         return_info (bool): if `True`, then return the boundary and the boundary's normal vector
         use_tqdm (bool): if `True`, then use tqdm to show the progress
 

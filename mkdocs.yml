@@ -26,7 +26,7 @@ nav:
     - Entanglement Basic: preliminary/entanglement_basic.md
     - Entanglement Advanced: preliminary/entanglement_advanced.md
   - Tutorial:
-    - Gell-Mann: tutorial/gellmann.md
+    - tutorial/gellmann.ipynb
     - optimize:
       - tutorial/optimize/basic.ipynb
       - tutorial/optimize/wiki-test-function.ipynb
@@ -42,10 +42,11 @@ nav:
     - quantum error correction: tutorial/qecc.md
     - entanglement:
       - tutorial/entangle/dm_numerical_range.ipynb
+      - tutorial/entangle/dm_cross_section.ipynb
       - tutorial/entangle/entanglement_basic.ipynb
       - tutorial/entangle/entanglement_advanced.ipynb
       - tutorial/entangle/cha.ipynb
-      - CHA: tutorial/entangle/cha.md
+      - tutorial/entangle/various_JANR.ipynb
       - pure bosonic extension: tutorial/entangle/pureb.md
       - symmetric extension: tutorial/entangle/symext.md
     - optimal-control:

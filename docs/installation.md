@@ -64,8 +64,9 @@ pip install numqi
 # for mac user
 # metal is the environment name (you can change it what you like)
 conda create -y -n metal
-conda install -y -n metal -c conda-forge pytorch ipython pytest matplotlib scipy requests tqdm cvxpy
+conda install -y -n metal -c conda-forge ipython pytest matplotlib scipy requests tqdm cvxpy
 conda activate metal
+pip install torch #conda-forge/macos/pytorch is broken https://github.com/conda-forge/pytorch-cpu-feedstock/issues/180
 brew install openblas
 OPENBLAS="$(brew --prefix openblas)" pip install scs
 pip install numqi
