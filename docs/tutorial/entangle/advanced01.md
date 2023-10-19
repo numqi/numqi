@@ -20,28 +20,9 @@ we call it a separable density matrix, otherwise a entangled density matrix. Det
 
 Density matrix can be divided into separable states and entangled states. The separable set is defined as all matrices satisfying
 
-CHA
-
 PPT
 
-Werner state
-
 UPB/BES
-
-## CHA
-
-1. link
-   * [physics-stackexchange-link](https://physics.stackexchange.com/q/399675/283720) What is the minimum number of separable pure states needed to decompose arbitrary separable states?
-
-## Sets related to density matrix
-
-$$ S_{\mathrm{dm},d}=\left\{ x\in\mathbb{C}^{d\times d}:x\succeq0,\mathrm{Tr}\left[x\right]=1\right\} $$
-
-$$ S_{\mathrm{sep},m,n}=\left\{ \sum_{i=1}^{m^{2}n^{2}}p_{i}x\otimes y:x\in S_{\mathrm{dm},m},y\in S_{\mathrm{dm},n},p_{i}\geq0,\sum_{i}p_{i}=1\right\} $$
-
-$$ S_{\mathrm{PPT},m,n}=\left\{ x\in S_{\mathrm{dm},mn}:x^{\Gamma}\succeq0\right\} $$
-
-$$ S_{\mathrm{ext}\left(r,s\right)}\subseteq S_{\mathrm{dm},d_{A}d_{B}} $$
 
 ## Numerical range
 
