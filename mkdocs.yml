@@ -23,7 +23,8 @@ nav:
   - Tutorial:
     - tutorial/get_started.ipynb
     - tutorial/gellmann.ipynb
-    - Dicke Basis: tutorial/dicke_basis.md
+    - tutorial/dicke_basis.ipynb
+    - tutorial/random.ipynb
     - optimize:
       - tutorial/optimize/basic.ipynb
       - tutorial/optimize/wiki-test-function.ipynb
@@ -32,31 +33,39 @@ nav:
     - tutorial/parametrize.ipynb
     - matrix space:
       - tutorial/matrix_space/numerical_range.ipynb
+      - tutorial/matrix_space/numerical_range1.ipynb
     - group:
       - basic: tutorial/group/basic.md
       - Clifford: tutorial/group//spf2.md
       - symmetric extension: tutorial/group/symext.md
-    - maximum entropy: tutorial/maxent.md
-    - quantum error correction: tutorial/qecc.md
+    - quantum error correction:
+      - tutorial/qecc/basic.md
+      - tutorial/qecc/varqecc.ipynb
+    - simulator:
+      - tutorial/simulator/basic.ipynb
+      - tutorial/simulator/customized_gate.ipynb
     - entanglement:
       - tutorial/entangle/dm_numerical_range.ipynb
       - tutorial/entangle/special_state.md
       - tutorial/entangle/dm_cross_section.ipynb
       - tutorial/entangle/basic.ipynb
       - tutorial/entangle/advanced00.ipynb
-      - Advanced-01: tutorial/entangle/advanced01.md
+      - "Entanglement: Advanced 1": tutorial/entangle/advanced01.md
+      - "Entanglement: Advanced 2": tutorial/entangle/advanced02.md
       - tutorial/entangle/cha.ipynb
       - tutorial/entangle/various_JANR.ipynb
       - pure bosonic extension: tutorial/entangle/pureb.md
       - symmetric extension: tutorial/entangle/symext.md
     - optimal-control:
       - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
+    - tutorial/maxent.ipynb
+    - tutorial/query_grover.ipynb
   - API:
     - matrix space: api/matrix_space.md
     - random: api/random.md
+    - dicke: api/dicke.md
     - parameterization: api/param.md
     - quantum gate: api/gate.md
-    - quantum circuit: api/circuit.md
     - entanglement detection: api/entangle.md
   - misc: misc.md
 plugins:

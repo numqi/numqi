@@ -54,6 +54,13 @@ $$ a\in\left[0,1\right],\alpha\in\left[-\frac{1}{d^{2}-1},\frac{1}{d+1}\right] $
 
 $$ a\in\left[0,1+\frac{d-1}{k}\right],\alpha\in\left[-\frac{1}{d^{2}-1},\frac{kd+d^{2}-d-k}{k\left(d^{2}-1\right)}\right] $$
 
-## maximum entangled state
+## maximally entangled state
 
-TODO
+$$ \frac{1}{\sqrt{d}} \sum_{i=1}^{d} |ii\rangle  $$
+
+## W state
+
+1. reference
+   * [wiki/W-state](https://en.wikipedia.org/wiki/W_state)
+
+$$ |W\rangle=\frac{1}{\sqrt{3}}(|001\rangle + |010\rangle + |100\rangle) $$
