@@ -75,7 +75,7 @@ plugins:
   search:
   mkdocs-jupyter:
     include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
-    # execute: true
+    execute: true
   mkdocstrings:
     default_handler: python
     handlers:
