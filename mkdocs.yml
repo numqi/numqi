@@ -34,6 +34,8 @@ nav:
     - matrix space:
       - tutorial/matrix_space/numerical_range.ipynb
       - tutorial/matrix_space/numerical_range1.ipynb
+      - tutorial/matrix_space/space_schmidt_rank.ipynb
+      - tutorial/matrix_space/space_schmidt_rank_real.ipynb
     - group:
       - basic: tutorial/group/basic.md
       - Clifford: tutorial/group//spf2.md
@@ -41,6 +43,7 @@ nav:
     - quantum error correction:
       - tutorial/qecc/basic.md
       - tutorial/qecc/varqecc.ipynb
+      - tutorial/qecc/qecc733.ipynb
     - simulator:
       - tutorial/simulator/basic.ipynb
       - tutorial/simulator/customized_gate.ipynb
@@ -72,7 +75,7 @@ plugins:
   search:
   mkdocs-jupyter:
     include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
-    execute: true
+    # execute: true
   mkdocstrings:
     default_handler: python
     handlers:
