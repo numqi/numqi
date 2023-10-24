@@ -69,15 +69,19 @@ folder structure
 
 see [docs/installation/for-developer](./docs/installation.md/#for-developer)
 
-## design philosophy (deprecated)
+## mermaid diagram
+
+Since mkdocs-material not supported the mermaid-10.x [mkdocs-material/issue](https://github.com/squidfunk/mkdocs-material/issues/5193), while github web support it, let's put all these mermaid diagram here and make a screenshot on the [mermaid-live-editor](https://mermaid.live/)
+
+project structure
 
 ```mermaid
 mindmap
    root((numqi))
       entangle
          Pure Bonsonic Extension
-         IRREP
-         SDP
+         irrep symext
+         PPT
       qec
          VarQECC
       maximum entropy
@@ -88,7 +92,6 @@ mindmap
          UDP
       Query
          VarQQA
-         SDP
       sim
          CPU/GPU simulator
          Clifford simulator
@@ -99,21 +102,26 @@ mindmap
          group
 ```
 
-there was another package `pyqet`, but now it is merged into `numqi`
-
-1. open and available
-   * open source
-   * most users can install `numqi`, no matter windows/linux/macOS, no matter CPU/GPU
-   * minimum dependency: `scipy,matplotlib,tqdm,sympy,opt_einsum,torch,cvxpy`
-2. the fundamental functions should be here. Quantum applications should go to `pyqet` package
-   * fundamental: (personally hope) more packages can be developed beyond `pyqet`
-
-the relation betwen `numqi` and `pyqet`
-
-1. just like `numpy` and `scipy`
-   * all `numqi` function will port into `pyqet`
-2. researchers who cares more about quantum application, like how to detect entanglement, VarQEC, MaxEnt, PureB etc.
-   * use `pyqet`, no need to warry about `numqi`
-3. developers who are ambitious beyond quantum applications
-   * please try to use `numqi`
-   * based on the utilities provided by `numqi`, you can develop more powerful tools, like `cupysim` is in this direction
+```mermaid
+flowchart TD
+   id1(density matrix rho)
+   id2(((SEP)))
+   id3(((ENT)))
+   id4(PPT?)
+   id5(CHA?)
+   id6(bosonic extension SDP)
+   id7(pure bosonic extension)
+   id8{{dotted line: not guaranteed, probably}}
+   id9(others)
+   id1 --> id4
+   id4 -->|no| id3
+   id4 -->|yes| id5
+   id5 -.->|large loss| id3
+   id5 -->|large loss| id6
+   id6 -->|SDP infeasible| id3
+   id6 -->|SDP feasible, try larger k-ext| id7
+   id7 --> id9
+   id7 -.->|small loss| id2
+   id7 -.->|large loss| id3
+   id5 -->|small loss| id2
+```

@@ -203,7 +203,7 @@ def get_matrix_orthogonal_basis(matrix_subspace, field, zero_eps=1e-10):
 
 def get_matrix_subspace_example(key, arg=None):
     # <X,Z>
-    assert key in {'XZ_R','XZ_C','0error-eq537','0error-eq524','hierarchy-ex1','hierarchy-ex3'}
+    assert key in {'XZ_R','XZ_C','0error-eq537','0error-eq524','hierarchy-ex1','hierarchy-ex3','hierarchy-ex5'}
     hf0 = lambda x,dim0,dim1: np.stack([build_matrix_with_index_value(dim0,dim1,y) for y in x])
     if key=='XZ_R':
         tmp0 = np.stack([
@@ -244,7 +244,7 @@ def get_matrix_subspace_example(key, arg=None):
             [(0,1,1), (1,2,2), (2,3,3)],
             [(1,0,1), (2,1,2), (3,2,3)],
             [(0,2,1), (1,3,1)],
-            [(2,0,1), (3,1,1)],
+            [(2,0,1), (3,1,1.0)],
             [(0,0,1/2), (1,1,1/2), (2,2,-1/2), (3,3,-1/2)],
         ]
         if key=='hierarchy-ex1':
@@ -258,6 +258,14 @@ def get_matrix_subspace_example(key, arg=None):
             # hierarchy(rank=2, k=2): False
             # hierarchy(rank=2, k=3): True
             # DetectMatrixSpaceRank(rank=2): loss=0
+    elif key=='hierarchy-ex5':
+        tmp0 = [
+            [(0,0,1), (1,1,1), (2,2,1), (3,3,1)],
+            [(0,1,1), (1,2,1), (2,3,1), (3,0,1)],
+            [(0,2,1), (1,3,1), (2,0,1), (3,1,-1.0)],
+        ]
+        tmp0 = hf0(tmp0, 4, 4)
+        ret = tmp0, 'complex'
     elif key=='0error-eq537':
         # https://arxiv.org/abs/0906.2527v1 lemma3
         # doi.org/10.1007/978-3-319-42794-2 quantum error-error information theory eq-5.37

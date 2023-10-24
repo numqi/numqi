@@ -95,6 +95,10 @@ initial_state[0] = 1
 final_state = circ.apply_state(initial_state)
 ```
 
+## project structure
+
+![project-structure](data/project-structure.png)
+
 ## similar packages
 
 1. QETLAB [documentation](https://qetlab.com/) [github](https://github.com/nathanieljohnston/QETLAB)
@@ -106,15 +110,3 @@ final_state = circ.apply_state(initial_state)
 > `qetlab`
 
 `qetlab` is a matlab toolbox designed for quantum entanglement detection and do a greak work in this field. Honestly, `numqi` is mainly inspired by `qetlab` and the name segment `py-q-e-t` is taken from `py-thon` and `qet-lab`. In my personal view, the python package`numpy` and various python deep learning packages `pytorch/tensorflow/...` are much more powerful than the matlab builtin array manipulations. Then, why not combining them together.
-
-## publications
-
-This package is to support following papers
-
-1. detecting entanglement by pure bosonic extension [arxiv-link](https://arxiv.org/abs/2209.10934) `numqi.entangle`
-2. Quantum variational learning for quantum error-correcting codes [arxiv-link](https://arxiv.org/abs/2204.03560) ``
-3. Tapping into Permutation Symmetry for Improved Detection of k-Symmetric Extensions [arxiv-link](https://arxiv.org/abs/2309.04144) `numqi.entangle` `numqi.group.symext`
-4. Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449) `numqi.query`
-5. A Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811) `numqi.unique_determine`
-6. Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645) `numqi.maximum_entropy`
-7. Simulating Noisy Quantum Circuits with Matrix Product Density Operators [arxiv-link](https://arxiv.org/abs/2004.02388) `numqi.sim`

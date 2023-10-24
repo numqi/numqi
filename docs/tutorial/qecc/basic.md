@@ -15,10 +15,6 @@ QECC
     * [github/qsurface](https://github.com/watermarkhu/qsurface)
     * [encoding-circuits](https://markus-grassl.de/QECC/circuits/index.html)
 
-## VarQEC
-
-see `example/draft_varqec.py`
-
 TODO Knill-Laflamme conditions
 
 TODO different equivalent QECC
