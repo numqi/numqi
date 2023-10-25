@@ -10,6 +10,14 @@ from numqi.param import real_matrix_to_special_unitary
 
 
 def get_random_rng(rng_or_seed=None):
+    r'''Get random.Random object
+
+    Parameters:
+        rng_or_seed ([None], int, random.Random): If int or Random, use it for RNG. If None, use default RNG.
+
+    Returns:
+        ret (random.Random): random.Random object
+    '''
     if rng_or_seed is None:
         ret = random.Random()
     elif isinstance(rng_or_seed, random.Random):
@@ -20,6 +28,14 @@ def get_random_rng(rng_or_seed=None):
 
 
 def get_numpy_rng(rng_or_seed=None):
+    r'''Get numpy.random.Generator object
+
+    Parameters:
+        rng_or_seed ([None], int, numpy.random.Generator): If int or Generator, use it for RNG. If None, use default RNG.
+
+    Returns:
+        ret (numpy.random.Generator): numpy.random.Generator object
+    '''
     if rng_or_seed is None:
         ret = np.random.default_rng()
     elif isinstance(rng_or_seed, np.random.Generator):
@@ -136,22 +152,46 @@ def rand_density_matrix(dim, k=None, kind='haar', seed=None):
     return ret
 
 
-# rand_kraus_operator
-def rand_kraus_op(num_term, dim0, dim1=None, tag_complex=True, seed=None):
-    if dim1 is None:
-        dim1 = dim0
+def rand_kraus_op(num_term:int, dim_in:int, dim_out:int, tag_complex:bool=True, seed=None):
+    r'''Generate random Kraus operator
+
+    $$ \lbrace K\in \mathbb{C} ^{k\times d_o\times d_i}\,\,: \sum_s{K_{s}^{\dagger}K_s}=I_{d_i} \rbrace $$
+
+    Parameters:
+        num_term (int): number of terms in the Kraus operator
+        dim_in (int): dimension of input space
+        dim_out (int): dimension of output space
+        tag_complex (bool): If True, `ret` is a complex Kraus operator. If False, `ret` is a real Kraus operator.
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=(`num_term`,`dim_out`,`dim_in`), dtype=np.complex128 if `tag_complex=True` else `np.float64`
+    '''
     np_rng = get_numpy_rng(seed)
     if tag_complex:
-        z0 = np_rng.normal(size=(num_term,dim1,dim0*2)).astype(np.float64, copy=False).view(np.complex128)
+        z0 = np_rng.normal(size=(num_term,dim_out,dim_in*2)).astype(np.float64, copy=False).view(np.complex128)
     else:
-        z0 = np_rng.normal(size=(num_term,dim1,dim0)).astype(np.float64, copy=False)
-    EVL,EVC = np.linalg.eigh(z0.reshape(-1,dim0).T.conj() @ z0.reshape(-1,dim0))
+        z0 = np_rng.normal(size=(num_term,dim_out,dim_in)).astype(np.float64, copy=False)
+    EVL,EVC = np.linalg.eigh(z0.reshape(-1,dim_in).T.conj() @ z0.reshape(-1,dim_in))
     assert all(EVL>=0)
     ret = z0 @ np.linalg.inv(EVC*np.sqrt(EVL)).T.conj()
     return ret
 
 
-def rand_choi_op(dim_in, dim_out, seed=None):
+def rand_choi_op(dim_in:int, dim_out:int, seed=None):
+    r'''Generate random Choi operator
+
+    $$ \lbrace C\in \mathbb{C} ^{d_id_o\times d_id_o}\,\,:C\succeq 0,\mathrm{Tr}_{d_o}\left[ C \right] =I_{d_i} \rbrace $$
+
+    Parameters:
+        dim_in (int): dimension of input space
+        dim_out (int): dimension of output space
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=(`dim_in*dim_out`,`dim_in*dim_out`), dtype=np.complex128
+            A reasonable reshape is `ret.reshape(dim_in,dim_out,dim_in,dim_out)`
+    '''
     # ret(dim_in*dim_out, dim_in*dim_out)
     np_rng = get_numpy_rng(seed)
     N0 = dim_in*dim_out
@@ -231,19 +271,32 @@ def rand_separable_dm(dimA, dimB=None, k=2, seed=None):
     return ret
 
 
-def rand_hermite_matrix(N0, eig=None, tag_complex=True, seed=None):
+def rand_hermitian_matrix(d:int, eig=None, tag_complex:bool=True, seed=None):
+    r'''Generate random Hermitian matrix
+
+    $$\left\{ H\in \mathbb{C} ^{d\times d}\,\,: H=H^{\dagger } \right\}$$
+
+    Parameters:
+        d (int): dimension of matrix
+        eig (None, tuple): eigenvalue range (min_eig,max_eig), if None, eigenvalue is not constrained
+        tag_complex (bool): If True, `ret` is a complex Hermitian matrix. If False, `ret` is a real symmetric matrix.
+        seed (None, int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
+
+    Returns:
+        ret (numpy.ndarray): shape=(`d`,`d`), dtype=np.complex128 if `tag_complex=True` else np.float64
+    '''
     np_rng = get_numpy_rng(seed)
     if eig is None:
         if tag_complex:
-            tmp0 = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
+            tmp0 = np_rng.normal(size=(d,d)) + 1j*np_rng.normal(size=(d,d))
             ret = tmp0 + tmp0.T.conj()
         else:
-            tmp0 = np_rng.normal(size=(N0,N0))
+            tmp0 = np_rng.normal(size=(d,d))
             ret = tmp0 + tmp0.T
     else:
         min_eig,max_eig = eig
-        EVL = np_rng.uniform(min_eig, max_eig, size=(N0,))
-        EVC = rand_unitary_matrix(N0, tag_complex, seed=np_rng)
+        EVL = np_rng.uniform(min_eig, max_eig, size=(d,))
+        EVC = rand_unitary_matrix(d, tag_complex, seed=np_rng)
         tmp0 = EVC.T.conj() if tag_complex else EVC.T
         ret = (EVC * EVL) @ tmp0
     return ret
@@ -390,4 +443,27 @@ def rand_adjacent_matrix(dim:int, seed=None):
     assert dim>=2
     tmp0 = np.triu(np_rng.integers(0, 2, size=(dim,dim)), 1)
     ret = (tmp0 + tmp0.T).astype(np.uint8)
+    return ret
+
+
+def rand_pauli_str(num_qubit:int, return_sign=False, seed=None):
+    '''Generate random Pauli string
+
+    Parameters:
+        num_qubit (int): number of qubits
+        return_sign (bool): if True, return sign of Pauli string
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (str): Pauli string, e.g. 'XIZYX'
+        sign (complex): sign of Pauli string, {1, i, -1, -i}
+    '''
+    np_rng = get_numpy_rng(seed)
+    tmp0 = 'IXYZ'
+    pauli_str = ''.join([tmp0[x] for x in np_rng.integers(0, 4, size=num_qubit)])
+    if return_sign:
+        sign = np_rng.choice([1, 1j, -1, -1j])
+        ret = pauli_str, sign
+    else:
+        ret = pauli_str
     return ret
