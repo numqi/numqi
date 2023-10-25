@@ -50,7 +50,7 @@ def test_matrix_subspace_misc():
     num_op = 7
 
     tmp0 = numqi.random.rand_haar_state(dim) #make it definite contains one rank-1 state
-    tmp1 = [numqi.random.rand_hermite_matrix(dim) for _ in range(num_op-1)] + [tmp0.reshape(-1,1)*tmp0.conj()]
+    tmp1 = [numqi.random.rand_hermitian_matrix(dim) for _ in range(num_op-1)] + [tmp0.reshape(-1,1)*tmp0.conj()]
     tmp2 = numqi.random.rand_unitary_matrix(num_op, tag_complex=False)
     matrix_subspace = (tmp2 @ np.stack(tmp1).reshape(num_op,-1)).reshape(-1, dim, dim)
 
