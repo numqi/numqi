@@ -15,10 +15,11 @@ hf_torch_norm_square = lambda x: torch.sum((x.conj() * x).real)
 # old_name DetectMatrixSpaceRank
 class DetectRankModel(torch.nn.Module):
     def __init__(self, basis_orth, space_char, rank, dtype='float64', device='cpu'):
-        r'''
-        Args:
-            basis_orth (np.ndarray): shape (N0, N1, N2)
-            space_char (str): see numqi.matrix_space.get_matrix_orthogonal_basis
+        r'''detect the rank of a matrix subspace
+
+        Parameters:
+            basis_orth(np.ndarray): shape (N0,N1,N2)
+            space_char(str): see numqi.matrix_space.get_matrix_orthogonal_basis
             rank (tuple,int): if int or tuple of length 1, then search for matrix of rank `rank` in the space.
                 If tuple (must be of length 3), then search for hermitian matrix in the space of matrices with
                 with the inertia `(EVL_free, EVL_positive, EVL_negative)`
@@ -156,50 +157,112 @@ class DetectRankModel(torch.nn.Module):
         return matH,coeff,residual
 
 
-class DetectCPRankModel(torch.nn.Module):
-    def __init__(self, basis_orth, rank, dtype='float64'):
-        r'''
-        Args:
-            basis_orth (np.ndarray): shape (N0, N1, N2)
-            space_char (str): see numqi.matrix_space.get_matrix_orthogonal_basis
-            rank (tuple,int): if int or tuple of length 1, then search for matrix of rank `rank` in the space.
-                If tuple (must be of length 3), then search for hermitian matrix in the space of matrices with
-                with the inertia `(EVL_free, EVL_positive, EVL_negative)`
-            dtype (str): 'float32' or 'float64'
+# a canonical polyadic (CP) tensor decomposition
+# only field='complex'
+# no symmetry is used
+class DetectCanonicalPolyadicRankModel(torch.nn.Module):
+    def __init__(self, dim_list, rank:int):
+        r'''detect canonical polyadic (CP) tensor decomposition
+
+        Parameters:
+            dim_list (tuple): shape of the tensor
+            rank (int): rank of the tensor
         '''
         super().__init__()
-        rank = int(rank)
+        dim_list = tuple(int(x) for x in dim_list)
+        assert len(dim_list)>=2
+        assert all(x>1 for x in dim_list)
         assert rank>=1
+        self.dim_list = tuple(int(x) for x in dim_list)
         self.rank = rank
-        self.dim_list = basis_orth.shape[1:]
         np_rng = np.random.default_rng()
-        assert basis_orth.ndim>=3
-        assert dtype in {'float32','float64'}
-        self.dtype = torch.float32 if dtype=='float32' else torch.float64
-        self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
-        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=self.dtype))
-        self.theta_EVC = torch.nn.ParameterList([hf0(rank,x,2) for x in self.dim_list])
-        self.theta_EVL = hf0(2,rank)
-        self.basis_orth = torch.tensor(basis_orth, dtype=self.cdtype)
+        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=torch.float64))
+        self.theta_psi = torch.nn.ParameterList([hf0(rank,x,2) for x in dim_list])
+        self.theta_coeff = hf0(rank)
 
-        N0 = basis_orth.ndim-1
-        tmp0 = [(rank,x) for x in self.dim_list]
-        tmp1 = [(N0+1,x+1) for x in range(N0)]
-        tmp2 = [y for x in zip(tmp0,tmp1) for y in x]
-        self.contract_expr = opt_einsum.contract_expression(basis_orth.shape, list(range(N0+1)), *tmp2, [rank], (N0+1,), [0])
+        N0 = len(dim_list)
+        tmp0 = [(rank,),(rank,)] + [(rank,x) for x in dim_list] + [(rank,x) for x in dim_list]
+        tmp1 = [(N0,),(N0+1,)] + [(N0,x) for x in range(N0)] + [(N0+1,x) for x in range(N0)]
+        self.contract_psi_psi = opt_einsum.contract_expression(*[y for x in zip(tmp0,tmp1) for y in x], [])
+        self.dim_basis = None
+        self.contract_target_psi = None
+
+        self.target = None
+        self.traget_conj = None
+
+    def set_target(self, np0, zero_eps=1e-7):
+        N0 = len(self.dim_list)
+        if (np0.shape==self.dim_list) or ((np0.shape[1:]==self.dim_list) and np0.shape[0]==1):
+            if np0.shape[1:]==self.dim_list:
+                np0 = np0[0]
+            self.target = torch.tensor(np0 / np.linalg.norm(np0.reshape(-1)), dtype=torch.complex128)
+            self.dim_basis = None
+            tmp0 = [self.dim_list,(self.rank,)] + [(self.rank,x) for x in self.dim_list]
+            tmp1 = [tuple(range(N0)),(N0,)] + [(N0,x) for x in range(N0)]
+            self.contract_target_psi = opt_einsum.contract_expression(*[y for x in zip(tmp0,tmp1) for y in x], [])
+        elif np0.shape[1:]==self.dim_list:
+            _,s,v = np.linalg.svd(np0.reshape(np0.shape[0], -1), full_matrices=False)
+            np0 = v[s>zero_eps].reshape(-1, *self.dim_list)
+            self.target = torch.tensor(np0, dtype=torch.complex128)
+            self.dim_basis = np0.shape[0]
+            tmp0 = [np0.shape,(self.rank,)] + [(self.rank,x) for x in self.dim_list]
+            tmp1 = [tuple(range(N0+1)),(N0+1,)] + [(N0+1,x+1) for x in range(N0)]
+            self.contract_target_psi = opt_einsum.contract_expression(*[y for x in zip(tmp0,tmp1) for y in x], [0])
+        else:
+            tmp0 = (-1,) + self.dim_list
+            assert False, f'invalid shape, np0.shape should be "({self.dim_list})" or "({tmp0})", but got "{np0.shape}"'
+        self.target_conj = self.target.conj().resolve_conj()
 
     def forward(self):
-        tmp0 = self.theta_EVL / torch.linalg.norm(self.theta_EVL)
-        EVL = torch.complex(tmp0[0], tmp0[1])
-        tmp0 = [x/torch.linalg.norm(x,dim=(1,2),keepdims=True) for x in self.theta_EVC]
-        EVC_list = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
-        tmp0 = self.contract_expr(self.basis_orth, *EVC_list, EVL)
-        loss = torch.vdot(tmp0, tmp0).real
+        tmp0 = (x/torch.linalg.norm(x,axis=(1,2),keepdims=True) for x in self.theta_psi)
+        theta_psi = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
+        theta_coeff = torch.nn.functional.softplus(self.theta_coeff).to(theta_psi[0].dtype)
+        # theta_coeff = torch.exp(self.theta_coeff).to(theta_psi[0].dtype) #not help
+        theta_psi_conj = [x.conj().resolve_conj() for x in theta_psi]
+        psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff.conj(), *theta_psi, *theta_psi_conj).real
+        target_psi = self.contract_target_psi(self.target_conj, theta_coeff, *theta_psi)
+        if target_psi.ndim==1:
+            loss = 1 - torch.vdot(target_psi, target_psi).real / psi_psi
+        else:
+            loss = 1 - (target_psi.real**2 + target_psi.imag**2) / psi_psi
         return loss
 
 
-# old name: DetectOrthogonalRank1Model
-# TODO merge with DetectCPRankModel
+# Buggy, do NOT use this one
+# class DetectCPRankModel(torch.nn.Module):
+#     def __init__(self, basis_orth, rank, dtype='float64'):
+#         super().__init__()
+#         rank = int(rank)
+#         assert rank>=1
+#         self.rank = rank
+#         self.dim_list = basis_orth.shape[1:]
+#         np_rng = np.random.default_rng()
+#         assert basis_orth.ndim>=3
+#         assert dtype in {'float32','float64'}
+#         self.dtype = torch.float32 if dtype=='float32' else torch.float64
+#         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
+#         hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=self.dtype))
+#         self.theta_EVC = torch.nn.ParameterList([hf0(rank,x,2) for x in self.dim_list])
+#         self.theta_EVL = hf0(2,rank)
+#         self.basis_orth = torch.tensor(basis_orth, dtype=self.cdtype)
+
+#         N0 = basis_orth.ndim-1
+#         tmp0 = [(rank,x) for x in self.dim_list]
+#         tmp1 = [(N0+1,x+1) for x in range(N0)]
+#         tmp2 = [y for x in zip(tmp0,tmp1) for y in x]
+#         self.contract_expr = opt_einsum.contract_expression(basis_orth.shape, list(range(N0+1)), *tmp2, [rank], (N0+1,), [0])
+
+#     def forward(self):
+#         tmp0 = self.theta_EVL / torch.linalg.norm(self.theta_EVL)
+#         EVL = torch.complex(tmp0[0], tmp0[1])
+#         tmp0 = [x/torch.linalg.norm(x,dim=(1,2),keepdims=True) for x in self.theta_EVC]
+#         EVC_list = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
+#         tmp0 = self.contract_expr(self.basis_orth, *EVC_list, EVL)
+#         loss = torch.vdot(tmp0, tmp0).real
+#         return loss
+
+
+# TODO merge with DetectRankModel
 class DetectOrthogonalRankOneModel(torch.nn.Module):
     def __init__(self, matB, dtype='float64'):
         super().__init__()

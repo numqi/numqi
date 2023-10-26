@@ -80,4 +80,4 @@ def demo_hierarchical_method_random_matrix_subspace():
     ret = []
     for _ in tqdm(range(int(100))):
         matrix_space = [hf_randc(dimA,dimB) for _ in range(num_matrix)]
-        ret.append(numqi.matrix_space.has_rank(matrix_space, rank, hierarchy_k))
+        ret.append(numqi.matrix_space.has_rank_hierarchical_method(matrix_space, rank, hierarchy_k))
