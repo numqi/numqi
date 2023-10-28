@@ -53,12 +53,12 @@ for N0 in [4, 8, 16, 32, 64]:
     # N0 = 50
     model = TwoHermitianSumModel(N0)
     for _ in range(10):
-        matA = numqi.random.rand_hermite_matrix(N0, seed=np_rng)
-        matB = numqi.random.rand_hermite_matrix(N0, seed=np_rng)
+        matA = numqi.random.rand_hermitian_matrix(N0, seed=np_rng)
+        matB = numqi.random.rand_hermitian_matrix(N0, seed=np_rng)
         matU0 = numqi.random.rand_unitary_matrix(N0, seed=np_rng)
         matU1 = numqi.random.rand_unitary_matrix(N0, seed=np_rng)
         matC = matU0 @ matA @ matU0.T.conj() + matU1 @ matB @ matU1.T.conj()
-        # matC = numqi.random.rand_hermite_matrix(N0, seed=np_rng)
+        # matC = numqi.random.rand_hermitian_matrix(N0, seed=np_rng)
         # eigA = np.linalg.eigvalsh(matA)
         # eigB = np.linalg.eigvalsh(matB)
         # eigC = np.linalg.eigvalsh(matC)

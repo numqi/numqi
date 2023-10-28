@@ -6,7 +6,7 @@ hf_trace0 = lambda x: x-(np.trace(x)/x.shape[0])*np.eye(x.shape[0])
 dim = 3
 num_op = 4
 psi = numqi.random.rand_state(dim)
-op_list = np.stack([hf_trace0(numqi.random.rand_hermite_matrix(dim)) for _ in range(num_op)])
+op_list = np.stack([hf_trace0(numqi.random.rand_hermitian_matrix(dim)) for _ in range(num_op)])
 
 expectation_value = ((op_list @ psi) @ psi.conj()).real
 model = numqi.unique_determine.FindStateWithOpModel(op_list, use_dm=False)

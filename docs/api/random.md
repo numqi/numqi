@@ -55,6 +55,24 @@ This module use random seed widely, most likely you will get different results. 
     options:
       heading_level: 3
 
+## finite field F2
+
+::: numqi.random.rand_F2
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_SpF2
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_Clifford_group
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_pauli
+    options:
+      heading_level: 3
+
 ## miscellaneous
 
 ::: numqi.random.get_random_rng

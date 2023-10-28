@@ -444,26 +444,3 @@ def rand_adjacent_matrix(dim:int, seed=None):
     tmp0 = np.triu(np_rng.integers(0, 2, size=(dim,dim)), 1)
     ret = (tmp0 + tmp0.T).astype(np.uint8)
     return ret
-
-
-def rand_pauli_str(num_qubit:int, return_sign=False, seed=None):
-    '''Generate random Pauli string
-
-    Parameters:
-        num_qubit (int): number of qubits
-        return_sign (bool): if True, return sign of Pauli string
-        seed (int,None,numpy.RandomState): random seed
-
-    Returns:
-        ret (str): Pauli string, e.g. 'XIZYX'
-        sign (complex): sign of Pauli string, {1, i, -1, -i}
-    '''
-    np_rng = get_numpy_rng(seed)
-    tmp0 = 'IXYZ'
-    pauli_str = ''.join([tmp0[x] for x in np_rng.integers(0, 4, size=num_qubit)])
-    if return_sign:
-        sign = np_rng.choice([1, 1j, -1, -1j])
-        ret = pauli_str, sign
-    else:
-        ret = pauli_str
-    return ret

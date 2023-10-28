@@ -29,32 +29,6 @@ $$x,y\in \mathbb{F}_2^{2n}\Rightarrow \langle x,y\rangle=\sum_{i=1}^n x_iy_{i+n}
 
 1. $x\in\mathbb{F}_2^{2n},\langle x,x\rangle=0$
 
-## Pauli group
-
-$$P_{n}=\lbrace e^{ij_{0}\pi/2}\sigma_{j_{1}}\otimes\cdots\sigma_{j_{n}}:j_{k}\in\mathbb{F}_{4}\rbrace =\lbrace \pm1,\pm i\rbrace \otimes\lbrace I,X,Y,Z\rbrace ^{n}$$
-
-1. there exists a one-to-one mapping $P_{n}\cong \mathbb{F}_{2}^{2n+2}$ (group isomorphism)
-
-     $$ x \in P_{n},x=\left(-1\right)^{x_0}\left(i\right)^{x_{0}^{\prime}}\prod_{i=1}^{n}X_{i}^{x_{i}}Z_{i}^{x_{i+n}}\sim x_{\mathbb{F}}=\left(x_{0},x_{0}^{\prime},x_{1},x_{2},x_{3},\cdots,x_{2n}\right) $$
-
-2. group center $Z(P_n)=\left\{I,-I,iI,-iI\right\}$. $P/Z(P_n)$ is an Abelian group, no phase factor
-3. identity $I_n\sim (0,0,\cdots,0)\in\mathbb{F}^{2n+2}_2$
-4. commutation relation $x,y\in P_{n}$
-
-     $$ xy=\left(-1\right)^{f\left(x_{\mathbb{F}},y_{\mathbb{F}}\right)}yx $$
-
-     $$ f\left(x_{\mathbb{F}},y_{\mathbb{F}}\right)=\sum_{i=1}^{n}x_{i}y_{i+n}+x_{i+n}y_{i}\simeq\langle x_{\mathbb{F}},y_{\mathbb{F}}\rangle $$
-
-5. inverse $x\in P_{n},y=x^{-1}$
-
-     $$ y_{0}=x_{0}+x_{0}^{\prime}+\sum_{i=1}^{n}x_{i}x_{i+n},y_{0}^{\prime}=x_{0}^{\prime},y_{i}=x_{i} $$
-
-6. multiplication $x,y\in P_n,z=xy$
-
-     $$ z_{0}=x_{0}+y_{0}+\left\lfloor \frac{x_{0}^{\prime}+y_{0}^{\prime}}{2}\right\rfloor +\sum_{i=1}^{n}x_{i}y_{i+n},z_{0}^{\prime}=x_{0}^{\prime}+y_{0}^{\prime},z_{i}=x_{i}+y_{i} $$
-
-7. one qubit example: $I=0000,X=0010,Y=0111,Z=0001$
-
 ## Symplectic pair vector set
 
 $$ S_{n}=\lbrace \left(x,y\right)\in\mathbb{F}_{2}^{2n}\times\mathbb{F}_{2}^{2n}:\langle x,y\rangle=x^{T}\Lambda_{n}y=1\rbrace $$
