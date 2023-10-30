@@ -214,18 +214,35 @@ class DetectCanonicalPolyadicRankModel(torch.nn.Module):
         self.target_conj = self.target.conj().resolve_conj()
 
     def forward(self):
-        tmp0 = (x/torch.linalg.norm(x,axis=(1,2),keepdims=True) for x in self.theta_psi)
-        theta_psi = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
-        theta_coeff = torch.nn.functional.softplus(self.theta_coeff).to(theta_psi[0].dtype)
-        # theta_coeff = torch.exp(self.theta_coeff).to(theta_psi[0].dtype) #not help
-        theta_psi_conj = [x.conj().resolve_conj() for x in theta_psi]
-        psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff.conj(), *theta_psi, *theta_psi_conj).real
+        theta_psi, theta_coeff, psi_psi = self._get_state()
+        # tmp0 = (x/torch.linalg.norm(x,axis=(1,2),keepdims=True) for x in self.theta_psi)
+        # theta_psi = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
+        # theta_coeff = torch.nn.functional.softplus(self.theta_coeff).to(theta_psi[0].dtype)
+        # # theta_coeff = torch.exp(self.theta_coeff).to(theta_psi[0].dtype) #not help
+        # theta_psi_conj = [x.conj().resolve_conj() for x in theta_psi]
+        # psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff.conj(), *theta_psi, *theta_psi_conj).real
         target_psi = self.contract_target_psi(self.target_conj, theta_coeff, *theta_psi)
         if target_psi.ndim==1:
             loss = 1 - torch.vdot(target_psi, target_psi).real / psi_psi
         else:
             loss = 1 - (target_psi.real**2 + target_psi.imag**2) / psi_psi
         return loss
+
+    def _get_state(self):
+        tmp0 = (x/torch.linalg.norm(x,axis=(1,2),keepdims=True) for x in self.theta_psi)
+        theta_psi = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
+        theta_coeff = torch.nn.functional.softplus(self.theta_coeff).to(theta_psi[0].dtype)
+        # theta_coeff = torch.exp(self.theta_coeff).to(theta_psi[0].dtype) #not help
+        theta_psi_conj = [x.conj().resolve_conj() for x in theta_psi]
+        psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff.conj(), *theta_psi, *theta_psi_conj).real
+        return theta_psi, theta_coeff, psi_psi
+
+    def get_state(self):
+        with torch.no_grad():
+            theta_psi, theta_coeff, psi_psi = self._get_state()
+            coeff = (theta_coeff / torch.sqrt(psi_psi)).numpy().copy()
+            psi = [x.numpy().copy() for x in theta_psi]
+        return coeff, psi
 
 
 # Buggy, do NOT use this one
