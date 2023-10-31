@@ -4,6 +4,18 @@ import cvxpy
 from ._misc import get_vector_orthogonal_basis, get_bipartition_list
 
 def get_geometric_measure_ppt(state):
+    r'''approximate geoemtric measure of entanglement using PPT criterion
+
+    only E_r with r=2 is solved by SDP
+
+    TODO math formula
+
+    Parameters:
+        state (np.ndarray): bipartite pure state `state.ndim=2`, or subspace `state.ndim=3`
+
+    Returns:
+        ret (float): geometric measure of entanglement
+    '''
     assert (state.ndim==2) or (state.ndim==3)
     dimA = state.shape[-2]
     dimB = state.shape[-1]
@@ -27,6 +39,17 @@ def get_geometric_measure_ppt(state):
 
 
 def get_generalized_geometric_measure_ppt(state, dim_list, bipartition_list=None):
+    r'''approximate generalized geoemtric measure of entanglement using PPT criterion
+
+    TODO math formula
+
+    Parameters:
+        state (np.ndarray): multi-partite pure state `state.ndim=len(dim_list)`, or subspace `state.ndim-1=len(dim_list)`
+            when bipartite, `get_geometric_measure_ppt` is called for GGM is equal to GM for bipartite
+        dim_list (list): list of dimensions of each party
+        bipartition_list (list[tuple[int]]): list of bipartitions, if not provided, all bipartitions are considered.
+            For some special cases, bipartitions can be reduced to a smaller set, e.g. Maciej2019 CES
+    '''
     if len(dim_list)==2:
         ret = get_geometric_measure_ppt(state)
     else:
@@ -67,6 +90,19 @@ def get_generalized_geometric_measure_ppt(state, dim_list, bipartition_list=None
 
 
 def get_GES_Maciej2019(d:int, num_party:int=2, theta:float=np.pi/2, xi:float=0):
+    r'''get generalized entanglement subspace (GES) for Maciej2019 CES
+
+    https://doi.org/10.1103%2Fphysreva.100.062318
+
+    Parameters:
+        d (int): dimension of each party
+        num_party (int): number of parties
+        theta (float): angle
+        xi (float): angle
+
+    Returns:
+        ret (np.ndarray): generalized entanglement subspace
+    '''
     assert d>=2
     assert num_party>=2
     dim = (d-1)**(num_party-1)
@@ -85,5 +121,16 @@ def get_GES_Maciej2019(d:int, num_party:int=2, theta:float=np.pi/2, xi:float=0):
 
 
 def get_GM_Maciej2019(d:int, theta:float):
+    r'''get analytical (generalized) geometric measure of entanglement for Maciej2019 CES
+
+    https://doi.org/10.1103%2Fphysreva.100.062318
+
+    Parameters:
+        d (int): dimension of each party
+        theta (float): angle
+
+    Returns:
+        ret (float): analytical (generalized) geometric measure of entanglement
+    '''
     ret = 0.5 - 0.5*np.sqrt(np.maximum(1 - np.sin(theta)**2 * np.sin(np.pi/d)**2, 0))
     return ret

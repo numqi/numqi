@@ -3,7 +3,6 @@ import numpy as np
 import numqi
 
 
-
 def test_get_bipartition_list():
     for n in [2,3,4,5,6,7]:
         assert len(numqi.matrix_space.get_bipartition_list(n))==(2**(n-1)-1)
@@ -35,3 +34,19 @@ def test_get_generalized_geometric_measure_ppt():
         ret_ppt = np.array(ret_ppt)
         ret_analytical = numqi.matrix_space.get_GM_Maciej2019(dimB, theta_list)
         assert np.abs(ret_ppt-ret_analytical).max()<1e-4
+
+
+def test_get_qubit_dicke_state_gm():
+    for num_qubit in [3,5]:
+        dim_list = [2]*num_qubit
+        dicke_basis = numqi.dicke.get_dicke_basis(num_qubit, dim=2)
+        model = numqi.matrix_space.DetectCanonicalPolyadicRankModel(dim_list, rank=1)
+        kwargs = dict(theta0='uniform', tol=1e-14, num_repeat=3, print_every_round=0, early_stop_threshold=1e-14)
+        ret0 = []
+        dicke_k_list = np.arange(num_qubit+1)
+        for dicke_k in dicke_k_list:
+            model.set_target(dicke_basis[dicke_k].reshape(dim_list))
+            ret0.append(numqi.optimize.minimize(model, **kwargs).fun)
+        ret0 = np.array(ret0)
+        ret_ = numqi.state.get_qubit_dicke_state_gm(num_qubit, dicke_k_list)
+        assert np.abs(ret0-ret_).max() < 1e-10
