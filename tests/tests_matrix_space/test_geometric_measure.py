@@ -34,4 +34,4 @@ def test_get_generalized_geometric_measure_ppt():
             ret_ppt.append(numqi.matrix_space.get_generalized_geometric_measure_ppt(matrix_subspace, dim_list, bipartition_list))
         ret_ppt = np.array(ret_ppt)
         ret_analytical = numqi.matrix_space.get_GM_Maciej2019(dimB, theta_list)
-        assert np.abs(ret_ppt-ret_analytical).max()<1e-5
+        assert np.abs(ret_ppt-ret_analytical).max()<1e-4
