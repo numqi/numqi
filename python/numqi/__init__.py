@@ -9,6 +9,7 @@ from . import param
 from . import matrix_space
 from . import optimize
 from . import group
+from . import state
 
 from . import maximum_entropy
 from . import qec
