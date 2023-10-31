@@ -472,3 +472,18 @@ def divide_into_sym_antisym_space(np0):
     tmp0 = np0 - np0.transpose(0,2,1)
     ret1 = reduce_vector_space(tmp0.reshape(N0, N1*N1)).reshape(-1,N1,N1)
     return ret0,ret1
+
+
+def get_bipartition_list(num_party:int):
+    assert num_party>1
+    if num_party==2:
+        ret = [(0,)]
+    elif num_party==3:
+        ret = [(0,), (1,), (2,)]
+    elif num_party==4:
+        ret = [(0,), (1,), (2,), (3,), (0,1), (0,2), (0,3)]
+    else:
+        ret = [tuple(y) for x in range(1, (num_party+1)//2) for y in itertools.combinations(range(num_party), x)]
+        if num_party%2==0:
+            ret += [tuple(x) for x in itertools.combinations(range(num_party), num_party//2) if 0 in x]
+    return ret
