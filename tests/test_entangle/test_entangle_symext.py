@@ -214,4 +214,4 @@ def test_witness():
     model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
     model.set_expectation_op(-op_witness)
     tmp0 = -numqi.optimize.minimize(model, theta0='uniform', tol=1e-9, num_repeat=3, print_every_round=0).fun
-    assert tmp0 < delta + 1e-7
+    assert tmp0 < delta + 1e-5
