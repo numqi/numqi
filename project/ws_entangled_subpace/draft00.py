@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -152,3 +153,53 @@ def demo_qubit_dicke_state_border_rank():
     ax.legend()
     fig.tight_layout()
     # fig.savefig('data/qubit_dicke_state_border_rank.pdf')
+
+
+def _rand_hermtian_matrix_with_trace_norm(d:int, norm:float, seed=None):
+    np_rng = numqi.random.get_numpy_rng(seed)
+    tmp0 = np_rng.normal(size=(d, d)) + 1j*np_rng.normal(size=(d, d))
+    ret = tmp0 + tmp0.T.conj()
+    EVL = np.linalg.eigvalsh(ret)
+    ret *= norm / np.sum(np.abs(EVL))
+    return ret
+
+
+def demo_robustness():
+    kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
+    norm_list = np.linspace(0.1, 5, 20)
+    num_sample = 1000
+    theta_list = [np.pi/2, np.pi/4, np.pi/6]
+    dimB = 3
+
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((2,dimB), rank=1)
+    ret_list = []
+    for theta_i in theta_list:
+        matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta_i)
+        for norm_i in tqdm(norm_list, desc=f'[theta={theta_i:.2f}]'):
+            for _ in range(num_sample):
+                matU = scipy.linalg.expm(-1j*_rand_hermtian_matrix_with_trace_norm(2*dimB, norm_i))
+                tmp0 = np.einsum(matU, [0,1], matrix_subspace.reshape(-1,2*dimB), [2,1], [2,0], optimize=True).reshape(-1,2,dimB)
+                model.set_target(tmp0)
+                ret_list.append(numqi.optimize.minimize(model, **kwargs).fun)
+    ret_list = np.array(ret_list).reshape(len(theta_list), len(norm_list), num_sample)
+
+    # with open('data/robustness.pkl', 'wb') as fid:
+    #     pickle.dump(dict(norm_list=norm_list, ret_list=ret_list), fid)
+
+    fig,ax = plt.subplots()
+    ax.plot(norm_list, ret_list[0].min(axis=1), 'o-', label=r'$\theta=\pi/2$', color=tableau[0])
+    ax.plot(norm_list, ret_list[1].min(axis=1), 'o-', label=r'$\theta=\pi/4$', color=tableau[1])
+    ax.plot(norm_list, ret_list[2].min(axis=1), 'o-', label=r'$\theta=\pi/6$', color=tableau[4])
+    ax.set_xlabel(r'$\|H\|_{tr}$')
+    ax.set_ylabel(r'Minimum value of $E_2$')
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig('data/robustness.pdf')
+
+
+if __name__=='__main__':
+    demo_bipartite_Maciej2019_gm()
+    # demo_Wstate_border_rank()
+    # demo_qubit_dicke_state_border_rank()
+    # demo_qubit_dicke_state_border_rank()
+    # demo_robustness()
