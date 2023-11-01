@@ -33,13 +33,13 @@ def test_isotropic_state():
     np_rng = np.random.default_rng()
     for d in range(2,10):
         alpha = np_rng.uniform(-(1/(d**2-1)), 1)
-        rho = numqi.entangle.get_isotropic_state(d, alpha)
+        rho = numqi.state.Isotropic(d, alpha)
         u0 = numqi.random.rand_haar_unitary(d, np_rng)
         tmp0 = np.kron(u0, u0.conj())
         assert np.abs(tmp0 @ rho @ tmp0.T.conj() - rho).max() < 1e-7
     for d in range(2, 10):
-        rho_entangled = numqi.entangle.get_isotropic_state(d, np_rng.uniform(1/(d+1), 1))
-        rho_separable = numqi.entangle.get_isotropic_state(d, np_rng.uniform(-(1/(d**2-1)), 1/(d+1)))
+        rho_entangled = numqi.state.Isotropic(d, np_rng.uniform(1/(d+1), 1))
+        rho_separable = numqi.state.Isotropic(d, np_rng.uniform(-(1/(d**2-1)), 1/(d+1)))
         assert numqi.entangle.is_ppt(rho_separable)
         assert not numqi.entangle.is_ppt(rho_entangled)
         assert numqi.entangle.check_reduction_witness(rho_separable)
@@ -50,7 +50,7 @@ def test_werner_state():
     np_rng = np.random.default_rng()
     for d in range(2, 10):
         alpha = np_rng.uniform(-1, 1)
-        rho = numqi.entangle.get_werner_state(d, alpha)
+        rho = numqi.state.Werner(d, alpha)
         u0 = numqi.random.rand_haar_unitary(d, np_rng)
         tmp0 = np.kron(u0, u0)
         assert np.abs(tmp0 @ rho @ tmp0.T.conj() - rho).max() < 1e-7
@@ -58,8 +58,8 @@ def test_werner_state():
     for d in range(2, 10):
         alpha_sep = np_rng.uniform(-1, 1/d-zero_eps)
         alpha_ent = np_rng.uniform(1/d, 1)
-        rho_entangled = numqi.entangle.get_werner_state(d, alpha_ent)
-        rho_separable = numqi.entangle.get_werner_state(d, alpha_sep)
+        rho_entangled = numqi.state.Werner(d, alpha_ent)
+        rho_separable = numqi.state.Werner(d, alpha_sep)
         assert numqi.entangle.is_ppt(rho_separable)
         assert not numqi.entangle.is_ppt(rho_entangled)
         assert numqi.entangle.check_reduction_witness(rho_separable)

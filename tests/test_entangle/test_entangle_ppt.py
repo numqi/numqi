@@ -107,7 +107,7 @@ def test_cvx_relative_entropy_entanglement_werner00():
     dimA = 2
     dimB = 2
     sqrt_order = 3
-    rho = numqi.entangle.get_werner_state(dimA, alpha=0.8)
+    rho = numqi.state.Werner(dimA, alpha=0.8)
     ree,z0 = numqi.entangle.get_ppt_ree(rho, dimA, dimB, return_info=True, sqrt_order=sqrt_order, pade_order=3, use_tqdm=False)
 
     tau = z0['X']
@@ -122,8 +122,8 @@ def test_cvx_relative_entropy_entanglement_werner01():
     # about 6 seconds
     dim = 3
     alpha_list = np.linspace(0, 1, 10, endpoint=False) #alpha=1 is unstable
-    ret_ = np.array([numqi.entangle.get_werner_state_ree(dim, x) for x in alpha_list])
-    dm_list = [numqi.entangle.get_werner_state(dim,x) for x in alpha_list]
+    ret_ = np.array([numqi.state.get_Werner_ree(dim, x) for x in alpha_list])
+    dm_list = [numqi.state.Werner(dim,x) for x in alpha_list]
     ret0 = numqi.entangle.get_ppt_ree(dm_list, dim, dim, sqrt_order=3, pade_order=3, use_tqdm=False)
     assert np.abs(ret_-ret0).max() < 1e-4 #1e-5 fail for solver=SCS
 
@@ -146,28 +146,28 @@ def test_get_ppt_boundary():
 
 def test_get_ppt_boundary_werner():
     for dim in [2,3,4,5]:
-        dm0 = numqi.entangle.get_werner_state(dim, alpha=1)
+        dm0 = numqi.state.Werner(dim, alpha=1)
         beta_l,beta_u = numqi.entangle.get_ppt_boundary(dm0, (dim,dim), within_dm=True)
 
-        ret_ = numqi.entangle.get_werner_state(dim, alpha=-1)
+        ret_ = numqi.state.Werner(dim, alpha=-1)
         ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l)
         assert np.abs(ret_-ret0).max() < 1e-10
 
-        ret_ = numqi.entangle.get_werner_state(dim, alpha=1/dim)
+        ret_ = numqi.state.Werner(dim, alpha=1/dim)
         ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u)
         assert np.abs(ret_-ret0).max() < 1e-10
 
 
 def test_get_ppt_boundary_isotropic():
     for dim in [2,3,4,5]:
-        dm0 = numqi.entangle.get_isotropic_state(dim, alpha=1)
+        dm0 = numqi.state.Isotropic(dim, alpha=1)
         beta_l,beta_u = numqi.entangle.get_ppt_boundary(dm0, (dim,dim), within_dm=True)
 
-        ret_ = numqi.entangle.get_isotropic_state(dim, alpha=-1/(dim*dim-1))
+        ret_ = numqi.state.Isotropic(dim, alpha=-1/(dim*dim-1))
         ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l)
         assert np.abs(ret_-ret0).max() < 1e-10
 
-        ret_ = numqi.entangle.get_isotropic_state(dim, alpha=1/(dim+1))
+        ret_ = numqi.state.Isotropic(dim, alpha=1/(dim+1))
         ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u)
         assert np.abs(ret_-ret0).max() < 1e-10
 

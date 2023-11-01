@@ -48,13 +48,13 @@ def demo_pureb_werner_ree():
 
     # (1,k)-ext boundary
     alpha_kext_boundary = (kext+dim**2-dim)/(kext*dim+dim-1)
-    dm_kext_boundary = numqi.entangle.get_werner_state(dim, alpha_kext_boundary)
+    dm_kext_boundary = numqi.state.Werner(dim, alpha_kext_boundary)
     ret_ = []
     for alpha_i in alpha_list:
         if alpha_i<=alpha_kext_boundary:
             ret_.append(0)
         else:
-            tmp0 = numqi.entangle.get_werner_state(dim, alpha_i)
+            tmp0 = numqi.state.Werner(dim, alpha_i)
             ret_.append(numqi.utils.get_relative_entropy(tmp0, dm_kext_boundary))
     ret_ = np.array(ret_)
 
@@ -62,7 +62,7 @@ def demo_pureb_werner_ree():
     ree_pureb = []
     kwargs = dict(num_repeat=3, print_every_round=0, tol=1e-10)
     for alpha_i in tqdm(alpha_list):
-        model.set_dm_target(numqi.entangle.get_werner_state(dim, alpha_i))
+        model.set_dm_target(numqi.state.Werner(dim, alpha_i))
         ree_pureb.append(numqi.optimize.minimize(model, **kwargs).fun)
     ree_pureb = np.array(ree_pureb)
 
@@ -279,18 +279,18 @@ def demo_pureb_quantum_werner():
     ree_pureb_q = []
     model = numqi.entangle.QuantumPureBosonicExt(dim, dim, kext, num_layer)
     for alpha_i in tqdm(alpha_list):
-        model.set_dm_target(numqi.entangle.get_werner_state(dim, alpha_i))
+        model.set_dm_target(numqi.state.Werner(dim, alpha_i))
         ree_pureb_q.append(numqi.optimize.minimize(model, **kwargs).fun)
     ree_pureb_q = np.array(ree_pureb_q)
 
     ree_pureb = []
     model = numqi.entangle.PureBosonicExt(dim, dim, kext, distance_kind='ree')
     for alpha_i in tqdm(alpha_list):
-        model.set_dm_target(numqi.entangle.get_werner_state(dim, alpha_i))
+        model.set_dm_target(numqi.state.Werner(dim, alpha_i))
         ree_pureb.append(numqi.optimize.minimize(model, **kwargs).fun)
     ree_pureb = np.array(ree_pureb)
 
-    ree_analytical = np.array([numqi.entangle.get_werner_state_ree(dim, x) for x in alpha_list])
+    ree_analytical = np.array([numqi.state.get_Werner_ree(dim, x) for x in alpha_list])
 
     fig,ax = plt.subplots()
     ax.plot(alpha_list, ree_analytical, label='analytical')

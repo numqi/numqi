@@ -11,7 +11,7 @@ dim = 3
 alpha_list = np.linspace(-1, 1, 200)
 ret_ = numqi.entangle.eof.get_eof_werner(dim, alpha_list)
 
-dm_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
+dm_list = [numqi.state.Werner(dim, x) for x in alpha_list]
 model = numqi.entangle.eof.EntanglementFormationModel(dim, dim, 2*dim*dim)
 ret0 = []
 kwargs = dict(num_repeat=3, print_freq=0, tol=1e-7, print_every_round=0)

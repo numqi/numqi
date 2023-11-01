@@ -71,14 +71,14 @@ def demo_ree_gellmann_random_dm():
 def demo_werner_gellmann():
     dim = 2
     kext_list = np.arange(1, 9)
-    dm_norm = numqi.gellmann.dm_to_gellmann_norm(numqi.entangle.get_werner_state(dim, 1))
+    dm_norm = numqi.gellmann.dm_to_gellmann_norm(numqi.state.Werner(dim, 1))
     alpha_list = np.linspace(0, 1, 100, endpoint=False) # alpha=1 is unstable for matrix logarithm
     beta_list = alpha_list * dm_norm
-    dm_target_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
+    dm_target_list = [numqi.state.Werner(dim, x) for x in alpha_list]
 
     dm_target = numqi.random.rand_density_matrix(dim*dim, kind='haar')
     dm_target = np.diag([1,0,0,1])/2
-    dm_target = numqi.entangle.get_isotropic_state(dim, 1)
+    dm_target = numqi.state.Isotropic(dim, 1)
     beta_u = numqi.entangle.get_density_matrix_boundary(dm_target)[1]
     beta_list = np.linspace(0, beta_u, 100)
     # z0 = numqi.entangle.hf_interpolate_dm(dm_target, beta=beta_u)
@@ -114,7 +114,7 @@ def demo_cha_gellmann():
     num_state_list = [12,13,14,2*dimA*dimB,15]
 
     alpha_list = np.linspace(0, 1, 50, endpoint=False) # alpha=1 is unstable for matrix logarithm
-    dm_target_list = [numqi.entangle.get_werner_state(dimA, x) for x in alpha_list]
+    dm_target_list = [numqi.state.Werner(dimA, x) for x in alpha_list]
     beta_list = alpha_list * numqi.gellmann.dm_to_gellmann_norm(dm_target_list[-1])
 
     dimA = 3
@@ -154,10 +154,10 @@ def demo_werner_ree():
     kext_list = [8,32]
     alpha_list = np.linspace(0, 1, 100, endpoint=False) # alpha=1 is unstable for matrix logarithm
 
-    dm_target_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
+    dm_target_list = [numqi.state.Werner(dim, x) for x in alpha_list]
     beta_list = np.array([numqi.gellmann.dm_to_gellmann_norm(x) for x in dm_target_list]) #Euclidean norm
 
-    ree_analytical = np.array([numqi.entangle.get_werner_state_ree(dim, x) for x in alpha_list])
+    ree_analytical = np.array([numqi.state.get_Werner_ree(dim, x) for x in alpha_list])
 
     ree_ppt = numqi.entangle.get_ppt_ree(dm_target_list, dim, dim)
 

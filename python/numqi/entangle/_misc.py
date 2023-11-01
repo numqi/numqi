@@ -151,70 +151,9 @@ def check_reduction_witness(rho, dim=None, eps=-1e-7):
     return ret
 
 
-def get_werner_state(d, alpha):
-    # https://en.wikipedia.org/wiki/Werner_state
-    # https://www.quantiki.org/wiki/werner-state
-    # alpha = ((1-2*p)*d+1) / (1-2*p+d)
-    # alpha: [-1,1]
-    # SEP: [-1,1/d]
-    # (1,k)-ext: [-1, (k+d^2-d)/(kd+d-1)]
-    # https://journals.aps.org/pra/abstract/10.1103/PhysRevA.88.032323
-    assert d>1
-    assert (-1<=alpha) and (alpha<=1)
-    pmat = np.eye(d**2).reshape(d,d,d,d).transpose(0,1,3,2).reshape(d**2,d**2)
-    ret = (np.eye(d**2)-alpha*pmat) / (d**2-d*alpha)
-    return ret
-
-
-def get_werner_state_ree(d, alpha):
-    # REE(relative entropy of entangement)
-    if alpha<=1/d:
-        ret = 0
-    else:
-        rho0 = get_werner_state(d, alpha)
-        rho1 = get_werner_state(d, 1/d)
-        ret = numqi.utils.get_relative_entropy(rho0, rho1, kind='infinity')
-    return ret
-
-
-def get_isotropic_state(d, alpha):
-    # https://www.quantiki.org/wiki/isotropic-state
-    # alpha: [-1/(d^2-1), 1]
-    # SEP: [-1/(d^2-1), 1/(d+1)]
-    # (1,k)-ext: [-1/(d^2-1),(kd+d^2-d-k)/(k(d^2-1))]
-    # https://journals.aps.org/pra/abstract/10.1103/PhysRevA.88.032323
-    assert d>1
-    assert ((-1/(d**2-1))<=alpha) and (alpha<=1) #beyond this range, the density matrix is not SDP
-    tmp0 = np.eye(d).reshape(-1)
-    ret = ((1-alpha)/d**2) * np.eye(d**2) + (alpha/d) * (tmp0[:,np.newaxis]*tmp0)
-    return ret
-
-
-def get_isotropic_state_ree(d, alpha):
-    if alpha<=1/(d+1):
-        ret = 0
-    else:
-        rho0 = get_isotropic_state(d, alpha)
-        rho1 = get_isotropic_state(d, 1/(d+1))
-        ret = numqi.utils.get_relative_entropy(rho0, rho1, kind='infinity')
-    return ret
-
-
-# no idea why this function is here @zhangc20230221
-# def copy_numpy_to_cp(np0, cp0):
-#     assert (np0.size==cp0.size) and (np0.itemsize==cp0.itemsize)
-#     cp0.data.copy_from_host(np0.__array_interface__['data'][0], np0.size*np0.itemsize)
-
-
 def product_state_to_dm(ketA, ketB, probability):
     tmp0 = (ketA[:,:,np.newaxis]*ketB[:,np.newaxis]).reshape(ketA.shape[0],-1)
     ret = np.sum((tmp0[:,:,np.newaxis]*tmp0[:,np.newaxis].conj())*probability[:,np.newaxis,np.newaxis], axis=0)
-    return ret
-
-
-def get_max_entangled_state(dim):
-    ret = np.diag(np.ones(dim)*1/np.sqrt(dim))
-    ret = ret.reshape(-1)
     return ret
 
 

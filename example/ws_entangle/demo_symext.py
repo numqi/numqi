@@ -54,16 +54,16 @@ def demo_get_ABk_symmetric_extension_ree_werner():
     alpha_list = np.linspace(0, 1, num_point, endpoint=False) #alpha=1 is not stable
 
     ret_analytical = []
-    dm_kext_boundary = numqi.entangle.get_werner_state(dim,alpha_kext_boundary)
+    dm_kext_boundary = numqi.state.Werner(dim,alpha_kext_boundary)
     for alpha_i in alpha_list:
         if alpha_i <= alpha_kext_boundary:
             ret_analytical.append(0)
         else:
-            dm0 = numqi.entangle.get_werner_state(dim, alpha_i)
+            dm0 = numqi.state.Werner(dim, alpha_i)
             ret_analytical.append(numqi.utils.get_relative_entropy(dm0, dm_kext_boundary))
     ret_analytical = np.array(ret_analytical)
 
-    dm_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
+    dm_list = [numqi.state.Werner(dim, x) for x in alpha_list]
     ret0 = numqi.entangle.get_ABk_symmetric_extension_ree(dm_list, (dim,dim), kext, use_ppt=False, use_tqdm=True)
 
     fig,ax = plt.subplots()

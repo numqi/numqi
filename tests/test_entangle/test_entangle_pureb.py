@@ -33,14 +33,14 @@ def test_pureb_werner2_ree():
 
         alpha_list = np.linspace(0, alpha_kext_boundary, num_point)
         for alpha_i in alpha_list:
-            model.set_dm_target(numqi.entangle.get_werner_state(dim, alpha_i))
+            model.set_dm_target(numqi.state.Werner(dim, alpha_i))
             ret0 = numqi.optimize.minimize(model, **kwargs).fun
             assert ret0 < 1e-8
 
         alpha_list = np.linspace(alpha_kext_boundary, 1, num_point, endpoint=False)
-        dm_kext_boundary = numqi.entangle.get_werner_state(dim,alpha_kext_boundary)
+        dm_kext_boundary = numqi.state.Werner(dim,alpha_kext_boundary)
         for alpha_i in alpha_list:
-            tmp0 = numqi.entangle.get_werner_state(dim, alpha_i)
+            tmp0 = numqi.state.Werner(dim, alpha_i)
             ret_ = numqi.utils.get_relative_entropy(tmp0, dm_kext_boundary)
             model.set_dm_target(tmp0)
             ret0 = numqi.optimize.minimize(model, **kwargs).fun
@@ -51,11 +51,11 @@ def test_pureb_boundary_werner2():
     # about 10 seconds
     dim = 2
     for kext in [5,16,32]:
-        dm0 = numqi.entangle.get_werner_state(2, 1)
+        dm0 = numqi.state.Werner(2, 1)
         alpha_kext_boundary = (kext+dim**2-dim)/(kext*dim+dim-1)
         model = numqi.entangle.PureBosonicExt(dim, dim, kext=kext, distance_kind='ree')
         beta0 = model.get_boundary(dm0, xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=3, use_tqdm=False)
-        beta_ = numqi.gellmann.dm_to_gellmann_norm(numqi.entangle.get_werner_state(dim, alpha_kext_boundary))
+        beta_ = numqi.gellmann.dm_to_gellmann_norm(numqi.state.Werner(dim, alpha_kext_boundary))
         assert abs(beta0-beta_) < 5e-4
 
 
@@ -72,14 +72,14 @@ def test_pureb_isotropic2_ree():
 
         alpha_list = np.linspace(-1/(dim*dim-1), alpha_kext_boundary, num_point)
         for alpha_i in alpha_list:
-            model.set_dm_target(numqi.entangle.get_isotropic_state(dim, alpha_i))
+            model.set_dm_target(numqi.state.Isotropic(dim, alpha_i))
             ret0 = numqi.optimize.minimize(model, **kwargs).fun
             assert ret0 < 1e-8
 
         alpha_list = np.linspace(alpha_kext_boundary, 1, num_point, endpoint=False)
-        dm_kext_boundary = numqi.entangle.get_isotropic_state(dim,alpha_kext_boundary)
+        dm_kext_boundary = numqi.state.Isotropic(dim,alpha_kext_boundary)
         for alpha_i in alpha_list:
-            tmp0 = numqi.entangle.get_isotropic_state(dim, alpha_i)
+            tmp0 = numqi.state.Isotropic(dim, alpha_i)
             ret_ = numqi.utils.get_relative_entropy(tmp0, dm_kext_boundary)
             model.set_dm_target(tmp0)
             ret0 = numqi.optimize.minimize(model, **kwargs).fun
@@ -90,11 +90,11 @@ def test_pureb_boundary_isotropic2():
     # about 10 seconds
     dim = 2
     for kext in [5,16,32]:
-        dm0 = numqi.entangle.get_isotropic_state(2, 1)
+        dm0 = numqi.state.Isotropic(2, 1)
         alpha_kext_boundary = (kext*dim+dim*dim-dim-kext)/(kext*(dim*dim-1))
         model = numqi.entangle.PureBosonicExt(dim, dim, kext=kext, distance_kind='ree')
         beta0 = model.get_boundary(dm0, xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=3, use_tqdm=False)
-        beta_ = numqi.gellmann.dm_to_gellmann_norm(numqi.entangle.get_isotropic_state(dim, alpha_kext_boundary))
+        beta_ = numqi.gellmann.dm_to_gellmann_norm(numqi.state.Isotropic(dim, alpha_kext_boundary))
         assert abs(beta0-beta_) < 5e-4
 
 
