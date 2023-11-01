@@ -101,3 +101,66 @@ def test_rz_qudit():
 
         z2 = numqi.gate.rz(torch.tensor(theta, dtype=torch.float64), d, diag_only=False).numpy()
         assert np.abs(z1-z2).max() < 1e-10
+
+
+def test_PauliOperator_convert():
+    example_list = [
+        (numqi.gate.I, [0,0,0,0]),
+        (numqi.gate.X, [0,0,1,0]),
+        (numqi.gate.Y, [0,1,1,1]),
+        (numqi.gate.Z, [0,0,0,1]),
+        (np.kron(numqi.gate.X, numqi.gate.X), [0,0,1,1,0,0]),
+        (np.kron(numqi.gate.X, numqi.gate.Y), [0,1,1,1,0,1]),
+        (1j * np.kron(numqi.gate.Y, numqi.gate.Y), [1,1,1,1,1,1]),
+    ]
+    for np0,index in example_list:
+        ret_ = np.array(index, dtype=np.uint8)
+        ret0 = numqi.gate.PauliOperator.from_full_matrix(np0).F2
+        assert np.array_equal(ret_, ret0)
+
+        tmp0 = numqi.gate.PauliOperator.from_F2(ret_).full_matrix
+        ret1 = numqi.gate.PauliOperator.from_full_matrix(tmp0).F2
+        assert np.array_equal(ret_, ret1)
+
+    for _ in range(10):
+        pauli0 = numqi.random.rand_pauli(5)
+        pauli1 = numqi.gate.PauliOperator.from_F2(pauli0.F2)
+        pauli2 = numqi.gate.PauliOperator.from_str(pauli0.str_, sign=pauli0.sign)
+        pauli3 = numqi.gate.PauliOperator.from_np_list(pauli0.np_list, sign=pauli0.sign)
+        pauli4 = numqi.gate.PauliOperator.from_full_matrix(pauli0.full_matrix)
+        assert np.all(pauli0.F2 == pauli1.F2)
+        assert np.all(pauli0.F2 == pauli2.F2)
+        assert np.all(pauli0.F2 == pauli3.F2)
+        assert np.all(pauli0.F2 == pauli4.F2)
+
+def test_PauliOperator_matmul():
+    for num_qubit in [1,2,3]:
+        for _ in range(10):
+            pauli0 = numqi.random.rand_pauli(num_qubit)
+            pauli1 = numqi.random.rand_pauli(num_qubit)
+            pauli2 = pauli0 @ pauli1
+            ret_ = numqi.gate.PauliOperator.from_full_matrix(pauli0.full_matrix @ pauli1.full_matrix)
+            assert np.all(pauli2.F2==ret_.F2)
+
+
+def test_PauliOperator_commutate():
+    for num_qubit in [1,2,3]:
+        for _ in range(10):
+            pauli0 = numqi.random.rand_pauli(num_qubit)
+            pauli1 = numqi.random.rand_pauli(num_qubit)
+            np0 = pauli0.full_matrix
+            np1 = pauli1.full_matrix
+            ret_ = np.abs(np0 @ np1 - np1 @ np0).max() < 1e-10
+            ret0 = pauli0.commutate_with(pauli1)
+            assert ret_ == ret0
+
+
+def test_PauliOperator_inverse():
+    for num_qubit in [1,2,3]:
+        for _ in range(10):
+            pauli0 = numqi.random.rand_pauli(num_qubit)
+            pauli1 = pauli0.inverse()
+            pauli2 = pauli0 @ pauli1
+            pauli3 = pauli1 @ pauli0
+            assert np.all(pauli2.F2==0)
+            assert np.all(pauli3.F2==0)

@@ -22,7 +22,7 @@ def test_sdp_op_list_solve():
     np_rng = np.random.default_rng(seed=233)
 
     rho = numqi.random.rand_density_matrix(2**num_qubit, seed=np_rng)
-    op_list = np.stack([numqi.random.rand_hermite_matrix(2**num_qubit, seed=np_rng) for _ in range(num_op)])
+    op_list = np.stack([numqi.random.rand_hermitian_matrix(2**num_qubit, seed=np_rng) for _ in range(num_op)])
     term_value = np.trace(op_list @ rho, axis1=1, axis2=2).real
 
     z0 = numqi.maximum_entropy.sdp_op_list_solve(op_list, term_value)

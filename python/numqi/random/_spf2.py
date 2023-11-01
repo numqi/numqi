@@ -2,7 +2,7 @@ import numpy as np
 
 from ._internal import get_random_rng, get_numpy_rng
 import numqi.group.spf2
-import numqi.sim._clifford_utils
+from ..gate._pauli import PauliOperator
 
 def rand_F2(*size, not_zero=False, not_one=False, seed=None):
     r'''generate random uint8 binary ndarray with shape `size` and values in {0,1}
@@ -29,24 +29,47 @@ def rand_F2(*size, not_zero=False, not_one=False, seed=None):
     return ret
 
 
-def rand_SpF2_int_tuple(n, seed=None):
-    rng = get_random_rng(seed)
-    int_base = numqi.group.spf2.get_number(n, kind='base')
-    ret = tuple(rng.randint(0,x-1) for x in int_base)
-    return ret
+def rand_SpF2(n:int, return_kind='matrix', seed=None):
+    r'''generate random Symplectic matrix over finite field F2
 
+    Parameters:
+        n (int): half of the column/row of the matrix
+        return_kind (str): return kind, one of {'matrix', 'int_tuple', 'int_tuple-matrix'}
+        seed (int,None,numpy.random.Generator): seed for the random number generator
 
-def rand_SpF2(n, return_int_tuple=False, seed=None):
+    Returns:
+        ret (np.ndarray,tuple[int],tuple[int,np.ndarray]): random Symplectic matrix over finite field F2
+            if return_kind=='matrix', return a matrix. shape=(2*n,2*n)
+            if return_kind=='int_tuple', return a integer tuple representation. length=2*n
+            if return_kind=='int_tuple-matrix', return a integer tuple representation and a matrix
+    '''
+    return_kind = str(return_kind).lower()
+    assert return_kind in {'matrix', 'int_tuple', 'int_tuple-matrix'}
     rng = get_random_rng(seed)
     int_base = numqi.group.spf2.get_number(n, kind='base')
     int_tuple = tuple(rng.randint(0,x-1) for x in int_base)
-    ret = numqi.group.spf2.from_int_tuple(int_tuple)
-    if return_int_tuple:
-        ret = int_tuple,ret
+    if return_kind=='int_tuple':
+        ret = int_tuple
+    else:
+        mat = numqi.group.spf2.from_int_tuple(int_tuple)
+        if return_kind=='matrix':
+            ret = mat
+        else: #int_tuple-matrix
+            ret = int_tuple,mat
     return ret
 
 
 def rand_Clifford_group(n:int, seed=None):
+    r'''generate random Clifford group element in the symplectic representation
+
+    Parameters:
+        n (int): half of the column/row of the matrix
+        seed (int,None,numpy.random.Generator): seed for the random number generator
+
+    Returns:
+        cli_r (np.ndarray): shape (`2n`,)
+        cli_mat (np.ndarray): shape (`2n`,`2n`)
+    '''
     assert n>=1
     rng = get_random_rng(seed)
     cli_r = rand_F2(2*n)
@@ -54,17 +77,27 @@ def rand_Clifford_group(n:int, seed=None):
     return cli_r, cli_mat
 
 
-def random_pauli_F2(num_qubit, with_op=False, is_hermitian=None, seed=None):
+def rand_pauli(n:int, is_hermitian:bool=None, seed=None):
+    r'''generate random Pauli operator
+
+    Parameters:
+        n (int): number of qubits
+        is_hermitian (bool): if True, the returned Pauli operator is Hermitian,
+                if False, anti-Hermitian, if None, either Hermitian or anti-Hermitian
+        seed (int,None,numpy.random.Generator): seed for the random number generator
+
+    Returns:
+        pauli (numqi.gate.PauliOperator): random Pauli operator
+    '''
+    assert n>=1
     assert is_hermitian in {None,True,False}
     np_rng = get_numpy_rng(seed)
-    ret = rand_F2(2*num_qubit+2, seed=np_rng)
+    F2 = rand_F2(2*n+2, seed=np_rng)
     if is_hermitian is not None:
-        tmp0 = np.dot(ret[2:(2+num_qubit)], ret[(2+num_qubit):]) % 2
+        tmp0 = np.dot(F2[2:(2+n)], F2[(2+n):]) % 2
         if is_hermitian:
-            ret[1] = tmp0
+            F2[1] = tmp0
         else:
-            ret[1] = 1-tmp0
-    if with_op:
-        ret = ret, numqi.sim._clifford_utils.pauli_F2_to_pauli_op(ret)
+            F2[1] = 1-tmp0
+    ret = PauliOperator(F2)
     return ret
-

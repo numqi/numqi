@@ -46,3 +46,21 @@ def test_rand_symmetric_inner_product():
         vecX = np_rng.normal(size=N0)
         vecY = matU @ vecX
         assert np.abs((vecX @ matB) @ vecY - (vecY @ matB) @ vecX).max() < zero_eps
+
+
+def test_rand_kraus_op():
+    num_term = 4
+    dim_in = 5
+    dim_out = 3
+    kop = numqi.random.rand_kraus_op(num_term, dim_in, dim_out)
+    tmp0 = np.einsum(kop, [0,1,2], kop.conj(), [0,1,3], [2,3], optimize=True)
+    assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10
+
+
+def test_rand_choi_op():
+    dim_in = 3
+    dim_out = 5
+    choi_op = numqi.random.rand_choi_op(dim_in, dim_out)
+    assert np.linalg.eigvalsh(choi_op).min() >= -1e-7
+    tmp0 = np.trace(choi_op.reshape(dim_in, dim_out, dim_in, dim_out), axis1=1, axis2=3)
+    assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10

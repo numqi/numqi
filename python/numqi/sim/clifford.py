@@ -1,10 +1,7 @@
-import functools
 import numpy as np
 
 import numqi.gate
 import numqi.random
-
-from ._clifford_utils import pauli_F2_to_pauli_op
 
 # see numqi.group.spf2
 
@@ -25,50 +22,6 @@ def apply_clifford_on_pauli(pauli_bit, cli_r, cli_mat):
     return ret
 
 
-def pauli_F2_to_array(bit_np):
-    assert (bit_np.dtype==np.uint8) and (bit_np.ndim==1) and (bit_np.shape[0]%2==0) and (bit_np.shape[0]>=4)
-    num_qubit = (bit_np.shape[0]-2)//2
-    phase = (1j)**(bit_np[0]*2 + bit_np[1])
-    int_to_map = {0:numqi.gate.I, 1:numqi.gate.Z, 2:numqi.gate.X, 3:-1j*numqi.gate.Y}
-    tmp0 = (bit_np[2:(2+num_qubit)]*2 + bit_np[(2+num_qubit):]).tolist()
-    np0 = int_to_map[tmp0[0]]
-    for x in tmp0[1:]:
-        np0 = np.kron(np0, int_to_map[x])
-    ret = phase*np0
-    return ret
-
-
-def pauli_array_to_F2(np0):
-    assert (np0.ndim==2) and (np0.shape[0]==np0.shape[1]) and (np0.shape[0]>=2)
-    N0 = int(np.log2(np0.shape[0]))
-    assert 2**N0 == np0.shape[0]
-    IXYZ = [numqi.gate.I,numqi.gate.X,-1j*numqi.gate.Y,numqi.gate.Z]
-    bitXZ = np.zeros(2*N0, dtype=np.uint8)
-    for ind0 in range(N0):
-        if np0.shape[0]==2:
-            np1 = np0.reshape(-1)
-        else:
-            tmp0 = np0.reshape(2,2**(N0-ind0-1),2,2**(N0-ind0-1))
-            tmp1 = np.einsum(tmp0, [0,1,2,3], tmp0.conj(), [4,1,5,3], [0,2,4,5], optimize=True)
-            EVL,EVC = np.linalg.eigh(tmp1.reshape(4,4))
-            assert np.abs(EVL - np.array([0,0,0,4])).max() < 1e-7
-            np1 = EVC[:,3] * np.sqrt(2)
-            # tmp2.reshape(2,2) #should be one of the I,X,Y,Z (ignore phase factor)
-        for ind1,pauli in enumerate(IXYZ):
-            if abs(abs(np.vdot(pauli.reshape(-1), np1))-2) < 1e-7:
-                bitXZ[ind0] = 1 if (ind1 in (1,2)) else 0
-                bitXZ[ind0+N0] = 1 if (ind1 in (2,3)) else 0
-                tmp0 = np0.reshape(2,2**(N0-ind0-1),2,2**(N0-ind0-1))
-                np0 = np.einsum(tmp0, [0,1,2,3], pauli, [0,2], [1,3], optimize=True)/2
-                break
-        else: #no break path
-            assert False, 'not a Pauli operator'
-    assert (np0.shape==(1,1)) and (abs(abs(np0.item())-1)<1e-7)
-    tmp0 = round(np.angle(np0.item())*2/np.pi) % 4
-    ret = np.array([tmp0>>1, tmp0&1] + list(bitXZ), dtype=np.uint8)
-    return ret
-
-
 def clifford_array_to_F2(np0):
     assert (np0.ndim==2) and (np0.shape[0]==np0.shape[1]) and np0.shape[0]>=2
     N0 = int(np.log2(np0.shape[0]))
@@ -81,12 +34,12 @@ def clifford_array_to_F2(np0):
         tmp0 = np0.reshape(2**N0, 2**ind0, 2, 2**(N0-ind0-1))
 
         tmp1 = np.einsum(tmp0, [0,1,2,3], numqi.gate.X, [2,4], tmp0.conj(), [5,1,4,3], [0,5], optimize=True)
-        Xbit = pauli_array_to_F2(tmp1)
+        Xbit = numqi.gate.PauliOperator.from_full_matrix(tmp1).F2
         cli_mat[:,ind0] = Xbit[2:]
         cli_r[ind0] = (Xbit[0] + (np.dot(Xbit[2:(N0+2)], Xbit[(N0+2):]) % 4)//2) % 2
 
         tmp1 = np.einsum(tmp0, [0,1,2,3], numqi.gate.Z, [2,4], tmp0.conj(), [5,1,4,3], [0,5], optimize=True)
-        Zbit = pauli_array_to_F2(tmp1)
+        Zbit = numqi.gate.PauliOperator.from_full_matrix(tmp1).F2
         cli_mat[:,ind0+N0] = Zbit[2:]
         cli_r[ind0+N0] = (Zbit[0] + (np.dot(Zbit[2:(N0+2)], Zbit[(N0+2):]) % 4)//2) % 2
     return cli_r,cli_mat
@@ -210,11 +163,9 @@ class CliffordCircuit:
             ret = self._R, self._S
         return ret
 
-    def apply_pauli_F2(self, pauli_F2, return_op=False):
+    def apply_pauli_F2(self, pauli_F2):
         retR,retS = self.to_symplectic_form()
         ret = apply_clifford_on_pauli(pauli_F2, retR, retS)
-        if return_op:
-            ret = ret, pauli_F2_to_pauli_op(ret)
         return ret
 
     def to_universal_circuit(self):

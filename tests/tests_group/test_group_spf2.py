@@ -50,7 +50,7 @@ def test_from_int_tuple_and_to_int_tuple():
     for N0 in range(1,10):
         npLambda = np.kron(sigmax, np.eye(N0,dtype=np.uint8))
         for _ in range(10):
-            int_tuple,np0 = numqi.random.rand_SpF2(N0, return_int_tuple=True)
+            int_tuple,np0 = numqi.random.rand_SpF2(N0, return_kind='int_tuple-matrix')
             assert np.all(((np0 @ npLambda @ np0.T)%2)==npLambda)
             assert np.all(((np0.T @ npLambda @ np0)%2)==npLambda) #x in Sp, then x^T in Sp
             assert numqi.group.spf2.to_int_tuple(np0)==int_tuple

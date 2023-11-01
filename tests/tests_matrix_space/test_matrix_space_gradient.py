@@ -50,7 +50,7 @@ def test_matrix_subspace_misc():
     num_op = 7
 
     tmp0 = numqi.random.rand_haar_state(dim) #make it definite contains one rank-1 state
-    tmp1 = [numqi.random.rand_hermite_matrix(dim) for _ in range(num_op-1)] + [tmp0.reshape(-1,1)*tmp0.conj()]
+    tmp1 = [numqi.random.rand_hermitian_matrix(dim) for _ in range(num_op-1)] + [tmp0.reshape(-1,1)*tmp0.conj()]
     tmp2 = numqi.random.rand_unitary_matrix(num_op, tag_complex=False)
     matrix_subspace = (tmp2 @ np.stack(tmp1).reshape(num_op,-1)).reshape(-1, dim, dim)
 
@@ -76,3 +76,41 @@ def test_matrix_subspace_sparse():
     matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
     assert theta_optim022.fun < 1e-7
     assert residual < 1e-7
+
+
+def test_DetectCanonicalPolyadicRankModel_W_state():
+    Wstate = np.zeros((2,2,2), dtype=np.float64)
+    Wstate[0,0,1] = 1/np.sqrt(3)
+    Wstate[0,1,0] = 1/np.sqrt(3)
+    Wstate[1,0,0] = 1/np.sqrt(3)
+
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel([2,2,2], 1)
+    model.set_target(Wstate)
+    kwargs = dict(theta0='uniform', tol=1e-12, num_repeat=3, print_every_round=1, early_stop_threshold=1e-14)
+    theta_optim = numqi.optimize.minimize(model, **kwargs)
+    assert abs(theta_optim.fun - 5/9) < 1e-10
+
+    # border_rank=2, CP_rank=3
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel([2,2,2], 2)
+    model.set_target(Wstate)
+    kwargs = dict(theta0='uniform', tol=1e-12, num_repeat=5, print_every_round=1, early_stop_threshold=1e-14)
+    theta_optim = numqi.optimize.minimize(model, **kwargs)
+    assert theta_optim.fun < 1e-8
+
+
+def test_DetectCanonicalPolyadicRankModel_ghz_state():
+    ghz = np.zeros((2,2,2))
+    ghz[0,0,0] = 1/np.sqrt(2)
+    ghz[1,1,1] = 1/np.sqrt(2)
+    seed_map = {4:233}
+    for num_copy in [2,3,4]:
+        ghz_ncopy = ghz.copy()
+        for _ in range(num_copy-1):
+            tmp0 = np.einsum(ghz_ncopy, [0,1,2], ghz, [3,4,5], [0,3,1,4,2,5], optimize=True)
+            tmp1 = ghz_ncopy.shape[0] * ghz.shape[0]
+            ghz_ncopy = tmp0.reshape(tmp1,tmp1,tmp1)
+        model = numqi.matrix_space.DetectCanonicalPolyadicRankModel(ghz_ncopy.shape, 2**num_copy)
+        model.set_target(ghz_ncopy)
+        kwargs = dict(theta0='uniform', tol=1e-14, num_repeat=10, print_every_round=0, early_stop_threshold=1e-10)
+        theta_optim = numqi.optimize.minimize(model, **kwargs, seed=seed_map.get(num_copy))
+        assert theta_optim.fun < 1e-10

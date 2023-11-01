@@ -40,6 +40,7 @@ nav:
       - basic: tutorial/group/basic.md
       - Clifford: tutorial/group//spf2.md
       - symmetric extension: tutorial/group/symext.md
+      - tutorial/group/pauli.ipynb
     - quantum error correction:
       - tutorial/qecc/basic.md
       - tutorial/qecc/varqecc.ipynb
