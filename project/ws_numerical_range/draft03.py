@@ -17,7 +17,9 @@ use_boson = True
 dm0 = numqi.entangle.get_werner_state(dim, 1)
 # dm0 = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
 # dm1 = numqi.entangle.get_isotropic_state(dim, 1)
-dm1 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
+# dm1 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
+dm0 = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
+dm1 = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
 # dm0 = numqi.random.rand_density_matrix(dim*dim)
 # dm1 = numqi.random.rand_density_matrix(dim*dim)
 theta_dm1,hf_theta = numqi.entangle.get_density_matrix_plane(dm0, dm1)
@@ -25,10 +27,7 @@ theta_list = np.linspace(0, 2*np.pi, 201)
 
 kwargs = dict(dim=(dim,dim), kext=kext, use_ppt=use_ppt, use_boson=use_boson, return_info=True, use_tqdm=True)
 tmp0 = np.stack([hf_theta(x) for x in theta_list])
-tmp1 = numqi.entangle.get_ABk_symmetric_extension_boundary(tmp0, **kwargs)
-beta_kext_list = np.array([x[0] for x in tmp1])
-vecA_list = np.stack([x[1]['vecA'] for x in tmp1], axis=0)
-vecN_list = np.stack([x[1]['vecN'] for x in tmp1], axis=0)
+beta_kext_list,vecA_list,vecN_list = numqi.entangle.get_ABk_symmetric_extension_boundary(tmp0, **kwargs)
 
 basis0 = numqi.gellmann.dm_to_gellmann_basis(dm0)
 basis1 = numqi.gellmann.dm_to_gellmann_basis(dm1)
