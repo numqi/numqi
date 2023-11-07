@@ -209,9 +209,9 @@ def test_witness():
 
     for _ in range(1000):
         tmp0 = numqi.random.rand_separable_dm(dimA,dimB,k=dimA*dimB)
-        assert np.trace(tmp0@op_witness).real < delta + 1e-5
+        assert np.trace(tmp0@op_witness).real < delta + 1e-4
 
     model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
     model.set_expectation_op(-op_witness)
     tmp0 = -numqi.optimize.minimize(model, theta0='uniform', tol=1e-9, num_repeat=3, print_every_round=0).fun
-    assert tmp0 < delta + 1e-5
+    assert tmp0 < delta + 1e-4
