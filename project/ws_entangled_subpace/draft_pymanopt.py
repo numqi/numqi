@@ -39,6 +39,8 @@ def cost(*args):
     assert (len(args)-1) % rank == 0
     tmp0 = (len(args)-1)//rank
     psi_list = [torch.stack(args[(1+x*rank):(1+(x+1)*rank)]) for x in range(tmp0)]
+    # complex circle is sqrt(2) normalized
+    psi_list = [x/torch.linalg.norm(x,axis=1,keepdims=True) for x in psi_list]
     psi_conj_list = [x.conj() for x in psi_list]
     psi_psi = contract_psi_psi(coeff, coeff.conj(), *psi_list, *psi_conj_list).real
     tmp0 = contract_target_psi(target_conj, coeff, *psi_list)
@@ -47,4 +49,5 @@ def cost(*args):
 
 problem = pymanopt.Problem(man_CP, cost)
 optimizer = pymanopt.optimizers.SteepestDescent()
+# optimizer = pymanopt.optimizers.TrustRegions() #need hessian but not support complex
 result = optimizer.run(problem)
