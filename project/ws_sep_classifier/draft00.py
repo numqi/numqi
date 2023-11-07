@@ -63,10 +63,16 @@ def rand_npt_entangle_state(dim, num_sample, haar_k=None, witness_list=None, see
     return ret
 
 class DensityMatrixBoundary(torch.nn.Module):
-    def __init__(self, dim):
+    def __init__(self, dim, kind='max'):
         super().__init__()
+        assert kind in {'max', 'min'}
+        self.kind = kind
         np_rng = numqi.random.get_numpy_rng()
-        self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=(2,dim,dim)), dtype=torch.float64))
+        if kind=='max':
+            self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=(2,dim,dim)), dtype=torch.float64))
+        else:
+            assert dim>=2
+            self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=(2,dim,dim-1)), dtype=torch.float64))
         self.rho0 = torch.eye(dim, dtype=torch.complex128) / dim
         self.rho = None
 
@@ -76,7 +82,10 @@ class DensityMatrixBoundary(torch.nn.Module):
         rho = tmp1 / torch.trace(tmp1)
         self.rho = rho.detach()
         tmp0 = (rho - self.rho0).reshape(-1)
-        loss = -torch.vdot(tmp0, tmp0).real/2
+        if self.kind=='max':
+            loss = -torch.vdot(tmp0, tmp0).real/2
+        else:
+            loss = torch.vdot(tmp0, tmp0).real/2
         return loss
 
 
@@ -99,15 +108,22 @@ def rand_n_ball(dim, size=None, radius=1, seed=None):
 
 
 def get_density_matrix_boundary(dim):
-    tmp0 = dict([(2,1/4), (3,1/3), (4,3/8), (5,0.4), (6,5/12), (7,3/7), (8,7/16), (9,4/9)])
-    if dim in tmp0:
-        ret = tmp0[dim]
+    max_dict = dict([(2,1/4), (3,1/3), (4,3/8), (5,0.4), (6,5/12), (7,3/7), (8,7/16), (9,4/9)]) #maximum distance
+    min_dict = dict([(2,1/4), (3,1/12), (4,1/24), (5,1/40), (6,1/60), (7,1/84), (8,1/112), (9,1/144)]) #minimum distance
+    if dim in max_dict:
+        ret = max_dict[dim]
     else:
         model = DensityMatrixBoundary(dim)
         theta_optim = numqi.optimize.minimize(model, theta0='uniform', tol=1e-12, num_repeat=3)
         ret = -theta_optim.fun
     ret = np.sqrt(max(ret, 0))
     return ret
+
+for dim in range(2,10):
+    model = DensityMatrixBoundary(dim, kind='min')
+    theta_optim = numqi.optimize.minimize(model, theta0='uniform', tol=1e-12, num_repeat=3, print_every_round=0)
+    print(dim, theta_optim.fun)
+
 
 
 def rand_sixparam_ent_state(num_sample, num_per_upb=10, kext=3, seed=None):
