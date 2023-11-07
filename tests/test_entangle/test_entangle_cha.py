@@ -13,14 +13,14 @@ def test_AutodiffCHAREE_werner():
         # dim=3, 2 seconds
         # dim=4, 4 seconds
         # dim=5, 10 seconds
-        ree_analytical = np.array([numqi.entangle.get_werner_state_ree(dim, x) for x in alpha_list])
+        ree_analytical = np.array([numqi.state.get_Werner_ree(dim, x) for x in alpha_list])
 
         model = numqi.entangle.AutodiffCHAREE(dim, dim, distance_kind='ree')
         # num_repeat=1 should be good for most cases, to avoid unittest failure, use num_repeat=3
         kwargs = dict(theta0='uniform', tol=1e-12, num_repeat=3, print_every_round=0)
         ree_cha = []
         for x in alpha_list:
-            model.set_dm_target(numqi.entangle.get_werner_state(dim, x))
+            model.set_dm_target(numqi.state.Werner(dim, x))
             ree_cha.append(float(numqi.optimize.minimize(model, **kwargs).fun))
         ree_cha = np.array(ree_cha)
         assert np.abs(ree_cha-ree_analytical).max() < 1e-8 #1e-9 fails sometimes

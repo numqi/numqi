@@ -18,10 +18,10 @@ kind = 'boson' if dim==2 else 'symmetric'
 matGext = numqi.maximum_entropy.get_ABk_gellmann_preimage_op(dim, dim, kext, kind=kind)
 
 alpha_boundary = (kext+dim*dim-dim)/(kext*dim+dim-1)
-tstar = numqi.gellmann.dm_to_gellmann_norm(numqi.entangle.get_werner_state(dim, alpha_boundary))
+tstar = numqi.gellmann.dm_to_gellmann_norm(numqi.state.Werner(dim, alpha_boundary))
 
 model = numqi.maximum_entropy.MaximumEntropyTangentModel(matGext, factor=0.5)
-vecB = numqi.gellmann.dm_to_gellmann_basis(numqi.entangle.get_werner_state(dim, 1))
+vecB = numqi.gellmann.dm_to_gellmann_basis(numqi.state.Werner(dim, 1))
 model.set_target_vec(vecB)
 
 # theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10,
@@ -39,8 +39,8 @@ dim = 3
 dimA = dim
 dimB = dim
 kext = 3
-dm0 = numqi.entangle.get_werner_state(dim, 1)
-dm1 = numqi.entangle.get_isotropic_state(dim, 1)
+dm0 = numqi.state.Werner(dim, 1)
+dm1 = numqi.state.Isotropic(dim, 1)
 dm1 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
 theta_dm1,hf_theta = numqi.entangle.get_density_matrix_plane(dm0, dm1)
 theta_list = np.linspace(0, 2*np.pi, 201)

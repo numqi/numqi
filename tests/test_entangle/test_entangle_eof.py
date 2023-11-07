@@ -69,7 +69,7 @@ def test_EntanglementFormationModel_isotropic():
         ret0 = []
         kwargs = dict(num_repeat=3, print_freq=0, tol=1e-10, print_every_round=0)
         for alpha_i in alpha_list:
-            model.set_density_matrix(numqi.entangle.get_isotropic_state(dim, alpha_i))
+            model.set_density_matrix(numqi.state.Isotropic(dim, alpha_i))
             theta_optim = numqi.optimize.minimize(model, **kwargs)
             ret0.append(theta_optim.fun)
         ret0 = np.array(ret0)
@@ -86,7 +86,7 @@ def test_EntanglementFormationModel_werner():
         ret0 = []
         kwargs = dict(num_repeat=3, print_freq=0, tol=1e-10, print_every_round=0)
         for alpha_i in alpha_list:
-            model.set_density_matrix(numqi.entangle.get_werner_state(dim, alpha_i))
+            model.set_density_matrix(numqi.state.Werner(dim, alpha_i))
             theta_optim = numqi.optimize.minimize(model, **kwargs)
             ret0.append(theta_optim.fun)
         ret0 = np.array(ret0)

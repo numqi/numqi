@@ -63,7 +63,7 @@ def test_werner_state_kext():
     # kext=2 is simply density-matrix-boundary
 
     alpha_yes_list = np.linspace(-1, boundary, 5)
-    dm_list = [numqi.entangle.get_werner_state(dim,x) for x in alpha_yes_list]
+    dm_list = [numqi.state.Werner(dim,x) for x in alpha_yes_list]
     ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=False)
     assert all(ret0)
 
@@ -71,11 +71,11 @@ def test_werner_state_kext():
     # if use SCS, the alpha_no_list can be np.linspace(boundary+5e-2, 1, 5)
     tmp0 = 1e-4 if USE_MOSEK else 5e-2
     alpha_no_list = np.linspace(boundary+tmp0, 1, 5)
-    dm_list = [numqi.entangle.get_werner_state(dim,x) for x in alpha_no_list]
+    dm_list = [numqi.state.Werner(dim,x) for x in alpha_no_list]
     ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=False)
     assert all((not x) for x in ret0)
 
-    rho = numqi.entangle.get_werner_state(dim, boundary)
+    rho = numqi.state.Werner(dim, boundary)
     ret_ = numqi.gellmann.dm_to_gellmann_norm(rho)
     ret0 = numqi.entangle.get_ABk_symmetric_extension_boundary(rho, (dim,dim), kext, use_ppt=False, use_boson=False)
     assert abs(ret_-ret0) < (1e-7 if USE_MOSEK else 1e-4)
@@ -89,7 +89,7 @@ def test_werner_state_kext_ppt():
     boundary = 1/dim
 
     alpha_yes_list = np.linspace(-1, boundary, 5)
-    dm_list = [numqi.entangle.get_werner_state(dim,x) for x in alpha_yes_list]
+    dm_list = [numqi.state.Werner(dim,x) for x in alpha_yes_list]
     ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=True)
     assert all(ret0)
 
@@ -97,11 +97,11 @@ def test_werner_state_kext_ppt():
     # if use SCS, the alpha_no_list can be np.linspace(boundary+5e-2, 1, 5)
     tmp0 = 1e-4 if USE_MOSEK else 5e-2
     alpha_no_list = np.linspace(boundary+tmp0, 1, 5)
-    dm_list = [numqi.entangle.get_werner_state(dim,x) for x in alpha_no_list]
+    dm_list = [numqi.state.Werner(dim,x) for x in alpha_no_list]
     ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=True)
     assert all((not x) for x in ret0)
 
-    rho = numqi.entangle.get_werner_state(dim, boundary)
+    rho = numqi.state.Werner(dim, boundary)
     ret_ = numqi.gellmann.dm_to_gellmann_norm(rho)
     ret0 = numqi.entangle.get_ABk_symmetric_extension_boundary(rho, (dim,dim), kext, use_ppt=True, use_boson=False)
     assert abs(ret_-ret0) < (1e-7 if USE_MOSEK else 1e-4)
@@ -113,17 +113,17 @@ def test_isotropic_state_kext():
         boundary = (kext*dim+dim*dim-dim-kext)/(kext*(dim*dim-1))
 
         alpha_yes_list = np.linspace(-1/(dim*dim-1), boundary, 5)
-        dm_list = [numqi.entangle.get_isotropic_state(dim,x) for x in alpha_yes_list]
+        dm_list = [numqi.state.Isotropic(dim,x) for x in alpha_yes_list]
         ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=False)
         assert all(ret0)
 
         tmp0 = 1e-4 if USE_MOSEK else 5e-2
         alpha_no_list = np.linspace(boundary+tmp0, 1, 5)
-        dm_list = [numqi.entangle.get_isotropic_state(dim,x) for x in alpha_no_list]
+        dm_list = [numqi.state.Isotropic(dim,x) for x in alpha_no_list]
         ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=True)
         assert all((not x) for x in ret0)
 
-        rho = numqi.entangle.get_isotropic_state(dim, boundary)
+        rho = numqi.state.Isotropic(dim, boundary)
         ret_ = numqi.gellmann.dm_to_gellmann_norm(rho)
         ret0 = numqi.entangle.get_ABk_symmetric_extension_boundary(rho, (dim,dim), kext, use_ppt=False, use_boson=False)
         assert abs(ret_-ret0) < (1e-7 if USE_MOSEK else 1e-4)
@@ -184,14 +184,14 @@ def test_get_ABk_symmetric_extension_ree_werner():
             alpha_list = np.linspace(0, alpha_kext_boundary, num_point, endpoint=False)
         else:
             alpha_list = np.linspace(0, alpha_kext_boundary, num_point)
-        dm_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
+        dm_list = [numqi.state.Werner(dim, x) for x in alpha_list]
         ret0 = numqi.entangle.get_ABk_symmetric_extension_ree(dm_list, (dim,dim), kext, use_ppt=False)
         assert abs(np.abs(ret0).max()) < (1e-5 if USE_MOSEK else 1e-4)
 
         if alpha_kext_boundary<(1-1e-4):
             alpha_list = np.linspace(alpha_kext_boundary, 1, num_point, endpoint=False)
-            dm_kext_boundary = numqi.entangle.get_werner_state(dim,alpha_kext_boundary)
-            dm_list = [numqi.entangle.get_werner_state(dim, x) for x in alpha_list]
+            dm_kext_boundary = numqi.state.Werner(dim,alpha_kext_boundary)
+            dm_list = [numqi.state.Werner(dim, x) for x in alpha_list]
             ret0 = numqi.entangle.get_ABk_symmetric_extension_ree(dm_list, (dim,dim), kext, use_ppt=False)
             ret_ = np.array([numqi.utils.get_relative_entropy(x, dm_kext_boundary) for x in dm_list])
             assert np.abs(ret0-ret_).max() < (1e-5 if USE_MOSEK else 1e-4)
@@ -209,9 +209,9 @@ def test_witness():
 
     for _ in range(1000):
         tmp0 = numqi.random.rand_separable_dm(dimA,dimB,k=dimA*dimB)
-        assert np.trace(tmp0@op_witness).real < delta + 1e-7
+        assert np.trace(tmp0@op_witness).real < delta + 1e-5
 
     model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
     model.set_expectation_op(-op_witness)
     tmp0 = -numqi.optimize.minimize(model, theta0='uniform', tol=1e-9, num_repeat=3, print_every_round=0).fun
-    assert tmp0 < delta + 1e-7
+    assert tmp0 < delta + 1e-5

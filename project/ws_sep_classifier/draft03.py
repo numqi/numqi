@@ -132,8 +132,8 @@ fig.savefig('tbd01.png', dpi=200)
 
 # dm0 = numqi.random.rand_density_matrix(dimA*dimB, k=2*dimA*dimB)
 # dm1 = numqi.random.rand_density_matrix(dimA*dimB, k=2*dimA*dimB)
-dm0 = numqi.entangle.get_werner_state(dimA, 1)
-dm1 = numqi.entangle.get_isotropic_state(dimA, 1)
+dm0 = numqi.state.Werner(dimA, 1)
+dm1 = numqi.state.Isotropic(dimA, 1)
 theta1, hf_theta = numqi.entangle.get_density_matrix_plane(dm0, dm1)
 
 model.eval()

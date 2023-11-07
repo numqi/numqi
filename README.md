@@ -41,7 +41,7 @@ A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wi
 
 ```Python
 import numqi
-bell_state = numqi.entangle.get_werner_state(d=2, alpha=1)
+bell_state = numqi.state.Werner(d=2, alpha=1)
 print(bell_state) #a numpy array
 # [[ 0.   0.   0.   0. ]
 #  [ 0.   0.5 -0.5  0. ]

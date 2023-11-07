@@ -36,7 +36,7 @@ alpha_irrep_list = []
 alpha_analytic_list = []
 alpha_list = []
 ret_list = []
-dm_werner = numqi.entangle.get_werner_state(dim, alpha=1)
+dm_werner = numqi.state.Werner(dim, alpha=1)
 dm_norm = numqi.gellmann.dm_to_gellmann_norm(dm_werner)
 for kext in kext_list:
     t0 = time.time()

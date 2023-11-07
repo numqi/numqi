@@ -14,9 +14,9 @@ dimB = dim
 kext = 3
 use_ppt = True
 use_boson = True
-dm0 = numqi.entangle.get_werner_state(dim, 1)
+dm0 = numqi.state.Werner(dim, 1)
 # dm0 = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
-# dm1 = numqi.entangle.get_isotropic_state(dim, 1)
+# dm1 = numqi.state.Isotropic(dim, 1)
 # dm1 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
 dm0 = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
 dm1 = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
