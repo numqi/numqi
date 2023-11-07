@@ -1,7 +1,7 @@
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import scipy.special
 
 import numqi
 
@@ -49,6 +49,63 @@ def demo_multipartite_Maciej2019_gm():
     fig.tight_layout()
     # fig.savefig('data/Maciej2019_multipartite_gm.pdf')
 
+
+def demo_ces():
+    ## gradient descent
+    case_list = [(2,2,2), (2,2,4),(2,2,6),(2,3,4),(2,3,6),(2,3,8),(3,3,6),(3,3,8),(3,4,7),(4,4,7),(4,5,10)]
+    kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
+    for dimA,dimB,dimC in case_list:
+        np_list = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
+        t0 = time.time()
+        model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((dimA, dimB, dimC), rank=1)
+        model.set_target(np_list)
+        theta_optim1 = numqi.optimize.minimize(model, **kwargs)
+        tmp0 = time.time()-t0
+        print(f'[{dimA}x{dimB}x{dimC}][{tmp0:.2f}s], loss(r=1)= {theta_optim1.fun:.2e}')
+    # [2x2x2][0.07s], loss(r=1)= 2.50e-01
+    # [2x2x4][0.08s], loss(r=1)= 4.50e-02
+    # [2x2x6][0.10s], loss(r=1)= 1.23e-02
+    # [2x3x4][0.08s], loss(r=1)= 1.41e-02
+    # [2x3x6][0.15s], loss(r=1)= 2.86e-03
+    # [2x3x8][0.21s], loss(r=1)= 7.62e-04
+    # [3x3x6][0.18s], loss(r=1)= 7.20e-04
+    # [3x3x8][0.32s], loss(r=1)= 1.57e-04
+    # [3x4x7][0.40s], loss(r=1)= 7.98e-05
+    # [4x5x10][2.92s], loss(r=1)= 3.54e-07
+
+    ## PPT
+    case_list = [(2,2,2), (2,2,4),(2,2,6),(2,3,4),(2,3,6),(2,3,8),(3,3,6),(3,3,8),(3,4,7)]
+    for dimA,dimB,dimC in case_list:
+        np_list = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
+        t0 = time.time()
+        E2_ppt = numqi.matrix_space.get_geometric_measure_ppt(np_list, [dimA,dimB,dimC])
+        tmp0 = time.time()-t0
+        print(f'[{dimA}x{dimB}x{dimC}][{tmp0:.3f}s], E2_ppt= {E2_ppt:.2e}')
+    # [2x2x2][0.092s], loss(r=1)= 2.00e-01
+    # [2x2x4][0.164s], loss(r=1)= 4.49e-02
+    # [2x2x6][0.331s], loss(r=1)= 1.23e-02
+    # [2x3x4][0.318s], loss(r=1)= 1.41e-02
+    # [2x3x6][1.071s], loss(r=1)= 2.86e-03
+    # [2x3x8][2.103s], loss(r=1)= 7.62e-04
+    # [3x3x6][2.709s], loss(r=1)= 7.20e-04
+    # [3x3x8][8.554s], loss(r=1)= 1.57e-04
+    # [3x4x7][18.273s], loss(r=1)= 7.98e-05
+
+    ## hierarchy method
+    case_list = [(2,2,2,2), (2,2,4,2), (2,2,6,2), (2,3,4,3)]
+    info_list = []
+    for dimA,dimB,dimC,kmax in case_list:
+        np_list = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
+        for k in range(1, kmax+1):
+            t0 = time.time()
+            ret = numqi.matrix_space.is_ABC_completely_entangled_subspace(np_list, hierarchy_k=k)
+            info_list.append((dimA,dimB,dimC,k, ret, time.time()-t0))
+        print(f'[{dimA}x{dimB}x{dimC}] {info_list[-2][-2]}@(k={kmax-1}) {info_list[-1][-2]}@(k={kmax}) time(k={kmax})={info_list[-1][-1]:.2f}s')
+    ## mac-studio 20231107
+    # [2x2x2] False@(k=1) True@(k=2) time(k=2)=0.03s
+    # [2x2x4] False@(k=1) True@(k=2) time(k=2)=0.63s
+    # [2x2x6] False@(k=1) True@(k=2) time(k=2)=0.76s
+    # [2x3x4] False@(k=2) True@(k=3) time(k=3)=9.16s
 
 def demo_bipartite_Maciej2019_gm():
     dimB_list = list(range(3,8))

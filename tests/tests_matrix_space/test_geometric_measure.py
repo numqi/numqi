@@ -22,11 +22,25 @@ def test_get_GES_Maciej2019():
             assert np.abs(tmp0.conj() @ tmp0.T - np.eye(tmp0.shape[0])).max() < 1e-10
 
 
+def test_get_geometric_measure_ppt():
+    theta_list = np.linspace(0, np.pi, 5, endpoint=False)
+    for dimB in [3,4]:
+        dim_list = [2, dimB]
+        ret_ppt = []
+        for theta_i in theta_list:
+            matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, num_party=2, theta=theta_i)
+            ret_ppt.append(numqi.matrix_space.get_geometric_measure_ppt(matrix_subspace, dim_list))
+        ret_ppt = np.array(ret_ppt)
+        ret_analytical = numqi.matrix_space.get_GM_Maciej2019(dimB, theta_list)
+        assert np.abs(ret_ppt-ret_analytical).max()<1e-4
+    pass
+
 def test_get_generalized_geometric_measure_ppt():
     theta_list = np.linspace(0, np.pi, 5, endpoint=False)
-    for dimB, num_party in [(3,2), (3,3)]:
+    num_party = 3
+    for dimB in [3,4]:
         bipartition_list = [tuple(range(x)) for x in range(1,num_party)]
-        dim_list = [2]+[dimB]*(num_party-1)
+        dim_list = [2,dimB,dimB]
         ret_ppt = []
         for theta_i in theta_list:
             matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, num_party=num_party, theta=theta_i)

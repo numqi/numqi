@@ -3,7 +3,7 @@ import cvxpy
 
 from ._misc import get_vector_orthogonal_basis, get_bipartition_list
 
-def get_geometric_measure_ppt(state):
+def get_geometric_measure_ppt(state, dim_list):
     r'''approximate geoemtric measure of entanglement using PPT criterion
 
     only E_r with r=2 is solved by SDP
@@ -16,12 +16,11 @@ def get_geometric_measure_ppt(state):
     Returns:
         ret (float): geometric measure of entanglement
     '''
-    assert (state.ndim==2) or (state.ndim==3)
-    dimA = state.shape[-2]
-    dimB = state.shape[-1]
-    if state.ndim==2:
+    assert (state.ndim==len(dim_list)) or (state.ndim==(len(dim_list)+1))
+    assert state.shape[(-len(dim_list)):] == tuple(dim_list)
+    if state.ndim==len(dim_list):
         tmp0 = state.reshape(-1) / np.linalg.norm(state.reshape(-1))
-        projector_orth = np.eye(dimA*dimB) - tmp0[:, np.newaxis] * tmp0.conj()
+        projector_orth = np.eye(len(tmp0)) - tmp0[:, np.newaxis] * tmp0.conj()
     else:
         tmp0 = state.reshape(state.shape[0], -1)
         basis_orth = get_vector_orthogonal_basis(tmp0)
@@ -30,8 +29,10 @@ def get_geometric_measure_ppt(state):
     constraints = [
         rho>>0,
         cvxpy.trace(rho)==1,
-        cvxpy.partial_transpose(rho, [dimA,dimB], axis=0)>>0,
+        cvxpy.partial_transpose(rho, dim_list, axis=0)>>0,
     ]
+    if len(dim_list)>2:
+        constraints += [(cvxpy.partial_transpose(rho, dim_list, axis=x)>>0) for x in range(1,len(dim_list))]
     obj = cvxpy.Minimize(cvxpy.real(cvxpy.trace(projector_orth @ rho)))
     prob = cvxpy.Problem(obj, constraints)
     prob.solve()
@@ -48,10 +49,10 @@ def get_generalized_geometric_measure_ppt(state, dim_list, bipartition_list=None
             when bipartite, `get_geometric_measure_ppt` is called for GGM is equal to GM for bipartite
         dim_list (list): list of dimensions of each party
         bipartition_list (list[tuple[int]]): list of bipartitions, if not provided, all bipartitions are considered.
-            For some special cases, bipartitions can be reduced to a smaller set, e.g. Maciej2019 CES
+            For some special cases, bipartitions can be reduced to a smaller set
     '''
     if len(dim_list)==2:
-        ret = get_geometric_measure_ppt(state)
+        ret = get_geometric_measure_ppt(state, dim_list)
     else:
         if bipartition_list is None:
             bipartition_list = get_bipartition_list(len(dim_list))
