@@ -7,7 +7,8 @@ class TorchMatrixSqrtm(torch.autograd.Function):
     def forward(ctx, matA):
         assert not matA.is_cuda, 'TorchMatrixSqrtm() not support GPU'
         assert matA.ndim==2, 'TorchMatrixSqrtm() only suport dim(A)==2, not batch support'
-        ret = torch.from_numpy(scipy.linalg.sqrtm(matA.numpy()).atype(matA.dtype))
+        matA_np = matA.numpy()
+        ret = torch.from_numpy(scipy.linalg.sqrtm(matA_np).astype(matA_np.dtype))
         # TODO .astype(matA.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
         ctx.save_for_backward(ret)
         return ret
