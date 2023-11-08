@@ -191,23 +191,20 @@ class DetectCanonicalPolyadicRankModel(torch.nn.Module):
         tmp0 = [(rank,),(rank,)] + [(rank,x) for x in dim_list] + [(rank,x) for x in dim_list]
         tmp1 = [(N0,),(N0+1,)] + [(N0,x) for x in range(N0)] + [(N0+1,x) for x in range(N0)]
         self.contract_psi_psi = opt_einsum.contract_expression(*[y for x in zip(tmp0,tmp1) for y in x], [])
-        self.dim_basis = None
         self.contract_target_psi = None
 
         self.target = None
         self.traget_conj = None
 
     def set_target(self, np0, zero_eps=1e-7):
-        N0_ori = len(self.dim_list_ori)
         N0 = len(self.dim_list)
         if (np0.shape==self.dim_list_ori) or ((np0.shape[1:]==self.dim_list_ori) and np0.shape[0]==1):
             if np0.shape[1:]==self.dim_list_ori:
                 np0 = np0[0]
             if self.bipartition is not None:
-                tmp0 = self.bipartition + tuple(sorted(set(range(N0_ori)) - set(self.bipartition)))
+                tmp0 = self.bipartition + tuple(sorted(set(range(len(self.dim_list_ori))) - set(self.bipartition)))
                 np0 = np0.reshape(self.dim_list_ori).transpose(tmp0).reshape(self.dim_list)
             self.target = torch.tensor(np0 / np.linalg.norm(np0.reshape(-1)), dtype=torch.complex128)
-            self.dim_basis = None
             tmp0 = [self.dim_list,(self.rank,)] + [(self.rank,x) for x in self.dim_list]
             tmp1 = [tuple(range(N0)),(N0,)] + [(N0,x) for x in range(N0)]
             self.contract_target_psi = opt_einsum.contract_expression(*[y for x in zip(tmp0,tmp1) for y in x], [])
@@ -215,10 +212,9 @@ class DetectCanonicalPolyadicRankModel(torch.nn.Module):
             _,s,v = np.linalg.svd(np0.reshape(np0.shape[0], -1), full_matrices=False)
             np0 = v[s>zero_eps].reshape(-1, *self.dim_list_ori)
             if self.bipartition is not None:
-                tmp0 = self.bipartition + tuple(sorted(set(range(N0_ori)) - set(self.bipartition)))
+                tmp0 = self.bipartition + tuple(sorted(set(range(len(self.dim_list_ori))) - set(self.bipartition)))
                 np0 = np0.transpose([0]+[x+1 for x in tmp0]).reshape(-1, *self.dim_list)
             self.target = torch.tensor(np0, dtype=torch.complex128)
-            self.dim_basis = np0.shape[0]
             tmp0 = [np0.shape,(self.rank,)] + [(self.rank,x) for x in self.dim_list]
             tmp1 = [tuple(range(N0+1)),(N0+1,)] + [(N0+1,x+1) for x in range(N0)]
             self.contract_target_psi = opt_einsum.contract_expression(*[y for x in zip(tmp0,tmp1) for y in x], [0])
