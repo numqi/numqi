@@ -64,6 +64,9 @@ nav:
       - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
     - tutorial/maxent.ipynb
     - tutorial/query_grover.ipynb
+    - misc:
+      - tutorial/misc/gate_decomposition.ipynb
+      - tutorial/misc/state_tomography.ipynb
   - API:
     - matrix space: api/matrix_space.md
     - random: api/random.md
