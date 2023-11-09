@@ -106,6 +106,9 @@ final_state = circ.apply_state(initial_state)
 3. pennylane [documentation](https://docs.pennylane.ai/en/stable/)
 4. [github/qustop](https://github.com/vprusso/qustop) [github/toqito](https://github.com/vprusso/toqito)
 5. [github/qutip](https://github.com/qutip)
+6. [github/pymanopt](https://github.com/pymanopt/pymanopt) Python toolbox for optimization on Riemannian manifolds with support for automatic differentiation
+7. [github/QGopt](https://github.com/LuchnikovI/QGOpt) Riemannian optimization for quantum technologies
+8. [qctrl](https://docs.q-ctrl.com/references/qctrl/index.html)
 
 > `qetlab`
 
