@@ -178,6 +178,7 @@ def rand_kraus_op(num_term:int, dim_in:int, dim_out:int, tag_complex:bool=True, 
     return ret
 
 
+# TODO change to choi_op(dim_out,dim_in,dim_out_dim_in)
 def rand_choi_op(dim_in:int, dim_out:int, rank:int=None, seed=None):
     r'''Generate random Choi operator
 
