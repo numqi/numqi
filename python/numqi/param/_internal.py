@@ -7,7 +7,17 @@ import opt_einsum
 from .._torch_op import TorchPSDMatrixSqrtm
 
 
-def real_to_bounded(theta, lower, upper):
+def real_to_bounded(theta, lower:float, upper:float):
+    r'''map a real number into a bounded interval (lower,upper) using sigmoid function
+
+    Parameters:
+        theta (np.ndarray,torch.tensor): array of any shape.
+        lower (float): lower bound.
+        upper (float): upper bound.
+
+    Returns:
+        ret (np.ndarray,torch.tensor): array of the same shape as `theta`.
+    '''
     assert lower < upper
     if isinstance(theta, torch.Tensor):
         tmp0 = torch.sigmoid(theta) #1/(1+exp(-theta))
@@ -40,6 +50,18 @@ def _real_matrix_to_trace1_PSD_cholesky(matA, tag_real):
 
 
 def real_matrix_to_trace1_PSD(matA, tag_real=False, use_cholesky=False):
+    r'''map a real matrix to a positive semi-definite matrix with trace 1 (density matrix)
+
+    Parameters:
+        matA (np.ndarray,torch.tensor): a real matrix of shape (...,N0,N0) where `N0` is the dimension.
+                If `tag_real=True`, only the upper triangular part (include diagonal element) of `matA` is used.
+        tag_real (bool): If `tag_real=True`, the output is real. Otherwise the output is complex.
+        use_cholesky (bool): If `use_cholesky=True`, the Cholesky decomposition scheme is used to map `matA`.
+                Otherwise the matrix exponential scheme is used (time-consuming).
+
+    Returns:
+        ret (np.ndarray,torch.tensor): a matrix of shape (...,N0,N0) which satisfies the positive semi-definite condition.
+    '''
     if use_cholesky:
         ret = _real_matrix_to_trace1_PSD_cholesky(matA, tag_real)
     tmp0 = real_matrix_to_hermitian(matA, tag_real)
@@ -48,6 +70,16 @@ def real_matrix_to_trace1_PSD(matA, tag_real=False, use_cholesky=False):
 
 
 def real_matrix_to_hermitian(matA, tag_real=False):
+    r'''map a real matrix to a Hermitian matrix
+
+    Parameters:
+        matA (np.ndarray,torch.tensor): a real matrix of shape (...,N0,N0) where `N0` is the dimension.
+                If `tag_real=True`, only the upper triangular part (include diagonal element) of `matA` is used.
+        tag_real (bool): If `tag_real=True`, the output is real. Otherwise the output is complex.
+
+    Returns:
+        ret (np.ndarray,torch.tensor): a matrix of shape (...,N0,N0) which satisfies the Hermitian condition.
+    '''
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
     if isinstance(matA, torch.Tensor):
@@ -94,79 +126,112 @@ def hermitian_matrix_to_trace1_PSD(matA):
     ret = ret.reshape(*shape)
     return ret
 
-def matrix_to_kraus_op(mat):
+
+def matrix_to_stiefel(mat, method:str='sqrtm'):
+    r'''map a matrix to the Stiefel manifold
+
+    wiki-link: https://en.wikipedia.org/wiki/Stiefel_manifold
+
+    $$ \left\{ x\in\mathbb{K}^{m\times n}:x^\dagger x=I_n \right\}$$
+
+    where $\mathbb{K}=\mathbb{R}$ or $\mathbb{C}$. Matrix square root is used so the backward might be
+    several times slower than the forward. QR decomposition
+
+    Parameters:
+        mat (np.ndarray,torch.tensor): a matrix of shape (...,m,n). WARNING, it must be `m>=n`.
+                It can be real or complex.
+        method (str): 'sqrtm' or 'qr'. We observed that 'sqrtm' is faster in optimization.
+
+    Returns:
+        ret (np.ndarray,torch.tensor): a matrix of shape (...,m,n) on the Stiefel manifold.
+                It is real if `mat` is real, and complex if `mat` is complex.
+    '''
+    assert mat.ndim>=2
+    assert method in {'sqrtm','qr'}
+    if method=='sqrtm':
+        shape = mat.shape
+        dim0,dim1 = shape[-2:]
+        assert dim0>=dim1, f'row number should be smaller than column number, but got ({dim0},{dim1})'
+        mat = mat.reshape(-1, dim0, dim1)
+        tmp0 = opt_einsum.contract(mat, [0,1,2], mat.conj(), [0,1,3], [0,2,3])
+        if isinstance(mat, torch.Tensor):
+            tmp1 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp0])
+        else:
+            tmp1 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp0])
+        ret = opt_einsum.contract(mat, [0,1,2], tmp1, [0,3,2], [0,1,3])
+        ret = ret.reshape(*shape)
+    else:
+        # TODO poor efficiency in L-BFGS-B optimization
+        # the forward and backward time is still okay compared with matrix-square-root,
+        # but the time for L-BFGS-B optimization is much longer (strange)
+        if isinstance(mat, torch.Tensor):
+            ret = torch.linalg.qr(mat, mode='reduced')[0]
+        else:
+            ret = np.linalg.qr(mat, mode='reduced')[0]
+    return ret
+
+
+def matrix_to_kraus_op(mat, method='sqrtm'):
+    r'''map a matrix to a Kraus operator
+
+    For a quantum channel with output dimension m, input dimension n, and rank l (number of Kraus operator),
+    the Kraus operator satisfies
+
+    $$\left\{ x\in\mathbb{C}^{l\times m\times n}: \sum_{ij} x_{iju}x^*_{ijv}=\delta_{uv} \right\}$$
+
+    Parameters:
+        mat (np.ndarray,torch.tensor): a matrix of shape (...,l,m,n) where `l` is the number of Kraus operators,
+                `m` is the output dimension, and `n` is the input dimension. WARNING, it must be `m>=n`.
+        method (str): 'sqrtm' or 'qr'. We observed that 'sqrtm' is faster in optimization.
+
+    Returns:
+        ret (np.ndarray,torch.tensor): a matrix of shape (...,l,m,n) which satisfies the Kraus operator condition.
+    '''
     assert mat.ndim>=3
     shape = mat.shape
     rank,dim_out,dim_in = shape[-3:]
-    mat = mat.reshape(-1, rank, dim_out, dim_in)
-    tmp0 = opt_einsum.contract(mat, [0,1,2,3], mat.conj(), [0,1,2,4], [0,3,4])
-    if isinstance(mat, torch.Tensor):
-        tmp1 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp0])
-    else:
-        tmp1 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp0])
-    ret = opt_einsum.contract(mat, [0,1,2,3], tmp1, [0,4,3], [0,1,2,4])
-    ret = ret.reshape(*shape)
+    ret = matrix_to_stiefel(mat.reshape(-1, rank*dim_out, dim_in), method).reshape(*shape)
     return ret
 
-# def matrix_to_choi_op(mat):
-#     # TODO batch
-#     # mat can be real or complex
-#     assert (mat.ndim==3)
-#     rank,dim_in,dim_out = mat.shape
-#     if isinstance(mat, torch.Tensor):
-#         pass
-#     else:
-#         ret = np.einsum(mat, [0,1,2], )
+
+def matrix_to_choi_op(mat, method='sqrtm'):
+    r'''map a matrix to a Choi operator
+
+    For a quantum channel with output dimension m, input dimension n, and rank l, the Choi operator satisfies
+
+    $$\left\{ x\in\mathbb{C}^{m\times n\times m\times n}:x\succeq 0 \sum_i x_{iuiv}=\delta_{uv} \right\}$$
+
+    where $\succeq 0$ means positive semi-definite.
+
+    Parameters:
+        mat (np.ndarray,torch.tensor): a matrix of shape (...,l,m,n) where `l` is the number of Kraus operators,
+                `m` is the output dimension, and `n` is the input dimension. WARNING, it must be `m>=n`.
+        method (str): 'sqrtm' or 'qr'. We observed that 'sqrtm' is faster in optimization.
+
+    Returns:
+        ret (np.ndarray,torch.tensor): a matrix of shape (...,m,n,m,n) which satisfies the Choi operator condition.
+    '''
+    assert mat.ndim>=3
+    shape = mat.shape
+    rank,dim_out,dim_in = shape[-3:]
+    tmp0 = matrix_to_stiefel(mat.reshape(-1, rank*dim_out, dim_in), method).reshape(-1,rank,dim_out,dim_in)
+    tmp1 = opt_einsum.contract(tmp0, [0,1,2,3], tmp0.conj(), [0,1,4,5], [2,3,4,5])
+    ret = tmp1.reshape(shape[:-3]+(dim_out,dim_in,dim_out,dim_in))
+    return ret
 
 
-# def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
-#     assert matA.ndim==2 #TODO support batch
-#     shape = matA.shape
-#     matA = matA.reshape(-1, shape[-1], shape[-1])
-#     assert shape[-1]%dim_in==0
-#     dim_out = shape[-1]//dim_in
-#     if isinstance(matA, torch.Tensor):
-#         tmp0 = torch.tril(matA, -1)
-#         tmp1 = torch.triu(matA)
-#         tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
-#         # tmp3 = [torch.lobpcg(hf_complex_to_real(x.detach()),k=1)[0] for x in tmp2]
-#         tmp2_np = tmp2.detach().cpu().numpy()
-#         if tmp2_np.shape[-1]>5: #5 is chosen intuitively
-#             tmp3 = [scipy.sparse.linalg.eigsh(x, k=1, which='LA', return_eigenvectors=False)[0] for x in tmp2_np]
-#         else:
-#             tmp3 = [np.linalg.eigvalsh(x)[-1] for x in tmp2_np]
-#         # torch.lobpcg(tmp2, k=1)
-#         # tmp3 = torch.max(torch.diagonal(tmp2.real, dim1=1, dim2=2), dim=1)[0]
-#         tmp4 = torch.eye(tmp2.shape[1], device=matA.device)
-#         mat0 = torch.stack([torch.linalg.matrix_exp(tmp2[x]-tmp3[x]*tmp4) for x in range(len(tmp3))])
-#         # mat0 = torch.stack([torch.linalg.matrix_exp(x) for x in tmp2])
-#         tmp1 = torch.einsum(mat0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2])
-#         if use_cholesky:
-#             tmp2 = torch.linalg.inv(torch.linalg.cholesky_ex(tmp1, upper=True)[0])
-#         else:
-#             tmp2 = torch.linalg.inv(TorchPSDMatrixSqrtm.apply(tmp1))
-#         ret = torch.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
-#                 tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3]).reshape(dim_in*dim_out,-1)
-#     else:
-#         tmp0 = np.tril(matA, -1)
-#         tmp1 = np.triu(matA)
-#         tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
+def real_matrix_to_special_unitary(matA, tag_real:bool=False):
+    r'''map a real matrix to a special unitary matrix
 
-#         mat0 = np.stack([scipy.linalg.expm(x) for x in tmp2])
-#         # mat0 = scipy.linalg.expm(tmp2) #TODO scipy-v1.9
-#         tmp1 = np.einsum(mat0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2], optimize=True)
-#         if use_cholesky:
-#             tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
-#         else:
-#             tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
-#             # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
-#         ret = np.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
-#                 tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(dim_in*dim_out,-1)
-#     ret = ret.reshape(*shape)
-#     return ret
+    Parameters:
+        matA (np.ndarray,torch.tensor): a real matrix of shape (...,N0,N0) where `N0` is the dimension.
+        tag_real (bool): If `tag_real=True`, the output is real (special orthogonal matrix),
+                otherwise the output is complex (special unitary matrix).
+                If `tag_real=True`, only the upper triangular part (not include diagonal element) of `matA` is used.
 
-
-def real_matrix_to_special_unitary(matA, tag_real=False):
+    Returns:
+        ret (np.ndarray,torch.tensor): a matrix of shape (...,N0,N0) which satisfies the special unitary condition.
+    '''
     assert matA.shape[-1]==matA.shape[-2]
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
@@ -200,41 +265,32 @@ def real_matrix_to_special_unitary(matA, tag_real=False):
     return ret
 
 
-def real_to_kraus_op(mat, dim_in, dim_out):
-    # this method is in-efficient
-    # batched version might have memory issue
-    assert (mat.ndim==2) and (mat.shape[0]==mat.shape[1]) and (mat.shape[0]%(dim_in*dim_out)==0)
-    matU = real_matrix_to_special_unitary(mat)
-    ret = matU[:,:dim_in].reshape(-1, dim_out, dim_in)
-    return ret
-
-
-def PSD_to_choi_op(matA, dim_in, use_cholesky=False):
-    assert matA.ndim==2 # TODO batch
-    shape = matA.shape
-    matA = matA.reshape(-1, shape[-1], shape[-1])
-    N0 = matA.shape[0]
-    assert shape[-1]%dim_in==0
-    dim_out = shape[-1]//dim_in
-    if isinstance(matA, torch.Tensor):
-        tmp1 = torch.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3])
-        if use_cholesky:
-            tmp2 = torch.stack([torch.linalg.inv(torch.linalg.cholesky_ex(x, upper=True)[0]) for x in tmp1])
-        else:
-            tmp2 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp1])
-        ret = torch.einsum(matA.reshape(N0, dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
-                tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3]).reshape(N0, dim_in*dim_out,-1)
-    else:
-        tmp1 = np.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3], optimize=True)
-        if use_cholesky:
-            tmp2 = np.stack([np.linalg.inv(scipy.linalg.cholesky(x)) for x in tmp1])
-        else:
-            tmp2 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp1])
-            # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
-        ret = np.einsum(matA.reshape(N0,dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
-                tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3], optimize=True).reshape(N0, dim_in*dim_out, dim_in*dim_out)
-    ret = ret.reshape(*shape)
-    return ret
+# def PSD_to_choi_op(matA, dim_in, use_cholesky=False):
+#     assert matA.ndim==2 # TODO batch
+#     shape = matA.shape
+#     matA = matA.reshape(-1, shape[-1], shape[-1])
+#     N0 = matA.shape[0]
+#     assert shape[-1]%dim_in==0
+#     dim_out = shape[-1]//dim_in
+#     if isinstance(matA, torch.Tensor):
+#         tmp1 = torch.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3])
+#         if use_cholesky:
+#             tmp2 = torch.stack([torch.linalg.inv(torch.linalg.cholesky_ex(x, upper=True)[0]) for x in tmp1])
+#         else:
+#             tmp2 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp1])
+#         ret = torch.einsum(matA.reshape(N0, dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
+#                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3]).reshape(N0, dim_in*dim_out,-1)
+#     else:
+#         tmp1 = np.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3], optimize=True)
+#         if use_cholesky:
+#             tmp2 = np.stack([np.linalg.inv(scipy.linalg.cholesky(x)) for x in tmp1])
+#         else:
+#             tmp2 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp1])
+#             # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
+#         ret = np.einsum(matA.reshape(N0,dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
+#                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3], optimize=True).reshape(N0, dim_in*dim_out, dim_in*dim_out)
+#     ret = ret.reshape(*shape)
+#     return ret
 
 
 def get_rational_orthogonal2_matrix(m, n):
@@ -253,9 +309,6 @@ def get_rational_orthogonal2_matrix(m, n):
 
 
 # TODO see ws00
-# https://en.wikipedia.org/wiki/Stiefel_manifold
-# def real_to_Stifel(tag_complex=True):
-#     pass
 
 # def real_to_povm():
 #     pass

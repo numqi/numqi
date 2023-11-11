@@ -86,3 +86,47 @@ def test_matrix_to_kraus_op():
     assert torch1.dtype==torch.complex128
     tmp0 = torch.einsum(torch1, [0,1,2], torch1.conj(), [0,1,3], [2,3]).numpy()
     assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10
+
+
+def test_matrix_to_stiefel():
+    N0 = 4
+    N1 = 5
+    N2 = 3
+    size = N0,N1,N2
+
+    # float64
+    np0 = np_rng.uniform(-1,1,size=size)
+    np1 = numqi.param.matrix_to_stiefel(np0)
+    assert np1.dtype.type==np0.dtype.type
+    tmp0 = np.einsum(np1, [0,1,2], np1.conj(), [0,1,3], [0,2,3], optimize=True)
+    assert np.abs(tmp0-np.eye(N2)).max() < 1e-10
+    torch0 = torch.tensor(np0, dtype=torch.float64)
+    torch1 = numqi.param.matrix_to_stiefel(torch0)
+    assert torch1.dtype==torch.float64
+    tmp0 = torch.einsum(torch1, [0,1,2], torch1.conj(), [0,1,3], [0,2,3]).numpy()
+    assert np.abs(tmp0-np.eye(N2)).max() < 1e-10
+
+    # complex128
+    np0 = np_rng.uniform(-1,1,size=size) + 1j*np_rng.uniform(-1,1,size=size)
+    np1 = numqi.param.matrix_to_stiefel(np0)
+    assert np1.dtype.type==np0.dtype.type
+    tmp0 = np.einsum(np1, [0,1,2], np1.conj(), [0,1,3], [0,2,3], optimize=True)
+    assert np.abs(tmp0-np.eye(N2)).max() < 1e-10
+    torch0 = torch.tensor(np0, dtype=torch.complex128)
+    torch1 = numqi.param.matrix_to_stiefel(torch0)
+    assert torch1.dtype==torch.complex128
+    tmp0 = torch.einsum(torch1, [0,1,2], torch1.conj(), [0,1,3], [0,2,3]).numpy()
+    assert np.abs(tmp0-np.eye(N2)).max() < 1e-10
+
+
+def test_matrix_to_choi_op():
+    dim_in = 5
+    dim_out = 3
+    rank = 4
+
+    tmp0 = np_rng.uniform(-1,1,size=(2,rank,dim_out,dim_in))
+    np0 = tmp0[0] + 1j*tmp0[1]
+    choi_op = numqi.param.matrix_to_choi_op(np0)
+    assert np.abs(choi_op-choi_op.transpose(2,3,0,1).conj()).max() < 1e-10
+    assert np.linalg.eigvalsh(choi_op.reshape(dim_out*dim_in,-1)).min() >= -1e-10
+    assert np.abs(np.trace(choi_op, axis1=0, axis2=2) - np.eye(dim_in)).max() < 1e-10

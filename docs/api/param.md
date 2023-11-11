@@ -1,8 +1,24 @@
 # Parameterization
 
-## special unitary matrix
+::: numqi.param.real_to_bounded
+    options:
+      heading_level: 2
 
-`numqi.param.real_matrix_to_special_unitary(x)`
+::: numqi.param.matrix_to_stiefel
+    options:
+      heading_level: 2
+
+::: numqi.param.matrix_to_kraus_op
+    options:
+      heading_level: 2
+
+::: numqi.param.matrix_to_choi_op
+    options:
+      heading_level: 2
+
+::: numqi.param.real_matrix_to_special_unitary
+    options:
+      heading_level: 2
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -20,9 +36,7 @@ where $x_l$ denotes the lower triangle matrix with diagonal elements, and $x_u$ 
 
 Usually, the unitary matrix is unnecessary. But still, one can still parameterize a general unitary matrix as $e^{ir}e^{iy}$ where $r$ is a real number and $e^{iy}$ is a special unitary matrix as above
 
-## special orthogonal matrix
-
-`numqi.param.real_matrix_to_special_unitary(x, tag_real=True)`
+If `tag_real=True`, the following parameterization is used
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -32,9 +46,13 @@ $$
 z=\mathrm{e}^{\left( x_u-x_{u}^{T} \right)}
 $$
 
-## Positive Semi-definite matrix
+::: numqi.param.real_matrix_to_hermitian
+    options:
+      heading_level: 2
 
-`numqi.param.real_matrix_to_trace1_PSD(x)`
+::: numqi.param.real_matrix_to_trace1_PSD
+    options:
+      heading_level: 2
 
 $$
 x\in \mathbb{R} ^{d\times d}
@@ -50,12 +68,3 @@ $$
 
 for numerical stability, this function only produce trace one PSD matrices. To generate matrix with different trace, you may multiply the trace-1 matrix with another trace parameter.
 
-## quantum channel
-
-`numqi.param.real_to_kraus_op`
-
-TODO
-
-`numqi.param.PSD_to_choi_op`
-
-TODO
