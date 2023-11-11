@@ -142,3 +142,24 @@ def get_relative_entropy(rho0, rho1, kind='error', zero_tol=1e-5):
             ret = torch.inf if is_torch else np.inf
     ret = ret.real
     return ret
+
+def get_tetrahedron_POVM(num_qubit:int=1):
+    r'''Tetrahedron POVM
+
+    wiki-link: https://en.wikipedia.org/wiki/SIC-POVM
+
+    Parameters:
+        num_qubit(int): number of qubits
+
+    Returns:
+        ret(np.ndarray): shape=(N, m, m) where N=4**num_qubit, m=2**num_qubit
+    '''
+    a = np.sqrt(2)/3
+    b = np.sqrt(2/3)
+    vec = 1/4 * np.array([[1,0,0,1], [1,2*a,0,-1/3], [1,-a,b,-1/3], [1,-a,-b,-1/3]])
+    tmp0 = np.array([[1,0,0,1], [0,1,1,0], [0,-1j,1j,0], [1,0,0,-1]]).reshape(4,2,2)
+    mat = np.einsum(vec, [0,1], tmp0, [1,2,3], [0,2,3], optimize=True)
+    ret = mat
+    for _ in range(num_qubit-1):
+        ret = np.einsum(ret, [0,1,2], mat, [3,4,5], [0,3,1,4,2,5], optimize=True).reshape(-1, ret.shape[1]*2, ret.shape[2]*2)
+    return ret

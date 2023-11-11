@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 import torch
 
 import numqi
@@ -56,3 +55,34 @@ def test_get_rational_orthogonal2_matrix():
             if (m!=0) and (n!=0) and (abs(m)!=abs(n)):
                 tmp0 = numqi.param.get_rational_orthogonal2_matrix(m, n)
                 assert abs(tmp0 @ tmp0.T-np.eye(2)).max() < 1e-10
+
+
+def test_matrix_to_kraus_op():
+    dim_in = 5
+    dim_out = 3
+    rank = 3
+    size = rank,dim_out,dim_in
+
+    # float64
+    np0 = np_rng.uniform(-1,1,size=size)
+    np1 = numqi.param.matrix_to_kraus_op(np0)
+    assert np1.dtype.type==np0.dtype.type
+    tmp0 = np.einsum(np1, [0,1,2], np1.conj(), [0,1,3], [2,3], optimize=True)
+    assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10
+    torch0 = torch.tensor(np0, dtype=torch.float64)
+    torch1 = numqi.param.matrix_to_kraus_op(torch0)
+    assert torch1.dtype==torch.float64
+    tmp0 = torch.einsum(torch1, [0,1,2], torch1.conj(), [0,1,3], [2,3]).numpy()
+    assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10
+
+    # complex128
+    np0 = np_rng.uniform(-1,1,size=size) + 1j*np_rng.uniform(-1,1,size=size)
+    np1 = numqi.param.matrix_to_kraus_op(np0)
+    assert np1.dtype.type==np0.dtype.type
+    tmp0 = np.einsum(np1, [0,1,2], np1.conj(), [0,1,3], [2,3], optimize=True)
+    assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10
+    torch0 = torch.tensor(np0, dtype=torch.complex128)
+    torch1 = numqi.param.matrix_to_kraus_op(torch0)
+    assert torch1.dtype==torch.complex128
+    tmp0 = torch.einsum(torch1, [0,1,2], torch1.conj(), [0,1,3], [2,3]).numpy()
+    assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10

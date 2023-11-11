@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse.linalg
 import scipy.special
 import torch
+import opt_einsum
 
 from .._torch_op import TorchPSDMatrixSqrtm
 
@@ -93,52 +94,76 @@ def hermitian_matrix_to_trace1_PSD(matA):
     ret = ret.reshape(*shape)
     return ret
 
-
-def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
-    assert matA.ndim==2 #TODO support batch
-    shape = matA.shape
-    matA = matA.reshape(-1, shape[-1], shape[-1])
-    assert shape[-1]%dim_in==0
-    dim_out = shape[-1]//dim_in
-    if isinstance(matA, torch.Tensor):
-        tmp0 = torch.tril(matA, -1)
-        tmp1 = torch.triu(matA)
-        tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
-        # tmp3 = [torch.lobpcg(hf_complex_to_real(x.detach()),k=1)[0] for x in tmp2]
-        tmp2_np = tmp2.detach().cpu().numpy()
-        if tmp2_np.shape[-1]>5: #5 is chosen intuitively
-            tmp3 = [scipy.sparse.linalg.eigsh(x, k=1, which='LA', return_eigenvectors=False)[0] for x in tmp2_np]
-        else:
-            tmp3 = [np.linalg.eigvalsh(x)[-1] for x in tmp2_np]
-        # torch.lobpcg(tmp2, k=1)
-        # tmp3 = torch.max(torch.diagonal(tmp2.real, dim1=1, dim2=2), dim=1)[0]
-        tmp4 = torch.eye(tmp2.shape[1], device=matA.device)
-        mat0 = torch.stack([torch.linalg.matrix_exp(tmp2[x]-tmp3[x]*tmp4) for x in range(len(tmp3))])
-        # mat0 = torch.stack([torch.linalg.matrix_exp(x) for x in tmp2])
-        tmp1 = torch.einsum(mat0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2])
-        if use_cholesky:
-            tmp2 = torch.linalg.inv(torch.linalg.cholesky_ex(tmp1, upper=True)[0])
-        else:
-            tmp2 = torch.linalg.inv(TorchPSDMatrixSqrtm.apply(tmp1))
-        ret = torch.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
-                tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3]).reshape(dim_in*dim_out,-1)
+def matrix_to_kraus_op(mat):
+    assert mat.ndim>=3
+    shape = mat.shape
+    rank,dim_out,dim_in = shape[-3:]
+    mat = mat.reshape(-1, rank, dim_out, dim_in)
+    tmp0 = opt_einsum.contract(mat, [0,1,2,3], mat.conj(), [0,1,2,4], [0,3,4])
+    if isinstance(mat, torch.Tensor):
+        tmp1 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp0])
     else:
-        tmp0 = np.tril(matA, -1)
-        tmp1 = np.triu(matA)
-        tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
-
-        mat0 = np.stack([scipy.linalg.expm(x) for x in tmp2])
-        # mat0 = scipy.linalg.expm(tmp2) #TODO scipy-v1.9
-        tmp1 = np.einsum(mat0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2], optimize=True)
-        if use_cholesky:
-            tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
-        else:
-            tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
-            # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
-        ret = np.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
-                tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(dim_in*dim_out,-1)
+        tmp1 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x)) for x in tmp0])
+    ret = opt_einsum.contract(mat, [0,1,2,3], tmp1, [0,4,3], [0,1,2,4])
     ret = ret.reshape(*shape)
     return ret
+
+# def matrix_to_choi_op(mat):
+#     # TODO batch
+#     # mat can be real or complex
+#     assert (mat.ndim==3)
+#     rank,dim_in,dim_out = mat.shape
+#     if isinstance(mat, torch.Tensor):
+#         pass
+#     else:
+#         ret = np.einsum(mat, [0,1,2], )
+
+
+# def real_matrix_to_choi_op(matA, dim_in, use_cholesky=False):
+#     assert matA.ndim==2 #TODO support batch
+#     shape = matA.shape
+#     matA = matA.reshape(-1, shape[-1], shape[-1])
+#     assert shape[-1]%dim_in==0
+#     dim_out = shape[-1]//dim_in
+#     if isinstance(matA, torch.Tensor):
+#         tmp0 = torch.tril(matA, -1)
+#         tmp1 = torch.triu(matA)
+#         tmp2 = 1j*(tmp0 - tmp0.transpose(1,2)) + (tmp1 + tmp1.transpose(1,2))
+#         # tmp3 = [torch.lobpcg(hf_complex_to_real(x.detach()),k=1)[0] for x in tmp2]
+#         tmp2_np = tmp2.detach().cpu().numpy()
+#         if tmp2_np.shape[-1]>5: #5 is chosen intuitively
+#             tmp3 = [scipy.sparse.linalg.eigsh(x, k=1, which='LA', return_eigenvectors=False)[0] for x in tmp2_np]
+#         else:
+#             tmp3 = [np.linalg.eigvalsh(x)[-1] for x in tmp2_np]
+#         # torch.lobpcg(tmp2, k=1)
+#         # tmp3 = torch.max(torch.diagonal(tmp2.real, dim1=1, dim2=2), dim=1)[0]
+#         tmp4 = torch.eye(tmp2.shape[1], device=matA.device)
+#         mat0 = torch.stack([torch.linalg.matrix_exp(tmp2[x]-tmp3[x]*tmp4) for x in range(len(tmp3))])
+#         # mat0 = torch.stack([torch.linalg.matrix_exp(x) for x in tmp2])
+#         tmp1 = torch.einsum(mat0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2])
+#         if use_cholesky:
+#             tmp2 = torch.linalg.inv(torch.linalg.cholesky_ex(tmp1, upper=True)[0])
+#         else:
+#             tmp2 = torch.linalg.inv(TorchPSDMatrixSqrtm.apply(tmp1))
+#         ret = torch.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
+#                 tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3]).reshape(dim_in*dim_out,-1)
+#     else:
+#         tmp0 = np.tril(matA, -1)
+#         tmp1 = np.triu(matA)
+#         tmp2 = 1j*(tmp0 - tmp0.transpose(0,2,1)) + (tmp1 + tmp1.transpose(0,2,1))
+
+#         mat0 = np.stack([scipy.linalg.expm(x) for x in tmp2])
+#         # mat0 = scipy.linalg.expm(tmp2) #TODO scipy-v1.9
+#         tmp1 = np.einsum(mat0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2], optimize=True)
+#         if use_cholesky:
+#             tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
+#         else:
+#             tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
+#             # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
+#         ret = np.einsum(mat0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
+#                 tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(dim_in*dim_out,-1)
+#     ret = ret.reshape(*shape)
+#     return ret
 
 
 def real_matrix_to_special_unitary(matA, tag_real=False):
@@ -225,3 +250,12 @@ def get_rational_orthogonal2_matrix(m, n):
     ct = b/c
     ret = np.array([[ct,st],[-st,ct]])
     return ret
+
+
+# TODO see ws00
+# https://en.wikipedia.org/wiki/Stiefel_manifold
+# def real_to_Stifel(tag_complex=True):
+#     pass
+
+# def real_to_povm():
+#     pass
