@@ -64,3 +64,11 @@ def test_rand_choi_op():
     assert np.linalg.eigvalsh(choi_op).min() >= -1e-7
     tmp0 = np.trace(choi_op.reshape(dim_in, dim_out, dim_in, dim_out), axis1=1, axis2=3)
     assert np.abs(tmp0-np.eye(dim_in)).max() < 1e-10
+
+
+def test_rand_povm():
+    dim = 3
+    povm = numqi.random.rand_povm(dim, num_term=5)
+    assert np.abs(povm - povm.transpose(0,2,1).conj()).max() < 1e-10
+    assert np.abs(povm.sum(axis=0) - np.eye(dim)).max() < 1e-10
+    assert np.linalg.eigvalsh(povm).min() >= -1e-7

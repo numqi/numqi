@@ -178,7 +178,7 @@ def rand_kraus_op(num_term:int, dim_in:int, dim_out:int, tag_complex:bool=True, 
     return ret
 
 
-def rand_choi_op(dim_in:int, dim_out:int, seed=None):
+def rand_choi_op(dim_in:int, dim_out:int, rank:int=None, seed=None):
     r'''Generate random Choi operator
 
     $$ \lbrace C\in \mathbb{C} ^{d_id_o\times d_id_o}\,\,:C\succeq 0,\mathrm{Tr}_{d_o}\left[ C \right] =I_{d_i} \rbrace $$
@@ -195,8 +195,10 @@ def rand_choi_op(dim_in:int, dim_out:int, seed=None):
     # ret(dim_in*dim_out, dim_in*dim_out)
     np_rng = get_numpy_rng(seed)
     N0 = dim_in*dim_out
-    tmp0 = np_rng.normal(size=(N0,N0)) + 1j*np_rng.normal(size=(N0,N0))
-    np0 = scipy.linalg.expm(tmp0 + tmp0.T.conj())
+    if rank is None:
+        rank = N0
+    tmp0 = np_rng.normal(size=(N0,rank)) + 1j*np_rng.normal(size=(N0,rank))
+    np0 = tmp0 @ tmp0.T.conj()
     tmp1 = np.einsum(np0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2], optimize=True)
     # matrix square root should be the same
     tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
@@ -206,6 +208,24 @@ def rand_choi_op(dim_in:int, dim_out:int, seed=None):
             tmp2.conj(), [0,4], tmp2, [2,5], [4,1,5,3], optimize=True).reshape(N0,N0)
     return ret
 
+
+def rand_povm(dim:int, num_term:int, seed=None):
+    r'''generate random positive operator-valued measure (POVM)
+
+    Parameters:
+        dim (int): dimension of the Hilbert space
+        num_term (int): number of terms in the POVM
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=(`num_term`,`dim`,`dim`), dtype=np.float64
+    '''
+    np_rng = get_numpy_rng(seed)
+    tmp0 = np_rng.normal(size=(num_term,dim,dim)) + 1j*np_rng.normal(size=(num_term,dim,dim))
+    tmp1 = tmp0 @ tmp0.transpose(0,2,1).conj()
+    tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1.sum(axis=0)))
+    ret = tmp2 @ tmp1 @ tmp2
+    return ret
 
 def rand_bipartite_state(dimA, dimB=None, k=None, seed=None, return_dm=False):
     r'''Generate random bipartite pure state
@@ -443,4 +463,72 @@ def rand_adjacent_matrix(dim:int, seed=None):
     assert dim>=2
     tmp0 = np.triu(np_rng.integers(0, 2, size=(dim,dim)), 1)
     ret = (tmp0 + tmp0.T).astype(np.uint8)
+    return ret
+
+
+def rand_n_sphere(dim:int, size=None, seed=None):
+    r'''Generate random vector from n-sphere
+
+    wiki-link: https://en.wikipedia.org/wiki/N-sphere
+
+    Parameters:
+        dim (int): dimension of the vector
+        size (None, int, tuple): size of the output array
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=`size`+(dim,), dtype=np.float64
+    '''
+    assert dim>=1
+    np_rng = get_numpy_rng(seed)
+    is_single = (size is None)
+    if is_single:
+        size = ()
+    elif not hasattr(size, '__len__'):
+        size = int(size),
+    N0 = 1 if (len(size)==0) else np.prod(size)
+    tmp0 = np_rng.normal(size=(N0,dim))
+    tmp0 = tmp0 / np.linalg.norm(tmp0, axis=-1, keepdims=True)
+    if is_single:
+        ret = tmp0[0]
+    else:
+        ret = tmp0.reshape(size+(dim,))
+    return ret
+
+
+# TODO Lp norm ball https://mathoverflow.net/q/9185
+
+def rand_n_ball(dim:int, size=None, seed=None):
+    r'''Generate random vector from n-ball
+
+    wiki-link: https://en.wikipedia.org/wiki/Ball_(mathematics)
+
+    Box-Muller transform: https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+
+    stackexchange-link: https://stats.stackexchange.com/a/481716
+
+    Parameters:
+        dim (int): dimension of the vector
+        size (None, int, tuple): size of the output array
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=`size`+(dim,), dtype=np.float64
+    '''
+    assert dim>=1
+    np_rng = get_numpy_rng(seed)
+    is_single = (size is None)
+    if is_single:
+        size = ()
+    elif not hasattr(size, '__len__'):
+        size = int(size),
+    N0 = 1 if (len(size)==0) else np.prod(size)
+    tmp0 = np_rng.normal(size=(N0,dim))
+    tmp0 /= np.linalg.norm(tmp0, axis=-1, keepdims=True)
+    tmp1 = np_rng.uniform(0, 1, size=N0) ** (1/dim)
+    tmp2 = tmp0 * tmp1[:,np.newaxis]
+    if is_single:
+        ret = tmp2[0]
+    else:
+        ret = tmp2.reshape(size+(dim,))
     return ret
