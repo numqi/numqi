@@ -103,7 +103,7 @@ def matrix_to_kraus_op(mat):
     if isinstance(mat, torch.Tensor):
         tmp1 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp0])
     else:
-        tmp1 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x)) for x in tmp0])
+        tmp1 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp0])
     ret = opt_einsum.contract(mat, [0,1,2,3], tmp1, [0,4,3], [0,1,2,4])
     ret = ret.reshape(*shape)
     return ret

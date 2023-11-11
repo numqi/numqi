@@ -223,7 +223,7 @@ def rand_povm(dim:int, num_term:int, seed=None):
     np_rng = get_numpy_rng(seed)
     tmp0 = np_rng.normal(size=(num_term,dim,dim)) + 1j*np_rng.normal(size=(num_term,dim,dim))
     tmp1 = tmp0 @ tmp0.transpose(0,2,1).conj()
-    tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1.sum(axis=0)))
+    tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1.sum(axis=0)).astype(tmp1.dtype))
     ret = tmp2 @ tmp1 @ tmp2
     return ret
 
