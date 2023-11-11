@@ -67,6 +67,8 @@ nav:
     - misc:
       - tutorial/misc/gate_decomposition.ipynb
       - tutorial/misc/state_tomography.ipynb
+      - tutorial/misc/channel_tomography.ipynb
+      - tutorial/misc/optimal_povm.ipynb
   - API:
     - matrix space: api/matrix_space.md
     - random: api/random.md

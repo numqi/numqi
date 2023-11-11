@@ -52,10 +52,6 @@ for numerical stability, this function only produce trace one PSD matrices. To g
 
 ## quantum channel
 
-`numqi.param.real_matrix_to_choi_op`
-
-TODO
-
 `numqi.param.real_to_kraus_op`
 
 TODO
