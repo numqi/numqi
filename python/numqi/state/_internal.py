@@ -16,6 +16,35 @@ def Wtype(np0):
     ret[2**np.arange(N0)] = np0
     return ret
 
+
+def get_Wtype_state_GME(a:float, b:float, c:float):
+    r'''get the geometric measure of the W-type state
+
+    https://arxiv.org/abs/0710.0571 Analytic Expressions for Geometric Measure of Three Qubit States
+
+    Parameters:
+        a(float): the coefficient of |100>
+        b(float): the coefficient of |010>
+        c(float): the coefficient of |001>
+
+    Returns:
+        ret(float): the geometric measure of the W-type state
+    '''
+    # TODO broadcast
+    assert abs(a*a+b*b+c*c-1) < 1e-10
+    r1 = b**2 + c**2 - a**2
+    r2 = a**2 + c**2 - b**2
+    r3 = a**2 + b**2 - c**2
+    if r1 > 0 and r2 > 0 and r3 > 0:
+        w = 2*a*b
+        tmp0 = (16*a*a*b*b*c*c - w*w + r3*r3) / (w*w - r3*r3)
+        ret = 3/4 - tmp0/4
+    else:
+        ret = 1- max(a**2, b**2, c**2)
+    return ret
+
+
+
 def GHZ(n:int=2):
     assert n>=1
     ret = np.zeros(2**n, dtype=np.float64)

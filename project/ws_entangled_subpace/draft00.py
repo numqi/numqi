@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import scipy.linalg
+import plotly
+import plotly.subplots
 
 import numqi
 
@@ -253,6 +255,45 @@ def demo_robustness():
     ax.legend()
     fig.tight_layout()
     fig.savefig('data/robustness.pdf')
+
+
+def demo_Wlike_state_gme():
+    phi_list = np.linspace(0, np.pi, 20)
+    theta_list = np.linspace(0, 2 * np.pi, 40)
+
+    ret_analytical = []
+    ret_gd = []
+    abc_list = np.array([[(np.sin(p)*np.cos(t), np.sin(p)*np.sin(t), np.cos(p)) for p in phi_list] for t in theta_list])
+    kwargs = dict(theta0='uniform', tol=1e-14, num_repeat=3, print_every_round=0, early_stop_threshold=1e-14)
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel([2,2,2], rank=1)
+    for x in tqdm(abc_list.reshape(-1,3)):
+        ret_analytical.append(numqi.state.get_Wtype_state_GME(*x))
+        model.set_target(numqi.state.Wtype(x).reshape(2,2,2))
+        ret_gd.append(numqi.optimize.minimize(model, **kwargs).fun)
+    ret_analytical = np.array(ret_analytical).reshape(len(theta_list), -1)
+    ret_gd = np.array(ret_gd).reshape(len(theta_list), -1)
+
+    error = np.abs(ret_analytical-ret_gd)
+    print('maximum absolute error:', error.max())
+
+    fig = plotly.subplots.make_subplots(rows=1, cols=2, specs=[[{'type': 'surface'}, {'type': 'surface'}]])
+    fig.add_trace(plotly.graph_objects.Surface(
+        x=abc_list[:,:,0],  y=abc_list[:,:,1],  z=abc_list[:,:,2],  surfacecolor=ret_analytical,
+        colorscale='balance', colorbar=dict(x=0.45, xpad=0),  showscale=True,  name='analytical_result'), row=1, col=1)
+    fig.add_trace(plotly.graph_objects.Surface(
+        x=abc_list[:,:,0], y=abc_list[:,:,1], z=abc_list[:,:,2], surfacecolor=error,
+        colorscale='Viridis', colorbar=dict(x=1, xpad=0), showscale=True, name='absolute_error'), row=1, col=2)
+    fig.update_scenes(
+        xaxis=dict(title_text="a", tickfont=dict(size=10)),
+        yaxis=dict(title_text="b", tickfont=dict(size=10)),
+        zaxis=dict(title_text="c", tickfont=dict(size=10), range=[-0.95, 1]),
+        camera_eye=dict(x=1.5, y=1.5, z=1.5)
+    )
+    tmp0 = dict(l=50, r=50, b=100, t=100, pad=10) # left margin, right margin, bottom margin, top margin, padding
+    fig.update_layout(autosize=False, width=900, height=500, margin=tmp0)
+    # fig.show() # show in jupyter
+    fig.write_image("tbd00.png") # pip install -U kaleido
+
 
 
 if __name__=='__main__':
