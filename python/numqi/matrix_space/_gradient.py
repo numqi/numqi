@@ -238,7 +238,7 @@ class DetectCanonicalPolyadicRankModel(torch.nn.Module):
         theta_coeff = torch.nn.functional.softplus(self.theta_coeff).to(theta_psi[0].dtype)
         # theta_coeff = torch.exp(self.theta_coeff).to(theta_psi[0].dtype) #not help
         theta_psi_conj = [x.conj().resolve_conj() for x in theta_psi]
-        psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff.conj(), *theta_psi, *theta_psi_conj).real
+        psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff, *theta_psi, *theta_psi_conj).real
         return theta_psi, theta_coeff, psi_psi
 
     def get_state(self):
