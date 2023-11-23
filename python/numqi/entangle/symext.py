@@ -74,11 +74,14 @@ def get_cvxpy_transpose0213_indexing(N0, N1, N2=None, N3=None):
     return ret
 
 
-def get_ABk_symmetric_extension_ree(rho, dim, kext, use_ppt=False, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=False):
-    # TODO use_boson
+def get_ABk_symmetric_extension_ree(rho, dim, kext, use_ppt=False, use_boson=False, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=False):
     rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm)
 
     coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
+    if use_boson:
+        assert numqi.dicke.get_dicke_number(kext, dimB)==coeffB_list[0].shape[0]
+        coeffB_list = coeffB_list[:1]
+        multiplicity_list = multiplicity_list[:1]
     dim_coeffB_list = [x.shape[0] for x in coeffB_list]
 
     cvxP_list = [cvxpy.Variable((x*dimA,x*dimA), hermitian=True) for x in dim_coeffB_list]
