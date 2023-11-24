@@ -1,6 +1,6 @@
 # Pure Bosonic Extension
 
-Werner state (d=2) boundary $\alpha$
+Werner state (d=2) boundary $\alpha^{star}$
 
 | kext | PureB-ext | qetlab-boson-ext | qetlab-symmetric-ext |
 | :-: | :-: | :-: | :-: |

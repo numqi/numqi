@@ -58,8 +58,8 @@ nav:
       - "Entanglement: Advanced 2": tutorial/entangle/advanced02.md
       - tutorial/entangle/cha.ipynb
       - tutorial/entangle/various_JANR.ipynb
-      - pure bosonic extension: tutorial/entangle/pureb.md
-      - symmetric extension: tutorial/entangle/symext.md
+      - tutorial/entangle/sym_bos_ext.ipynb
+      - tutorial/entangle/pureb.ipynb
     - optimal-control:
       - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
     - tutorial/maxent.ipynb
