@@ -138,6 +138,14 @@ class CHABoundaryBagging:
 
 class AutodiffCHAREE(torch.nn.Module):
     def __init__(self, dim0, dim1, num_state=None, distance_kind='ree'):
+        r'''Gradient descent model for convex hull approximation to separable states
+
+        Parameters:
+            dim0(int): dimension of the first subsystem
+            dim1(int): dimension of the second subsystem
+            num_state(int): number of states in the convex hull, default to 2*dim0*dim1
+            distance_kind(str): 'gellmann' or 'ree', default to 'ree'
+        '''
         super().__init__()
         # [2*dA*dB,3*dA*dB] seems to be good enough
         num_state = (2*dim0*dim1) if (num_state is None) else num_state
