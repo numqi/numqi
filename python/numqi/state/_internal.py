@@ -176,3 +176,28 @@ def maximally_entangled_state(d:int):
     return ret
 
 # TODO AME
+
+def get_2qutrit_Antoine2022(q:float) -> np.ndarray:
+    r'''
+
+    Building separable approximations for quantum states via neural networks
+
+    doi-link: https://doi.org/10.1103/PhysRevResearch.4.023238
+
+    [0,0.5]: separable
+    (0.5,1.5]: PPT
+    (1.5,2.5]: NPT
+
+    Parameters:
+        q(float): q in [-2.5,2.5]
+
+    Returns:
+        rho(np.ndarray): 9x9 density matrix
+    '''
+    q = float(q)
+    assert -2.5<=q<=2.5
+    betap = (2.5 + q) / 21
+    betam = (2.5 - q) / 21
+    np0 = np.diag(np.array([2/21,betam,betap,betap,2/21,betam,betam,betap,2/21], dtype=np.float64))
+    np0[[0,0,4,4,8,8],[4,8,0,8,0,4]] = 2/21
+    return np0
