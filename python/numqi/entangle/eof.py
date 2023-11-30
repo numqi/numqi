@@ -8,7 +8,15 @@ op_torch_logm = numqi._torch_op.TorchMatrixLogm(num_sqrtm=6, pade_order=8)
 
 
 def get_concurrence_2qubit(rho):
-    # https://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
+    r'''get the concurrence of a 2-qubit density matrix
+    [wiki-link](https://en.wikipedia.org/wiki/Concurrence_(quantum_computing))
+
+    Parameters:
+        rho(np.ndarray): a 2-qubit density matrix, shape=(4,4)
+
+    Returns:
+        ret(float): the concurrence of the 2-qubit density matrix
+    '''
     assert (rho.shape==(4,4)) and (np.abs(rho-rho.T.conj()).max()<1e-10)
     tmp0 = np.array([-1,1,1,-1])
     z0 = (tmp0[:,np.newaxis]*tmp0) * rho[::-1,::-1].conj()
@@ -22,6 +30,14 @@ def get_concurrence_2qubit(rho):
 
 
 def get_concurrence_pure(psi):
+    r'''get the concurrence of a bipartite pure state
+
+    Parameters:
+        psi(np.ndarray): a pure state, shape=(dimA,dimB)
+
+    Returns:
+        ret(float): the concurrence of the bipartite pure state
+    '''
     assert (psi.ndim==2)
     if (psi.shape[0]==1) or (psi.shape[1]==1):
         ret = 0
@@ -37,6 +53,15 @@ def get_concurrence_pure(psi):
 
 
 def get_eof_pure(psi, eps=1e-10):
+    r'''get the entanglement of formation (EOF) of a bipartite pure state
+
+    Parameters:
+        psi(np.ndarray): a pure state, shape=(dimA,dimB)
+        eps(float): a small number to avoid log(0)
+
+    Returns:
+        ret(float): the EOF of the bipartite pure state
+    '''
     assert (psi.ndim==2)
     if (psi.shape[0]==1) or (psi.shape[1]==1):
         ret = 0
@@ -52,7 +77,15 @@ def get_eof_pure(psi, eps=1e-10):
 
 
 def get_eof_2qubit(rho):
-    # https://en.wikipedia.org/wiki/Entanglement_of_formation
+    r'''get the entanglement of formation (EOF) of a 2-qubit density matrix
+    [wiki-link](https://en.wikipedia.org/wiki/Entanglement_of_formation)
+
+    Parameters:
+        rho(np.ndarray): a 2-qubit density matrix, shape=(4,4)
+
+    Returns:
+        ret(float): the EOF of the 2-qubit density matrix
+    '''
     tmp0 = get_concurrence_2qubit(rho)
     tmp1 = (1 + np.sqrt(1-tmp0*tmp0))/2
     ret = -tmp1*np.log(tmp1) - (1-tmp1)*np.log(1-tmp1)
@@ -60,48 +93,25 @@ def get_eof_2qubit(rho):
 
 
 def get_von_neumann_entropy(np0, eps=1e-10):
+    r'''get the von Neumann entropy of a density matrix
+    [wiki-link](https://en.wikipedia.org/wiki/Von_Neumann_entropy)
+
+    Parameters:
+        np0(np.ndarray): a density matrix, shape=(dim,dim)
+        eps(float): a small number to avoid log(0)
+
+    Returns:
+        ret(float): the von Neumann entropy of the density matrix
+    '''
     assert np.abs(np0-np0.T.conj()).max() < eps
     EVL = np.linalg.eigvalsh(np0)
     ret = -np.dot(EVL, np.log(np.maximum(eps, EVL)))
     return ret
 
 
-def get_eof_isotropic(dim, alpha):
-    # https://doi.org/10.1007/s11704-008-0017-8
-    alpha = np.asarray(alpha)
-    shape = alpha.shape
-    alpha = alpha.reshape(-1)
-    ret = np.zeros(alpha.shape[0], dtype=np.float64)
-    F = (1+alpha*dim*dim-alpha)/(dim*dim)
-    ind0 = np.logical_and(F>1/dim, F<=(4*(dim-1)/(dim*dim)))
-    if np.any(ind0):
-        gamma = (np.sqrt(F[ind0])+np.sqrt((dim-1)*(1-F[ind0])))**2/dim
-        tmp0 = -gamma*np.log(gamma) - (1-gamma)*np.log(1-gamma)
-        tmp1 = (1-gamma)*np.log(dim-1)
-        ret[ind0] = tmp0 + tmp1
-    ind1 = F>(4*(dim-1)/(dim*dim))
-    if np.any(ind1):
-        ret[ind1] = dim*np.log(dim-1)*(F[ind1]-1)/(dim-2) + np.log(dim)
-    ret = ret.reshape(shape)
-    return ret
-
-def get_eof_werner(dim, alpha):
-    alpha = np.asarray(alpha)
-    shape = alpha.shape
-    alpha = alpha.reshape(-1)
-    a = (1-alpha*dim) / (dim-alpha)
-    ret = np.zeros(alpha.shape[0], dtype=np.float64)
-    ind0 = a<0
-    if np.any(ind0):
-        a = a[ind0]
-        tmp0 = (1-np.sqrt(1-a*a))/2
-        ret[ind0] = -tmp0*np.log(tmp0) - (1-tmp0)*np.log(1-tmp0)
-    ret = ret.reshape(shape)
-    return ret
-
-
 class EntanglementFormationModel(torch.nn.Module):
-    def __init__(self, dimA, dimB, num_term):
+    def __init__(self, dimA:int, dimB:int, num_term:int):
+        # https://doi.org/10.1103/PhysRevA.64.052304
         super().__init__()
         self.dimA = dimA
         self.dimB = dimB
@@ -125,6 +135,7 @@ class EntanglementFormationModel(torch.nn.Module):
         self.EVC = torch.tensor(EVC, dtype=torch.complex128)
 
     def forward(self):
+        # TODO replace with Stiefel manifold
         tmp0 = torch.complex(self.theta[0], self.theta[1])
         theta1 = tmp0 @ torch.linalg.inv(numqi._torch_op.TorchPSDMatrixSqrtm.apply(tmp0.T.conj() @ tmp0))
         prob = (theta1*theta1.conj()).real @ self.EVL

@@ -62,5 +62,5 @@ def test_get_qubit_dicke_state_gm():
             model.set_target(dicke_basis[dicke_k].reshape(dim_list))
             ret0.append(numqi.optimize.minimize(model, **kwargs).fun)
         ret0 = np.array(ret0)
-        ret_ = numqi.state.get_qubit_dicke_state_gm(num_qubit, dicke_k_list)
+        ret_ = numqi.state.get_qubit_dicke_state_GME(num_qubit, dicke_k_list)
         assert np.abs(ret0-ret_).max() < 1e-10

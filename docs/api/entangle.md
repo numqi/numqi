@@ -17,3 +17,25 @@
 ::: numqi.entangle.check_ABk_symmetric_extension
     options:
       heading_level: 3
+
+## Concurrence and EOF
+
+::: numqi.entangle.get_concurrence_pure
+    options:
+      heading_level: 3
+
+::: numqi.entangle.get_concurrence_2qubit
+    options:
+      heading_level: 3
+
+::: numqi.entangle.get_eof_pure
+    options:
+      heading_level: 3
+
+::: numqi.entangle.get_eof_2qubit
+    options:
+      heading_level: 3
+
+::: numqi.entangle.get_von_neumann_entropy
+    options:
+      heading_level: 3

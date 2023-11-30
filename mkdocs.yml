@@ -60,6 +60,7 @@ nav:
       - tutorial/entangle/various_JANR.ipynb
       - tutorial/entangle/sym_bos_ext.ipynb
       - tutorial/entangle/pureb.ipynb
+      - tutorial/entangle/entanglement-of-formation.ipynb
     - optimal-control:
       - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
     - tutorial/maxent.ipynb
@@ -76,6 +77,7 @@ nav:
     - parameterization: api/param.md
     - quantum gate: api/gate.md
     - entanglement detection: api/entangle.md
+    - quantum state: api/state.md
   - misc: misc.md
 plugins:
   search:

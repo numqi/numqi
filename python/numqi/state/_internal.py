@@ -4,23 +4,44 @@ import scipy.special
 from ..utils import get_relative_entropy
 
 def W(n:int):
+    r'''get the W-state [wiki-link](https://en.wikipedia.org/wiki/W_state)
+
+    $$ |W\rangle=\frac{1}{\sqrt{n}}\left( |100\cdots 0\rangle + |010\cdots 0\rangle + |000\cdots 1\rangle \right) $$
+
+    Parameters:
+        n(int): the number of qubits
+
+    Returns:
+        ret(np.ndarray): the W-state, `ret.ndim=1`
+    '''
     ret = np.zeros(2**n, dtype=np.float64)
     ret[2**np.arange(n,dtype=np.int64)] = np.sqrt(1/n)
     return ret
 
 
-def Wtype(np0):
-    np0 = np0 / np.linalg.norm(np0)
-    N0 = np0.shape[0]
-    ret = np.zeros(2**N0, dtype=np0.dtype)
-    ret[2**np.arange(N0)] = np0
+def Wtype(coeff):
+    r'''get the W-type state
+
+    $$ |W\rangle=\sum_{wt(x)=1} c_i|x\rangle $$
+
+    Parameters:
+        coeff(np.ndarray): the coefficients of the W-type state, `coeff.ndim=1`
+
+    Returns:
+        ret(np.ndarray): the W-type state, `ret.ndim=1`
+    '''
+    coeff = coeff / np.linalg.norm(coeff)
+    N0 = coeff.shape[0]
+    ret = np.zeros(2**N0, dtype=coeff.dtype)
+    ret[2**np.arange(N0)] = coeff
     return ret
 
 
 def get_Wtype_state_GME(a:float, b:float, c:float):
     r'''get the geometric measure of the W-type state
+    [arxiv-link](https://arxiv.org/abs/0710.0571)
 
-    https://arxiv.org/abs/0710.0571 Analytic Expressions for Geometric Measure of Three Qubit States
+    Analytic Expressions for Geometric Measure of Three Qubit States
 
     Parameters:
         a(float): the coefficient of |100>
@@ -44,18 +65,26 @@ def get_Wtype_state_GME(a:float, b:float, c:float):
     return ret
 
 
-
 def GHZ(n:int=2):
+    r'''get the GHZ state
+    [wiki-link](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state)
+
+    Parameters:
+        n(int): the number of qubits
+
+    Returns:
+        ret(np.ndarray): the GHZ state, `ret.ndim=1`
+    '''
     assert n>=1
     ret = np.zeros(2**n, dtype=np.float64)
     ret[[0,-1]] = 1/np.sqrt(2)
     return ret
 
 
-def get_qubit_dicke_state_gm(n:int, k:int):
-    r'''get the geometric measure of the Dicke state
+def get_qubit_dicke_state_GME(n:int, k:int):
+    r'''get the geometric measure of entanglement for the Dicke state
 
-    https://doi.org/10.1063/1.3464263
+    Matrix permanent and quantum entanglement of permutation invariant states [doi-link](https://doi.org/10.1063/1.3464263)
 
     Parameters:
         n(int): the number of qubits
@@ -67,20 +96,17 @@ def get_qubit_dicke_state_gm(n:int, k:int):
 
 def Werner(d:int, alpha:float):
     r'''get the Werner state
+    [wiki-link](https://en.wikipedia.org/wiki/Werner_state)
+    [quantiki-link](https://www.quantiki.org/wiki/werner-state)
 
-    https://en.wikipedia.org/wiki/Werner_state
+    alpha: $[-1,1]$
 
-    https://www.quantiki.org/wiki/werner-state
+    SEP: $\left[-1,\frac{1}{d} \right]$
 
-    alpha = ((1-2*p)*d+1) / (1-2*p+d)
+    (1,k)-ext: $\left[-1, \frac{k+d^2-d}{kd+d-1} \right]$
 
-    alpha: [-1,1]
-
-    SEP: [-1,1/d]
-
-    (1,k)-ext: [-1, (k+d^2-d)/(kd+d-1)]
-
-    (1,k)-ext boundary: https://journals.aps.org/pra/abstract/10.1103/PhysRevA.88.032323
+    (1,k)-ext boundary: Compatible quantum correlations: Extension problems for Werner and isotropic states
+    [doi-link](https://doi.org/10.1103/PhysRevA.88.032323)
 
     Parameters:
         d(int): the dimension of the Hilbert space
@@ -115,18 +141,44 @@ def get_Werner_ree(d:int, alpha:float):
     return ret
 
 
+def get_Werner_eof(dim, alpha):
+    r'''get the entanglement of formation (EOF) of the Werner state
+
+    reference: Entanglement of formation and concurrence for mixed states
+    [doi-link](https://doi.org/10.1007/s11704-008-0017-8)
+
+    Parameters:
+        dim(int): the dimension of the Hilbert space
+        alpha(np.ndarray,float): the parameter of the Werner state
+
+    Returns:
+        ret(np.ndarray,float): the entanglement of formation of the Werner state
+    '''
+    alpha = np.asarray(alpha)
+    shape = alpha.shape
+    alpha = alpha.reshape(-1)
+    a = (1-alpha*dim) / (dim-alpha)
+    ret = np.zeros(alpha.shape[0], dtype=np.float64)
+    ind0 = a<0
+    if np.any(ind0):
+        a = a[ind0]
+        tmp0 = (1-np.sqrt(1-a*a))/2
+        ret[ind0] = -tmp0*np.log(tmp0) - (1-tmp0)*np.log(1-tmp0)
+    ret = ret.reshape(shape)
+    return ret
+
+
 def Isotropic(d:int, alpha:float):
-    r'''get the isotropic state
+    r'''get the isotropic state [quantiki-link](https://www.quantiki.org/wiki/isotropic-state)
 
-    https://www.quantiki.org/wiki/isotropic-state
+    alpha: $\left[-\frac{1}{d^2-1}, 1\right]$
 
-    alpha: [-1/(d^2-1), 1]
+    SEP: $\left[-\frac{1}{d^2-1}, \frac{1}{d+1}\right]$
 
-    SEP: [-1/(d^2-1), 1/(d+1)]
+    (1,k)-ext: $\left[-\frac{1}{d^2-1}, \frac{kd+d^2-d-k}{k(d^2-1)}\right]$
 
-    (1,k)-ext: [-1/(d^2-1),(kd+d^2-d-k)/(k(d^2-1))]
-
-    https://journals.aps.org/pra/abstract/10.1103/PhysRevA.88.032323
+    Compatible quantum correlations: Extension problems for Werner and isotropic states
+    [doi-link](https://doi.org/10.1103/PhysRevA.88.032323)
 
     Parameters:
         d(int): the dimension of the Hilbert space
@@ -160,10 +212,40 @@ def get_Isotropic_ree(d:int, alpha:float):
         ret = get_relative_entropy(rho0, rho1, kind='infinity')
     return ret
 
+def get_Isotropic_eof(dim:int, alpha:np.ndarray|float):
+    r'''get the entanglement of formation (EOF) of the isotropic state
+
+    reference: Entanglement of formation and concurrence for mixed states
+    [doi-link](https://doi.org/10.1007/s11704-008-0017-8)
+
+    Parameters:
+        dim(int): the dimension of the Hilbert space
+        alpha(np.ndarray,float): the parameter of the isotropic state
+
+    Returns:
+        ret(np.ndarray,float): the entanglement of formation of the isotropic state
+    '''
+    alpha = np.asarray(alpha)
+    shape = alpha.shape
+    alpha = alpha.reshape(-1)
+    ret = np.zeros(alpha.shape[0], dtype=np.float64)
+    F = (1+alpha*dim*dim-alpha)/(dim*dim)
+    ind0 = np.logical_and(F>1/dim, F<=(4*(dim-1)/(dim*dim)))
+    if np.any(ind0):
+        gamma = (np.sqrt(F[ind0])+np.sqrt((dim-1)*(1-F[ind0])))**2/dim
+        tmp0 = -gamma*np.log(gamma) - (1-gamma)*np.log(1-gamma)
+        tmp1 = (1-gamma)*np.log(dim-1)
+        ret[ind0] = tmp0 + tmp1
+    ind1 = F>(4*(dim-1)/(dim*dim))
+    if np.any(ind1):
+        ret[ind1] = dim*np.log(dim-1)*(F[ind1]-1)/(dim-2) + np.log(dim)
+    ret = ret.reshape(shape)
+    return ret
+
+
 def maximally_entangled_state(d:int):
     r'''get the maximally entangled state
-
-    https://www.quantiki.org/wiki/maximally-entangled-state
+    [quantiki-link](https://www.quantiki.org/wiki/maximally-entangled-state)
 
     Parameters:
         d(int): the dimension of the Hilbert space
@@ -178,11 +260,10 @@ def maximally_entangled_state(d:int):
 # TODO AME
 
 def get_2qutrit_Antoine2022(q:float) -> np.ndarray:
-    r'''
+    r'''an example of SEP-PPT-NPT states in 2-qutrit system
 
-    Building separable approximations for quantum states via neural networks
-
-    doi-link: https://doi.org/10.1103/PhysRevResearch.4.023238
+    reference: Building separable approximations for quantum states via neural networks
+    [doi-link](https://doi.org/10.1103/PhysRevResearch.4.023238)
 
     [0,0.5]: separable
     (0.5,1.5]: PPT
@@ -201,3 +282,61 @@ def get_2qutrit_Antoine2022(q:float) -> np.ndarray:
     np0 = np.diag(np.array([2/21,betam,betap,betap,2/21,betam,betam,betap,2/21], dtype=np.float64))
     np0[[0,0,4,4,8,8],[4,8,0,8,0,4]] = 2/21
     return np0
+
+
+def get_bes2x4_Horodecki1997(b:float):
+    r'''get the 2x4 bound entangled state proposed by Horodecki et al. in 1997
+
+    reference: Separability criterion and inseparable mixed states with positive partial transposition
+    [doi-link](https://doi.org/10.1016/S0375-9601(97)00416-7)
+
+    reference: Certifying Quantum Separability with Adaptive Polytopes
+    [arxiv-link](https://arxiv.org/abs/2210.10054)
+
+    b in [0,1]
+
+    PPT range of b: [0, 1]
+
+    SEP: b=0 or b=1
+
+    Parameters:
+        b(float): the parameter of the state
+
+    Returns:
+        ret(np.ndarray): the density matrix of the state, shape=(8,8)
+    '''
+    assert (b >= 0) and (b <= 1)
+    ret = np.eye(8, dtype=np.float64)*(b/(7*b+1))
+    ret[[0,1,2,5,6,7], [5,6,7,0,1,2]] = b/(7*b+1)
+    ret[[4,7],[4,7]] = (1+b)/(14*b+2)
+    ret[[4,7], [7,4]] = np.sqrt(1-b*b)/(14*b+2)
+    return ret
+
+
+def get_bes3x3_Horodecki1997(a:float):
+    r'''get the 3x3 bound entangled state proposed by Horodecki et al. in 1997
+
+    reference: Separability criterion and inseparable mixed states with positive partial transposition
+    [doi-link](https://doi.org/10.1016/S0375-9601(97)00416-7)
+
+    reference: Certifying Quantum Separability with Adaptive Polytopes
+    [arxiv-link](https://arxiv.org/abs/2210.10054)
+
+    a in [0,1]
+
+    PPT range of a: [0, 1]
+
+    SEP: a=0 or a=1
+
+    Parameters:
+        b0(float): the parameter of the state
+
+    Returns:
+        ret(np.ndarray): the density matrix of the state, shape=(9,9)
+    '''
+    assert (a >= 0) and (a <= 1)
+    ret = np.eye(9, dtype=np.float64)*(a/(8*a+1))
+    ret[[0,0,4,4,8,8],[4,8,0,8,0,4]] = a/(8*a+1)
+    ret[[6,8],[6,8]] = (1+a)/(16*a+2)
+    ret[[6,8], [8,6]] = np.sqrt(1-a*a)/(16*a+2)
+    return ret
