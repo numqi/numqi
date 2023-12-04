@@ -2,8 +2,6 @@ import numpy as np
 import functools
 import opt_einsum
 import torch
-import scipy.optimize
-from tqdm import tqdm
 
 import numqi
 
@@ -75,7 +73,6 @@ def _concentratable_entanglement_get_bitstr(num_qubit, alpha_tuple):
     return tuple(ret)
 
 def get_concentratable_entanglement(psi, alpha_tuple=None):
-    is_torch = numqi.utils.is_torch(psi)
     assert psi.ndim==1
     num_qubit = numqi.utils.hf_num_state_to_num_qubit(psi.shape[0])
     if alpha_tuple is None:
@@ -89,7 +86,7 @@ def get_concentratable_entanglement(psi, alpha_tuple=None):
     bitstr_to_id['0'*num_qubit] = len(alpha_beta_list)
     bitstr_to_id['1'*num_qubit] = len(alpha_beta_list)
 
-    if is_torch:
+    if isinstance(psi,torch.Tensor):
         dtype_map = {torch.complex64:torch.float32, torch.complex128:torch.float64}
     else:
         dtype_map = {np.complex64:np.float32, np.complex128:np.float64}
@@ -101,7 +98,7 @@ def get_concentratable_entanglement(psi, alpha_tuple=None):
             tmp0 = psi.reshape(shape)
             tmp1 = psi_conj.reshape(shape)
             # tmp2 = opt_einsum.contract(tmp0, ind0, tmp1, ind1, ind_output).reshape(-1)
-            if is_torch:
+            if isinstance(psi,torch.Tensor):
                 tmp2 = torch.einsum(tmp0, ind0, tmp1, ind1, ind_output).reshape(-1)
                 id_to_value[bitstr_to_id[bitstr]] = torch.linalg.norm(tmp2)**2
             else:
@@ -113,59 +110,16 @@ def get_concentratable_entanglement(psi, alpha_tuple=None):
     return ce,ret
 
 class ConcentratableEntanglementModel(torch.nn.Module):
-    def __init__(self, num_qubit) -> None:
+    def __init__(self, num_qubit):
         super().__init__()
         np_rng = np.random.default_rng()
-        self.num_qubit = num_qubit
-        # hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=x), dtype=torch.float64))
-        # self.radius = hf0(2**num_qubit)
-        # self.angle = hf0(2**num_qubit)
-        self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=2*2**num_qubit), dtype=torch.float64))
+        self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=(2,2**num_qubit)), dtype=torch.float64))
 
     def forward(self):
-        psi = self.get_pure_state()
-        ce,_ = get_concentratable_entanglement(psi)
-        loss = -ce
-        return loss
-
-    def get_pure_state(self):
-        # tmp0 = torch.exp(1j*self.angle)
-        # psi = self.radius * tmp0 / torch.linalg.norm(self.radius)
-        N0 = self.theta.shape[0]//2
         tmp0 = self.theta / torch.linalg.norm(self.theta)
-        psi = tmp0[:N0] + 1j*tmp0[N0:]
-        return psi
-
-    # TODO use numqi.optimize.minimize
-    def minimize(self, num_repeat=3, tol=1e-7, print_freq=-1, seed=None):
-        np_rng = numqi.random.get_numpy_rng(seed)
-        num_parameter = len(numqi.optimize.get_model_flat_parameter(self))
-        hf_model = numqi.optimize.hf_model_wrapper(self)
-        ret = []
-        min_fun = 1
-        for ind0 in range(num_repeat):
-            theta0 = np_rng.uniform(-1, 1, size=num_parameter)
-            hf_callback = numqi.optimize.hf_callback_wrapper(hf_model, print_freq=print_freq)
-            theta_optim = scipy.optimize.minimize(hf_model, theta0, jac=True, method='L-BFGS-B', tol=tol, callback=hf_callback)
-            ret.append(theta_optim)
-            min_fun = min(min_fun, theta_optim.fun)
-            print(ind0, theta_optim.fun, min_fun)
-        ret = min(ret, key=lambda x: x.fun)
-        numqi.optimize.set_model_flat_parameter(self, ret.x)
-        return ret
-
-    # TODO use numqi.optimize.minimize_adam
-    def minimize_adam(self, num_step, lr=0.001):
-        # optimizer = torch.optim.Adam(self.parameters(), lr=lr)
-        optimizer = torch.optim.SGD(self.parameters(), lr=lr, momentum=0.8)
-        with tqdm(range(num_step)) as pbar:
-            for ind0 in pbar:
-                optimizer.zero_grad()
-                loss = self()
-                loss.backward()
-                optimizer.step()
-                if ind0%10==0:
-                    pbar.set_postfix(ce=f'{-loss.item():.12f}')
+        psi = torch.complex(tmp0[0], tmp0[1])
+        loss = -get_concentratable_entanglement(psi)[0]
+        return loss
 
 # dim0 = 4
 # dim1 = 4
@@ -178,49 +132,11 @@ class ConcentratableEntanglementModel(torch.nn.Module):
 
 # z2 = get_concentratable_entanglement(pure_state)
 # z3 = get_concentratable_entanglement(torch.tensor(pure_state))
+# TODO unittest
 
-num_qubit = 7
-
+num_qubit = 2
 model = ConcentratableEntanglementModel(num_qubit)
-# theta_optim = model.minimize(num_repeat=30000, tol=1e-10)
-# print(theta_optim.fun)
-
-
-from zzz import to_pickle, from_pickle
-# to_pickle(theta0=theta0, theta1=theta1)
-np_rng = numqi.random.get_numpy_rng(None)
-num_parameter = len(numqi.optimize.get_model_flat_parameter(model))
-hf_model = numqi.optimize.hf_model_wrapper(model)
-theta0 = from_pickle('theta0')
-theta1 = from_pickle('theta1')
-# theta0 = np_rng.uniform(-1, 1, size=num_parameter)
-# theta1 = np_rng.uniform(-1, 1, size=num_parameter)
-alpha_list = np.linspace(0, 1, 100)
-hf_interp = lambda x: theta0*(1-x) + theta1*x
-ret = []
-for ind0,alpha_i in enumerate(alpha_list):
-    theta_i = hf_interp(alpha_i)
-    hf_callback = numqi.optimize.hf_callback_wrapper(hf_model, print_freq=-1)
-    theta_optim = scipy.optimize.minimize(hf_model, theta_i, jac=True, method='L-BFGS-B', tol=1e-10, callback=hf_callback)
-    ret.append(theta_optim)
-    print(ind0, theta_optim.fun)
-
-
-import matplotlib.pyplot as plt
-plt.ion()
-fig,ax = plt.subplots()
-ax.plot(alpha_list, [x.fun for x in ret])
-fig.tight_layout()
-fig.savefig('tbd00.png', dpi=100)
-
-# np_rng = np.random.default_rng()
-# num_parameter = len(numqi.optimize.get_model_flat_parameter(model))
-# theta0 = np_rng.uniform(-1, 1, size=num_parameter)
-# numqi.optimize.set_model_flat_parameter(model, theta0)
-# model.minimize_adam(10000, lr=0.1)
-
-# from zzz import to_pickle
-# to_pickle(ce7=theta_optim)
+theta_optim = numqi.optimize.minimize(model, 'uniform', num_repeat=10, tol=1e-10)
 # 2 0.25
 # 3 0.37499999999914957
 # 4 0.49999999574509135

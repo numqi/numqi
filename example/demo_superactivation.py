@@ -150,7 +150,7 @@ def demo_typical_fail_converged_loss():
     theta_list = np.linspace(0, np.pi/2, 50)
     loss_list = []
     kwargs = dict(theta0=rand_bisurface_uniform, num_repeat=50, tol=1e-8,
-            early_stop_threshold=1e-5, print_every_round=-1)
+            early_stop_threshold=1e-5, print_every_round=0)
     for theta_i in tqdm(theta_list):
         npA,npB,npAB,npL,npR,field = numqi.matrix_space.get_matrix_subspace_example('0error-eq537', theta_i)
 
@@ -183,7 +183,7 @@ def demo_relation_between_kraus_op_and_matrix_space():
     dim_in = 4
     dim_out = 4
     kwargs = dict(theta0=rand_bisurface_uniform, num_repeat=50, tol=1e-8,
-            early_stop_threshold=1e-5, print_every_round=-1)
+            early_stop_threshold=1e-5, print_every_round=0)
     for ind_round in range(10):
         kraus_op0 = numqi.random.rand_kraus_op(num_term, dim_in, dim_out)
         kraus_op1 = numqi.random.rand_kraus_op(num_term, dim_in, dim_out)
@@ -203,9 +203,8 @@ def demo_superactivation_converge_probability():
     theta = np_rng.uniform(0, np.pi/2)
     npA,npB,npAB,npL,npR,field = numqi.matrix_space.get_matrix_subspace_example('0error-eq537', theta)
     model = numqi.matrix_space.DetectOrthogonalRankOneModel(npAB, dtype='float64')
-    theta_optim,all_result = numqi.optimize.minimize(model, theta0=rand_bisurface_uniform,
-                num_repeat=50000, tol=1e-9, print_every_round=500, return_all_result=True)
-    z0 = np.array([x.fun for x in all_result])
+    kwargs = dict(theta0=rand_bisurface_uniform, num_repeat=1, tol=1e-9, print_every_round=0)
+    z0 = np.array([numqi.optimize.minimize(model,**kwargs).fun for _ in tqdm(range(50000))])
     (z0 < 1e-8).mean() #1e-8 should be tuned to get a clear gap
     # bisphere-surface real xBy repeat=50k
     # theta=8pi/32  p=0.00164

@@ -46,9 +46,8 @@ fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm_tiles, dm1=dm_pyramid
 # model_eig.rho_vec.data[:] = tmp0 + np.random.uniform(-1,1,size=tmp0.shape)*1e-5
 # model_eig = numqi.entangle.BESNumEigenModel(dimA, dimB, N0=5, N1=4, with_ppt=True)
 # hf_model = numqi.optimize.hf_model_wrapper(model_eig)
-# hf_callback = numqi.optimize.hf_callback_wrapper(hf_model, dict(), print_freq=100)
 # theta0 = numqi.optimize.get_model_flat_parameter(model_eig)
-# theta_optim = scipy.optimize.minimize(hf_model, theta0, method='L-BFGS-B', jac=True, tol=1e-20, callback=hf_callback)
+# theta_optim = scipy.optimize.minimize(hf_model, theta0, method='L-BFGS-B', jac=True, tol=1e-20)
 # print(theta_optim.fun)
 
 dimA = 3

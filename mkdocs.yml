@@ -17,6 +17,37 @@ theme:
       toggle:
         icon: material/toggle-switch
         name: Switch to light mode
+plugins:
+  search:
+  mkdocs-jupyter:
+    include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
+    execute: true
+  mkdocstrings:
+    default_handler: python
+    handlers:
+      python:
+        paths: [python]
+        options:
+          docstring_style: google
+          show_source: false
+          show_root_heading: true
+markdown_extensions:
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+# TODO add colab link
 nav:
   - Home: index.md
   - Installation: installation.md
@@ -79,34 +110,3 @@ nav:
     - entanglement detection: api/entangle.md
     - quantum state: api/state.md
   - misc: misc.md
-plugins:
-  search:
-  mkdocs-jupyter:
-    include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
-    execute: true
-  mkdocstrings:
-    default_handler: python
-    handlers:
-      python:
-        paths: [python]
-        options:
-          docstring_style: google
-          show_source: false
-          show_root_heading: true
-markdown_extensions:
-  - pymdownx.arithmatex:
-      generic: true
-  - pymdownx.tasklist:
-      custom_checkbox: true
-  - pymdownx.highlight:
-      anchor_linenums: true
-      line_spans: __span
-      pygments_lang_class: true
-  - pymdownx.inlinehilite
-  - pymdownx.snippets
-  - pymdownx.superfences
-extra_javascript:
-  - javascripts/mathjax.js
-  - https://polyfill.io/v3/polyfill.min.js?features=es6
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
-# TODO add colab link

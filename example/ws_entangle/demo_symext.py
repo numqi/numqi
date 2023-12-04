@@ -38,7 +38,7 @@ def demo_SymmetricExtABkIrrepModel():
         rho_AB = numqi.random.rand_separable_dm(dimA, dimB)
         model = numqi.entangle.SymmetricExtABkIrrepModel(dimA, dimB, kext, use_cholesky=True)
         model.set_dm_target(rho_AB)
-        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=threshold/100, early_stop_threshold=threshold, print_every_round=0, print_freq=-1)
+        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=threshold/100, early_stop_threshold=threshold, print_every_round=0, print_freq=0)
         if theta_optim.fun > threshold:
             numqi.optimize.minimize_adam(model, theta0='uniform', num_step=10000, early_stop_threshold=threshold)
         with torch.no_grad():

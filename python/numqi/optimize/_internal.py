@@ -63,28 +63,58 @@ def hf_model_wrapper(model):
     return hf0
 
 
-def hf_callback_wrapper(hf_fval, state:dict=None, print_freq:int=1, tag_record_path=False):
-    if state is None:
-        state = dict()
-    state['step'] = 0
-    state['time'] = time.time()
-    state['fval'] = []
-    state['time_history'] = []
-    state['path'] = []
-    def hf0(theta):
-        step = state['step']
-        if tag_record_path:
-            state['path'].append(theta.copy())
-        if (print_freq>0) and (step%print_freq==0):
-            t0 = state['time']
+class MinimizeCallback:
+    def __init__(self, print_freq:int=1, extra_key=None, tag_print:bool=True):
+        if extra_key is None:
+            extra_key = []
+        if isinstance(extra_key, str):
+            extra_key = [extra_key]
+        available_key = {'grad_norm', 'path'}
+        assert all((isinstance(x,str) and (x in available_key)) for x in extra_key)
+        self.extra_key = extra_key
+        self.tag_print = tag_print
+        self.print_freq = print_freq
+        self.last_time = time.time()
+        self._need_grad = 'grad_norm' in extra_key #if True, the callback function will be called with tag_grad=True
+        self.state = None
+        self.history_state = []
+        self.reset()
+
+    def to_callable(self, hf_fval):
+        def hf0(theta):
+            if 'grad_norm' in self.extra_key:
+                fval,grad = hf_fval(theta, tag_grad=True)
+            else:
+                fval = hf_fval(theta, tag_grad=False)
+                grad = None
+            self(theta, fval, grad)
+        return hf0
+
+    def __call__(self, theta, fval, grad=None):
+        step = self.state['step']
+        if 'path' in self.extra_key:
+            self.state['path'].append(theta.copy())
+        if (self.print_freq>0) and (step%self.print_freq==0):
+            self.state['fval'].append(fval)
+            if 'grad_norm' in self.extra_key:
+                self.state['grad_norm'].append(np.linalg.norm(grad))
+            t0 = self.last_time
             t1 = time.time()
-            fval = hf_fval(theta, tag_grad=False)
-            print(f'[step={step}][time={t1-t0:.3f} seconds] loss={fval}')
-            state['fval'].append(fval)
-            state['time'] = t1
-            state['time_history'].append(t1-t0)
-        state['step'] += 1
-    return hf0
+            self.state['time'].append(t1-t0)
+            self.last_time = t1
+            if self.tag_print:
+                print(f'[step={step}][time={t1-t0:.3f} seconds] loss={fval}')
+        self.state['step'] += 1
+
+    def reset(self):
+        if (self.state is not None) and (self.state['step']>0):
+            self.history_state.append(self.state)
+        tmp0 = {'step':0, 'fval':[], 'time':[]}
+        if 'grad_norm' in self.extra_key:
+            tmp0['grad_norm'] = []
+        if 'path' in self.extra_key:
+            tmp0['path'] = []
+        self.state = tmp0
 
 
 def check_model_gradient(model, tol=1e-5, zero_eps=1e-4, seed=None):
@@ -143,40 +173,73 @@ def _get_hf_theta(np_rng, key=None):
     return hf_theta
 
 
-def minimize(model, theta0=None, num_repeat=3, tol=1e-7, print_freq=-1, method='L-BFGS-B',
-            print_every_round=1, maxiter=None, early_stop_threshold=None, return_all_result=False,
-            tag_record_path=False, seed=None):
+def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L-BFGS-B',
+            print_every_round=1, maxiter=None, early_stop_threshold=None,
+            callback=None, seed=None):
+    r'''gradient-based optimization
+
+    Parameters:
+        model (torch.nn.Module): the model to be optimized
+        theta0 (None, str, np.ndarray, callable): the initial value of theta
+
+            None: uniform(-1,1)
+
+            'uniform': uniform(-1,1)
+
+            'normal': normal(0,1)
+
+            np.ndarray: return the input
+
+            ('uniform',a,b): uniform(a,b)
+
+            ('normal',a,b): normal(a,b)
+
+            callable: return the output of the callable
+
+        num_repeat (int): number of repeat
+        tol (float): tolerance
+        print_freq (int): print frequency, non-positive means no print, if callback is used, this parameter is ignored
+        method (str): optimization method, see scipy.optimize.minimize
+        print_every_round (int): print frequency for each round, non-positive means no print
+        maxiter (int): maximum number of iterations, see scipy.optimize.minimize
+        early_stop_threshold (float): if the loss is less than this value, the optimization will stop
+        callback (None, MinimizeCallback): callback function, if None, MinimizeCallback(print_freq=print_freq) will be used
+        seed (None, int): random seed
+
+    Returns:
+        ret (scipy.optimize.OptimizeResult): the result of scipy.optimize.minimize
+    '''
+    if callback is not None:
+        assert isinstance(callback, MinimizeCallback)
+        assert hasattr(callback, '__call__') and hasattr(callback, 'reset')
+    if print_freq>=1:
+        assert callback is None, 'print_freq and callback cannot be used at the same time'
+        callback = MinimizeCallback(print_freq=print_freq)
     np_rng = np.random.default_rng(seed)
     hf_theta = _get_hf_theta(np_rng, theta0)
     num_parameter = len(get_model_flat_parameter(model))
     hf_model = hf_model_wrapper(model)
-    theta_optim_list = []
     theta_optim_best = None
-    path_best = None
-    options = dict() if maxiter is None else {'maxiter':maxiter}
+    kwargs = dict(tol=tol, method=method, jac=True)
+    if maxiter is not None:
+        kwargs['options'] = {'maxiter':maxiter}
     for ind0 in range(num_repeat):
         theta0 = hf_theta(num_parameter)
-        callback_state = dict()
-        hf_callback = hf_callback_wrapper(hf_model, callback_state, print_freq=print_freq, tag_record_path=tag_record_path)
-        theta_optim = scipy.optimize.minimize(hf_model, theta0, jac=True, method=method, tol=tol, callback=hf_callback, options=options)
-        if return_all_result:
-            theta_optim_list.append(theta_optim)
+        hf_callback = callback.to_callable(hf_model) if (callback is not None) else None
+        theta_optim = scipy.optimize.minimize(hf_model, theta0, callback=hf_callback, **kwargs)
         if (theta_optim_best is None) or (theta_optim.fun<theta_optim_best.fun):
+            index_best = ind0
             theta_optim_best = theta_optim
-            if tag_record_path:
-                path_best = callback_state['path']
         if (print_every_round>0) and (ind0%print_every_round==0):
             print(f'[round={ind0}] min(f)={theta_optim_best.fun}, current(f)={theta_optim.fun}')
+        if callback is not None:
+            callback.reset()
         if (early_stop_threshold is not None) and (theta_optim_best.fun<=early_stop_threshold):
             break
-    hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property (sometimes)
-    info = dict()
-    if tag_record_path:
-        info['path'] = path_best
-    if return_all_result:
-        info['theta_optim_list'] = theta_optim_list
-    ret = (theta_optim_best, info) if len(info) else theta_optim_best
-    return ret
+    hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property
+    if callback is not None:
+        callback.state = callback.history_state[index_best]
+    return theta_optim_best
 
 
 def minimize_adam(model, num_step, theta0='no-init', optim_args=('adam',0.01),

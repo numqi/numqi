@@ -107,13 +107,11 @@ if __name__=='__main__':
     theta_u = from_pickle('theta_optim_u')
 
     # hf0 = lambda x, tag_grad=True: hf_dummy_233(x, tag_grad, kwargs_model, kwargs_optim, zero_eps=1e-9, num_worker=16)
-    # state_dict = dict()
-    # hf_callback = numqi.optimize.hf_callback_wrapper(hf0, state=state_dict, print_freq=1, tag_record_path=True)
+    # hf_callback = numqi.optimize.MinimizeCallback(print_freq=1).to_callable(hf0) #extra_key='path'
     # theta_optim = scipy.optimize.minimize(hf0, theta_u, method='L-BFGS-B', jac=True, callback=hf_callback)
 
-    state_dict = dict()
     hf0 = lambda x, tag_grad=False: hf_dummy_233(x, tag_grad, kwargs_model, kwargs_optim, zero_eps=1e-7, num_worker=16)
-    hf_callback = numqi.optimize.hf_callback_wrapper(hf0, state=state_dict, print_freq=5, tag_record_path=True)
+    hf_callback = numqi.optimize.MinimizeCallback(print_freq=5).to_callable(hf0) #extra_key='path'
     theta_optim = scipy.optimize.minimize(hf0, theta_u, method='Nelder-Mead', callback=hf_callback)
     from zzz233 import to_pickle
     to_pickle(theta_optim_u=theta_optim.x)
