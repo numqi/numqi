@@ -112,4 +112,4 @@ final_state = circ.apply_state(initial_state)
 
 > `qetlab`
 
-`qetlab` is a matlab toolbox designed for quantum entanglement detection and do a greak work in this field. Honestly, `numqi` is mainly inspired by `qetlab` and the name segment `py-q-e-t` is taken from `py-thon` and `qet-lab`. In my personal view, the python package`numpy` and various python deep learning packages `pytorch/tensorflow/...` are much more powerful than the matlab builtin array manipulations. Then, why not combining them together.
+`qetlab` is a matlab toolbox designed for quantum entanglement detection and do a great work in this field. Honestly, `numqi` is mainly inspired by `qetlab`. In my personal view, the python package`numpy` and various python deep learning packages `pytorch/tensorflow/...` are much more powerful than the matlab builtin array manipulations. Then, why not combining them together.
