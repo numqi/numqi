@@ -7,35 +7,23 @@ import numqi.random
 import numqi.optimize
 
 class FindStateWithOpModel(torch.nn.Module):
-    def __init__(self, operator, use_dm, expectation=None, dtype='float64'):
+    def __init__(self, op_list, use_dm:bool, dtype:str='float64'):
         super().__init__()
         assert dtype in {'float32','float64'}
-        assert (operator.ndim==3) and (operator.shape[1]==operator.shape[2])
-        self.dtype = torch.float32 if (dtype=='float32') else torch.float64
+        assert (op_list.ndim==3) and (op_list.shape[1]==op_list.shape[2])
         self.cdtype = torch.complex64 if (dtype=='float32') else torch.complex128
-        assert use_dm in {True,False}
-        np_rng = np.random.default_rng()
-        self.matB = torch.tensor(operator, dtype=self.cdtype)
-        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=x), dtype=self.dtype))
         if use_dm:
-            self.theta = hf0(self.matB.shape[1], self.matB.shape[2])
-            self.theta_r = None
-            self.theta_i = None
+            self.manifold = numqi.manifold.Trace1PSD(op_list.shape[1], dtype=self.cdtype)
         else:
-            self.theta = None
-            self.theta_r = hf0(self.matB.shape[1])
-            self.theta_i = hf0(self.matB.shape[1])
-        if expectation is not None:
-            assert len(expectation)==self.matB.shape[0]
-            self.expectation = torch.tensor(expectation, dtype=self.dtype)
-        else:
-            self.expectation = None
-
+            self.manifold = numqi.manifold.Sphere(op_list.shape[1], dtype=self.cdtype)
+        self.op_list = torch.tensor(op_list, dtype=self.cdtype)
+        self.expectation = None
         self.state = None
 
     def set_expectation(self, x):
-        assert len(x)==self.matB.shape[0]
-        self.expectation = torch.tensor(x, dtype=self.dtype)
+        assert len(x)==self.op_list.shape[0]
+        tmp0 = torch.float32 if (self.cdtype==torch.complex64) else torch.float64
+        self.expectation = torch.tensor(x, dtype=tmp0)
 
     def get_state(self):
         with torch.no_grad():
@@ -45,14 +33,12 @@ class FindStateWithOpModel(torch.nn.Module):
 
     def forward(self):
         assert self.expectation is not None
-        if self.theta is None:
-            tmp0 = self.theta_r + 1j*self.theta_i
-            state = tmp0 / torch.linalg.norm(tmp0)
-            tmp0 = ((self.matB @ state) @ state.conj()).real
-        else:
-            state = numqi.param.real_matrix_to_trace1_PSD(self.theta, use_cholesky=True)
-            tmp0 = (self.matB.reshape(self.matB.shape[0],-1) @ state.reshape(-1).conj()).real
-        self.state = state
+        state = self.manifold()
+        if state.ndim==1: #pure state vector
+            tmp0 = ((self.op_list @ state) @ state.conj()).real
+        else: #density matrix
+            tmp0 = (self.op_list.reshape(self.op_list.shape[0],-1) @ state.reshape(-1).conj()).real
+        self.state = state.detach()
         loss = torch.mean((tmp0 - self.expectation)**2)
         return loss
 

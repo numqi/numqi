@@ -89,7 +89,17 @@ def matrix_to_gellmann_basis(A, norm_I='sqrt(2/d)'):
 
 
 def gellmann_basis_to_matrix(vec, norm_I='sqrt(2/d)'):
-    # I changed the default value norm_I='1/d' to norm_I='sqrt(2/d)' someday, this could lead to some bugs
+    r'''convert a vector in Gell-Mann basis to a matrix
+
+    ordering: PauliX, PauliY, PauliZ, I
+
+    Parameters:
+        vec (np.ndarray,torch.Tensor): vector in Gell-Mann basis
+        norm_I (str): normalization of identity matrix, '1/d' or 'sqrt(2/d)'
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): matrix
+    '''
     shape = vec.shape
     vec = vec.reshape(-1, shape[-1])
     N0 = vec.shape[0]
