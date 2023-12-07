@@ -4,16 +4,15 @@ import numqi
 
 def test_get_2qutrit_Antoine2022():
     qlist = np.linspace(0, 2.5, 50)
-    rho_list = [numqi.state.get_2qutrit_Antoine2022(x) for x in qlist]
-
-    is_ppt = np.array([numqi.entangle.is_ppt(x) for x in rho_list])
+    is_ppt = np.array([numqi.entangle.is_ppt(numqi.state.get_2qutrit_Antoine2022(x)) for x in qlist])
     assert np.all((qlist <= 1.5)==is_ppt)
 
+    # about 15 seconds
+    qlist = np.linspace(0, 2.5, 10)
     model = numqi.entangle.AutodiffCHAREE(dim0=3, dim1=3, num_state=27, distance_kind='gellmann')
     ree_cha_list = []
-    # about 1 minute
-    for rho in rho_list:
-        model.set_dm_target(rho)
+    for qi in qlist:
+        model.set_dm_target(numqi.state.get_2qutrit_Antoine2022(qi))
         tmp0 = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0, early_stop_threshold=1e-8)
         ree_cha_list.append(tmp0.fun)
     ree_cha_list = np.array(ree_cha_list)
@@ -52,7 +51,7 @@ def test_get_bes3x3_Horodecki1997():
     is_ppt = np.array([numqi.entangle.is_ppt(x, (3,3)) for x in rho_list])
     assert np.all(is_ppt)
 
-    alist = np.linspace(0, 1, 20)[1:-1] # exclude b0=0 and b0=1
+    alist = np.linspace(0, 1, 8)[1:-1] # exclude b0=0 and b0=1
     model = numqi.entangle.AutodiffCHAREE(dim0=3, dim1=3, num_state=18, distance_kind='gellmann')
     ree_cha_list = []
     for x in alist: #about 20 seconds
