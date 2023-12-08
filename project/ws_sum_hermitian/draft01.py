@@ -8,8 +8,9 @@ import numqi._torch_op
 np_rng = np.random.default_rng()
 
 
+# TODO manifold
 class SpaceDistanceModel(torch.nn.Module):
-    def __init__(self, dim, degree, dtype:str='complex128') -> None:
+    def __init__(self, dim, degree, dtype:str='complex128'):
         super().__init__()
         assert (degree>0) and (dim>degree)
         self.dim = int(dim)
@@ -28,7 +29,7 @@ class SpaceDistanceModel(torch.nn.Module):
         self.space1_orth = None
         self.matH = None
         ## bad, PSD matrix only
-        # self.torch_logm_op = numqi._torch_op.TorchMatrixLogm(num_sqrtm=8, pade_order=8)
+        # self.torch_logm_op = numqi._torch_op.PSDMatrixLogm(num_sqrtm=6, pade_order=8)
 
 
     def set_space(self, space0, space1):

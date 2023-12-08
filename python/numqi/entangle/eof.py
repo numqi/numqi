@@ -4,7 +4,7 @@ import torch
 
 import numqi._torch_op
 
-op_torch_logm = numqi._torch_op.TorchMatrixLogm(num_sqrtm=6, pade_order=8)
+op_torch_logm = numqi._torch_op.PSDMatrixLogm(num_sqrtm=6, pade_order=8)
 
 
 def get_concurrence_2qubit(rho):
@@ -137,7 +137,7 @@ class EntanglementFormationModel(torch.nn.Module):
     def forward(self):
         # TODO replace with Stiefel manifold
         tmp0 = torch.complex(self.theta[0], self.theta[1])
-        theta1 = tmp0 @ torch.linalg.inv(numqi._torch_op.TorchPSDMatrixSqrtm.apply(tmp0.T.conj() @ tmp0))
+        theta1 = tmp0 @ torch.linalg.inv(numqi._torch_op.PSDMatrixSqrtm.apply(tmp0.T.conj() @ tmp0))
         prob = (theta1*theta1.conj()).real @ self.EVL
         psiAB = (theta1 * torch.sqrt(self.EVL)) @ self.EVC.T.conj() / torch.sqrt(prob).reshape(-1,1)
         tmp1 = psiAB.reshape(-1, self.dimA, self.dimB)

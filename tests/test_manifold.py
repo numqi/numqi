@@ -122,16 +122,20 @@ def test_Stiefel():
     batch_size = 3
     for dim,rank in [(7,1), (7,3), (7,7)]:
         for dtype in [torch.float64, torch.complex128]:
-            for method in ['cholesky','qr']:
+            for method in ['choleskyL','qr','so-cayley','so-exp','sqrtm']:
                 manifold = numqi.manifold.Stiefel(dim, rank, batch_size, method=method, dtype=dtype)
                 x0 = manifold().detach().numpy()
                 assert np.abs(x0.conj().transpose(0,2,1) @ x0 - np.eye(rank)).max() < 1e-10
                 tmp0 = manifold.theta.detach().numpy()
                 if method=='cholesky':
-                    x1 = numqi.manifold.to_stiefel_cholesky(tmp0, dim, rank)
-                else:
+                    x1 = numqi.manifold.to_stiefel_choleskyL(tmp0, dim, rank)
+                    assert np.abs(x0-x1).max() < 1e-10
+                elif method=='qr':
                     x1 = numqi.manifold.to_stiefel_qr(tmp0, dim, rank)
-                assert np.abs(x0-x1).max() < 1e-10
+                    assert np.abs(x0-x1).max() < 1e-10
+                elif method=='sqrtm':
+                    x1 = numqi.manifold.to_stiefel_sqrtm(tmp0, dim, rank)
+                    assert np.abs(x0-x1).max() < 1e-10
 
 def test_SpecialOrthogonal():
     batch_size = 3

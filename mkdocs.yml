@@ -61,6 +61,9 @@ nav:
       - tutorial/optimize/wiki-test-function.ipynb
       - tutorial/optimize/adam-vs-lbfgs.ipynb
       - tutorial/optimize/wiki-test-function-ALM.ipynb
+    - manifold:
+      - tutorial/manifold/basic_sphere.ipynb
+      - tutorial/manifold/basic_stiefel.ipynb
     - tutorial/parametrize.ipynb
     - matrix space:
       - tutorial/matrix_space/numerical_range.ipynb

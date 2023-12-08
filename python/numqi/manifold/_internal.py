@@ -3,6 +3,7 @@ import scipy.special
 import torch
 
 import numqi.gellmann
+import numqi._torch_op
 
 def _hf_para(dtype, requires_grad, *size):
     # the value does not matter for that it's initialized in numqi.optimize.minimize
@@ -408,16 +409,18 @@ def to_discrete_probability_softmax(theta):
     return ret
 
 class Stiefel(torch.nn.Module):
-    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method='cholesky', requires_grad:bool=True, dtype:torch.dtype=torch.float64) -> None:
+    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method='qr', requires_grad:bool=True, dtype:torch.dtype=torch.float64) -> None:
         super().__init__()
         assert (dim>=2) and (rank>=1) and (rank<=dim)
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
-        assert method in {'cholesky','qr'}
-        if method=='qr':
+        assert method in {'choleskyL','qr','so-exp','so-cayley','sqrtm'}
+        if method in {'qr','sqrtm'}:
             tmp0 = dim*rank if (dtype in {torch.float32,torch.float64}) else 2*dim*rank
-        else:
+        elif method=='choleskyL':
             tmp0 = (dim*rank-((rank*(rank+1))//2)) * (1 if (dtype in {torch.float32,torch.float64}) else 2)
+        elif method in {'so-exp','so-cayley'}: #special orthogonal (SO)
+            tmp0 = ((dim*(dim-1))//2) if (dtype in {torch.float32,torch.float64}) else (dim*dim-1)
         tmp1 = (tmp0,) if (batch_size is None) else (batch_size, tmp0)
         tmp2 = torch.float32 if (dtype in {torch.float32,torch.complex64}) else torch.float64
         self.theta = _hf_para(tmp2, requires_grad, *tmp1)
@@ -427,14 +430,58 @@ class Stiefel(torch.nn.Module):
         self.method = method
 
     def forward(self):
-        if self.method=='cholesky':
-            ret = to_stiefel_cholesky(self.theta, self.dim, self.rank)
-        else: #qr
+        if self.method=='choleskyL':
+            ret = to_stiefel_choleskyL(self.theta, self.dim, self.rank)
+        elif self.method=='qr': #qr
             ret = to_stiefel_qr(self.theta, self.dim, self.rank)
+        elif self.method=='sqrtm':
+            ret = to_stiefel_sqrtm(self.theta, self.dim, self.rank)
+        elif self.method=='so-exp': #so
+            ret = to_special_orthogonal_exp(self.theta, self.dim)[...,:self.rank]
+        elif self.method=='so-cayley':
+            ret = to_special_orthogonal_cayley(self.theta, self.dim)[...,:self.rank]
         return ret
 
-def to_stiefel_cholesky(theta, dim:int, rank:int):
+def to_stiefel_sqrtm(theta, dim:int, rank:int):
+    assert rank<=dim
+    shape = theta.shape
+    if shape[-1]==dim*rank: #real
+        is_real = True
+    else:
+        assert shape[-1]==2*dim*rank
+        is_real = False
+    theta = theta.reshape(-1,shape[-1])
+    if isinstance(theta, torch.Tensor):
+        if is_real:
+            mat = theta.reshape(-1, dim, rank)
+        else:
+            tmp0 = theta.reshape(-1,2,dim,rank)
+            mat = torch.complex(tmp0[:,0], tmp0[:,1])
+        if rank==1:
+            ret = mat / torch.linalg.norm(mat, axis=1, keepdims=True)
+        else:
+            tmp0 = torch.linalg.inv(numqi._torch_op.PSDMatrixSqrtm.apply(mat.transpose(1,2).conj() @ mat))
+            ret = mat @ tmp0
+    else: #numpy
+        if is_real:
+            mat = theta.reshape(-1, dim, rank)
+        else:
+            tmp0 = theta.reshape(-1,2,dim,rank)
+            mat = tmp0[:,0] + 1j*tmp0[:,1]
+        if rank==1:
+            ret = mat / np.linalg.norm(mat, axis=1, keepdims=True)
+        else:
+            # scipy.linalg.sqrtm is slow, so we use np.linalg.eigh here
+            EVL,EVC = np.linalg.eigh(mat.transpose(0,2,1).conj() @ mat)
+            tmp0 = (EVC*np.sqrt(1/EVL).reshape(-1,1,rank)) @ EVC.transpose(0,2,1).conj()
+            ret = mat @ tmp0
+    ret = ret.reshape(*shape[:-1], dim, rank)
+    return ret
+
+def to_stiefel_choleskyL(theta, dim:int, rank:int):
     r'''map real vector to a Stiefel manifold via Cholesky decomposition
+
+    minimum parameters but bad convergance
 
     Parameters:
         theta (np.ndarray,torch.Tensor): the last dimension will be expanded to the matrix

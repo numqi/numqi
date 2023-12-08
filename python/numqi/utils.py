@@ -4,7 +4,7 @@ import numpy as np
 import scipy.linalg
 import torch
 
-from ._torch_op import TorchMatrixLogm
+import numqi._torch_op
 
 @functools.lru_cache(maxsize=128)
 def hf_num_state_to_num_qubit(num_state:int, kind:str='exact'):
@@ -92,8 +92,6 @@ def get_fidelity(rho0, rho1):
         elif ndim0==2 and ndim1==1:
             ret = torch.vdot(rho1, rho0 @ rho1).real
         else:
-            # sqrt_rho = TorchMatrixSqrtm.apply(rho)
-            # ret = torch.trace(TorchMatrixSqrtm.apply(sqrt_rho @ sigma @ sqrt_rho))
             EVL0,EVC0 = torch.linalg.eigh(rho0)
             zero = torch.tensor(0.0, device=rho0.device)
             tmp0 = torch.sqrt(torch.maximum(zero, EVL0))
@@ -122,7 +120,7 @@ def get_purity(rho):
     return ret
 
 
-_ree_op_torch_logm = TorchMatrixLogm(num_sqrtm=6, pade_order=8)
+_ree_op_torch_logm = numqi._torch_op.PSDMatrixLogm(num_sqrtm=6, pade_order=8)
 
 def get_relative_entropy(rho0, rho1, kind='error', zero_tol=1e-5):
     is_torch = isinstance(rho0, torch.Tensor)

@@ -117,6 +117,29 @@ class MinimizeCallback:
         self.state = tmp0
 
 
+def finite_difference_central(hf0, x0, zero_eps=1e-4):
+    # https://en.wikipedia.org/wiki/Finite_difference
+    x0 = np.asarray(x0)
+    assert x0.dtype.type in (np.float32, np.float64, np.complex64, np.complex128)
+    is_real = x0.dtype.type in (np.float32, np.float64)
+    ret = np.zeros_like(x0)
+    for ind0 in range(x0.size):
+        ind0 = np.unravel_index(ind0, x0.shape)
+        if is_real:
+            tmp0,tmp1 = [x0.copy() for _ in range(2)]
+            tmp0[ind0] += zero_eps
+            tmp1[ind0] -= zero_eps
+            ret[ind0] = (hf0(tmp0) - hf0(tmp1)) / (2*zero_eps)
+        else:
+            tmp0,tmp1,tmp2,tmp3 = [x0.copy() for _ in range(4)]
+            tmp0[ind0] += zero_eps
+            tmp1[ind0] -= zero_eps
+            tmp2[ind0] += 1j*zero_eps
+            tmp3[ind0] -= 1j*zero_eps
+            ret[ind0] = (hf0(tmp0) - hf0(tmp1) + 1j*(hf0(tmp2) - hf0(tmp3))) / (2*zero_eps)
+    return ret
+
+
 def check_model_gradient(model, tol=1e-5, zero_eps=1e-4, seed=None):
     np_rng = np.random.default_rng(seed)
     num_parameter = get_model_flat_parameter(model).size
@@ -136,16 +159,9 @@ def check_model_gradient(model, tol=1e-5, zero_eps=1e-4, seed=None):
 
     def hf0(theta):
         set_model_flat_parameter(model, theta)
-        ret = model()
-        if hasattr(ret, 'item'):
-            ret = ret.item()
+        ret = model().item()
         return ret
-    ret_ = np.zeros(num_parameter, dtype=np.float64)
-    for ind0 in range(ret_.shape[0]):
-        tmp0,tmp1 = [theta0.copy() for _ in range(2)]
-        tmp0[ind0] += zero_eps
-        tmp1[ind0] -= zero_eps
-        ret_[ind0] = (hf0(tmp0)-hf0(tmp1))/(2*zero_eps)
+    ret_ = finite_difference_central(hf0, theta0, zero_eps=zero_eps)
     assert np.abs(ret_-ret0).max()<tol
 
 

@@ -4,7 +4,7 @@ import scipy.special
 import torch
 import opt_einsum
 
-from .._torch_op import TorchPSDMatrixSqrtm
+import numqi._torch_op
 
 
 def real_to_bounded(theta, lower:float, upper:float):
@@ -155,7 +155,7 @@ def matrix_to_stiefel(mat, method:str='sqrtm'):
         mat = mat.reshape(-1, dim0, dim1)
         tmp0 = opt_einsum.contract(mat, [0,1,2], mat.conj(), [0,1,3], [0,2,3])
         if isinstance(mat, torch.Tensor):
-            tmp1 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp0])
+            tmp1 = torch.stack([torch.linalg.inv(numqi._torch_op.PSDMatrixSqrtm.apply(x)) for x in tmp0])
         else:
             tmp1 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp0])
         ret = opt_einsum.contract(mat, [0,1,2], tmp1, [0,3,2], [0,1,3])
@@ -277,7 +277,7 @@ def real_matrix_to_special_unitary(matA, tag_real:bool=False):
 #         if use_cholesky:
 #             tmp2 = torch.stack([torch.linalg.inv(torch.linalg.cholesky_ex(x, upper=True)[0]) for x in tmp1])
 #         else:
-#             tmp2 = torch.stack([torch.linalg.inv(TorchPSDMatrixSqrtm.apply(x)) for x in tmp1])
+#             tmp2 = torch.stack([torch.linalg.inv(numqi._torch_op.PSDMatrixSqrtm.apply(x)) for x in tmp1])
 #         ret = torch.einsum(matA.reshape(N0, dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
 #                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3]).reshape(N0, dim_in*dim_out,-1)
 #     else:

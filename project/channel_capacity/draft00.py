@@ -8,7 +8,7 @@ import numqi
 # http://arxiv.org/abs/quant-ph/0304102v1
 # Capacities of Quantum Channels and How to Find Them
 
-op_torch_logm = numqi._torch_op.TorchMatrixLogm(num_sqrtm=6, pade_order=8)
+op_torch_logm = numqi._torch_op.PSDMatrixLogm(num_sqrtm=6, pade_order=8)
 
 def get_von_neumann_entropy(rho):
     log_rho = op_torch_logm(rho)
