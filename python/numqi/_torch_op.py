@@ -34,7 +34,7 @@ def _torch_psd_sqrtm_backward_repeat(grad_output, ctx_tensor, repeat:int=1):
     #     if ind0!=repeat-1:
     #         tmp0 = tmp0 @ tmp0
     # ret = torch.from_numpy(ret)
-    # https://stackoverflow.com/a/73717130/7290857
+    # https://github.com/pytorch/pytorch/issues/25481#issuecomment-544465798
     N0 = grad_output.shape[-1]
     shape = grad_output.shape
     grad_output = grad_output.view(-1, N0, N0)
