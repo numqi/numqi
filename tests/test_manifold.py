@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import itertools
+import scipy.linalg
 
 import numqi
 
@@ -188,3 +189,52 @@ def test_naive_lu_decomposition():
         assert np.abs(np.tril(matU,-1)).max() < 1e-10
         assert np.abs(np.diag(matL)-1).max() < 1e-10
         assert np.abs(mat - matL@matU).max() < 1e-10
+
+
+def test_StiefelManifoldDistanceModel():
+    dim = 10
+    rank = 3
+    bound = 0.1
+
+    space0 = numqi.random.rand_unitary_matrix(dim, seed=np_rng)[:,:rank]
+    tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
+    tmp0 = tmp0 + tmp0.T.conj()
+    tmp0 = tmp0 - (np.trace(tmp0)/dim)*np.eye(dim)
+    matH = tmp0 * (bound/np.linalg.norm(tmp0, ord='fro'))
+    space1 = scipy.linalg.expm(1j*matH) @ space0
+    # space1 = numqi.random.rand_unitary_matrix(rank) @ space1
+
+    model = numqi.manifold.StiefelManifoldDistanceModel(dim, rank, dtype=torch.complex128)
+    model.set_space(space0, space1)
+    model()
+    matU = model.matU.numpy()
+    tmp0 = space1.T.conj() @ matU @ space0
+    assert np.abs(tmp0.sum(axis=1)-1).max() < 1e-10
+    theta_optim = numqi.optimize.minimize(model, tol=1e-10, num_repeat=3)
+    assert theta_optim.fun < bound**2
+    # matU = scipy.linalg.expm(1j*matH)
+    # target_manifold = model.space1_orth.numpy().T.conj() @ matU @ model.space0_orth.numpy()
+
+
+def test_TwoHermitianSumModel():
+    for dim in [8, 16, 32]:
+        model = numqi.manifold.TwoHermitianSumModel(dim, dtype=torch.complex128)
+        matA = numqi.random.rand_hermitian_matrix(dim, seed=np_rng)
+        matB = numqi.random.rand_hermitian_matrix(dim, seed=np_rng)
+        matU0 = numqi.random.rand_unitary_matrix(dim, seed=np_rng)
+        matU1 = numqi.random.rand_unitary_matrix(dim, seed=np_rng)
+        matC = matU0 @ matA @ matU0.T.conj() + matU1 @ matB @ matU1.T.conj()
+        # matC = numqi.random.rand_hermitian_matrix(dim, seed=np_rng)
+        # eigA = np.linalg.eigvalsh(matA)
+        # eigB = np.linalg.eigvalsh(matB)
+        # eigC = np.linalg.eigvalsh(matC)
+
+        model.set_matrix(matA=matA, matB=matB, matC=matC)
+        theta_optim = numqi.optimize.minimize(model, tol=1e-12, num_repeat=3)
+        assert theta_optim.fun < 1e-10, str(theta_optim.fun)
+    # N0, time (second)
+    # 4, 0.07
+    # 8, 0.13
+    # 16, 0.22
+    # 32, 0.45
+    # 64, 1.4

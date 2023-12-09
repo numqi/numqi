@@ -5,6 +5,10 @@ from ._internal import Sphere, to_sphere_quotient, to_sphere_coordinate
 from ._internal import DiscreteProbability, to_discrete_probability_sphere, to_discrete_probability_softmax
 from ._internal import Stiefel, to_stiefel_choleskyL, to_stiefel_qr, to_stiefel_sqrtm
 from ._internal import SpecialOrthogonal, to_special_orthogonal_exp, to_special_orthogonal_cayley
+from ._misc import StiefelManifoldDistanceModel, GrassmannManifoldDistanceModel, TwoHermitianSumModel
+
+from . import _internal
+from . import _misc
 
 # Ball = Sphere + OpenInterval, so no need to implement it
 
