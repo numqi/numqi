@@ -7,13 +7,13 @@ import numqi.dicke
 import numqi.random
 import numqi.optimize
 import numqi.gellmann
+import numqi.manifold
 
 from ._misc import get_density_matrix_boundary, hf_interpolate_dm, _ree_bisection_solve
 
 
 class PureBosonicExt(torch.nn.Module):
     def __init__(self, dimA, dimB, kext, distance_kind='ree'):
-        # TODO num_mix
         super().__init__()
         distance_kind = distance_kind.lower()
         assert distance_kind in {'ree','gellmann'}
@@ -22,19 +22,13 @@ class PureBosonicExt(torch.nn.Module):
         num_dicke = numqi.dicke.get_dicke_number(kext, dimB)
         tmp0 = [torch.int64,torch.int64,torch.complex128]
         self.Bij = [[torch.tensor(y0,dtype=y1) for y0,y1 in zip(x,tmp0)] for x in Bij]
-        tmp0 = np.random.default_rng().uniform(-1,1,size=(2,dimA,num_dicke))
-        tmp0 /= np.linalg.norm(tmp0.reshape(-1))
-        self.pj_real = torch.nn.Parameter(torch.tensor(tmp0[0], dtype=torch.float64, requires_grad=True))
-        self.pj_imag = torch.nn.Parameter(torch.tensor(tmp0[1], dtype=torch.float64, requires_grad=True))
+        self.manifold = numqi.manifold.Sphere(dimA*num_dicke, dtype=torch.complex128, method='quotient')
         self.dimA = dimA
         self.dimB = dimB
 
-        # special tag, use it at your own risk
         self.dm_torch = None
         self.dm_target = None
         self.expect_op_T_vec = None
-        self.logm_image_kind = 'error'
-        self.no_imag = False
 
     def set_dm_target(self, target):
         assert target.ndim in {1,2}
@@ -48,8 +42,7 @@ class PureBosonicExt(torch.nn.Module):
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
 
     def forward(self):
-        tmp0 = torch.complex(self.pj_real, (0*self.pj_imag) if self.no_imag else (self.pj_imag))
-        tmp1 = tmp0 / torch.linalg.norm(tmp0.view(-1))
+        tmp1 = self.manifold().reshape(self.dimA,-1)
         self.dm_torch = numqi.dicke.partial_trace_ABk_to_AB(tmp1, self.Bij)
         if self.dm_target is not None:
             if self.distance_kind=='gellmann':
@@ -57,7 +50,7 @@ class PureBosonicExt(torch.nn.Module):
                 tmp1 = numqi.gellmann.dm_to_gellmann_basis(self.dm_torch)
                 loss = torch.sum((tmp0-tmp1)**2)
             else:
-                loss = numqi.utils.get_relative_entropy(self.dm_target, self.dm_torch, kind=self.logm_image_kind)
+                loss = numqi.utils.get_relative_entropy(self.dm_target, self.dm_torch, kind='error')
         else:
             loss = torch.dot(self.dm_torch.view(-1), self.expect_op_T_vec).real
         return loss
@@ -104,4 +97,3 @@ class PureBosonicExt(torch.nn.Module):
 #         tmp0 = np_rng.uniform(num_mix)
 #         self.probability = torch.nn.Parameter(torch.tensor(tmp0/tmp0.sum(), dtype=torch.float64))
 #         self.pureb_list = torch.nn.ModuleList([numqi.pureb.PureBosonicExt(dimA, dimB) for _ in range(num_mix)])
-

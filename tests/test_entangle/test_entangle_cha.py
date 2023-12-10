@@ -51,17 +51,3 @@ def test_convex_hull_approximation_iterative():
     ret_ = numqi.entangle.hf_interpolate_dm(dm0, beta=beta)
     ret0 = np.einsum(lambda_,[0],ketA,[0,1],ketA.conj(),[0,3],ketB,[0,2],ketB.conj(),[0,4],[1,2,3,4],optimize=True).reshape(dm0.shape)
     assert np.abs(ret_-ret0).max() < 1e-6
-
-
-## bad performance, do not use this one
-# def test_AutodiffCHABeta():
-#     # about 44 seconds
-#     rho = numqi.entangle.load_upb('tiles', return_bes=True)[1]
-#     # rho_norm = numqi.gellmann.dm_to_gellmann_norm(rho)
-#     model = numqi.entangle.CHABoundaryAutodiff(3, 3) #3N^2
-#     # model.solver_args = {'eps':1e-4, 'solve_method':'SCS'}
-#     model.set_dm_target(rho)
-#     beta_boundary = -numqi.optimize.minimize_adam(model, num_step=150, theta0='uniform', tqdm_update_freq=1)
-#     # beta=0.8649*rho_norm=0.2279211623566359 https://arxiv.org/abs/1705.01523
-#     # 0.22635738208631834 (num_step=150)
-#     assert beta_boundary>0.2187 #0.83*rho_norm

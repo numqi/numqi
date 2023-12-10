@@ -3,9 +3,7 @@ import scipy.linalg
 import torch
 
 import numqi._torch_op
-
-op_torch_logm = numqi._torch_op.PSDMatrixLogm(num_sqrtm=6, pade_order=8)
-
+import numqi.manifold
 
 def get_concurrence_2qubit(rho):
     r'''get the concurrence of a 2-qubit density matrix
@@ -110,16 +108,18 @@ def get_von_neumann_entropy(np0, eps=1e-10):
 
 
 class EntanglementFormationModel(torch.nn.Module):
-    def __init__(self, dimA:int, dimB:int, num_term:int):
+    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None):
         # https://doi.org/10.1103/PhysRevA.64.052304
         super().__init__()
         self.dimA = dimA
         self.dimB = dimB
+        if rank is None:
+            rank = dimA*dimB
         self.num_term = num_term
+        assert num_term>=rank
         # num_term bounded by (dimA*dimB)**2 https://doi.org/10.1103%2FPhysRevA.64.052304
-        np_rng = np.random.default_rng()
-        tmp1 = np_rng.uniform(-1, 1, size=(2,num_term,dimA*dimB))
-        self.theta = torch.nn.Parameter(torch.tensor(tmp1, dtype=torch.float64))
+        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='sqrtm')
+        # sometimes fail when method='qr'
         self.dm0 = None
         self.EVL = None
         self.EVC = None
@@ -135,18 +135,15 @@ class EntanglementFormationModel(torch.nn.Module):
         self.EVC = torch.tensor(EVC, dtype=torch.complex128)
 
     def forward(self):
-        # TODO replace with Stiefel manifold
-        tmp0 = torch.complex(self.theta[0], self.theta[1])
-        theta1 = tmp0 @ torch.linalg.inv(numqi._torch_op.PSDMatrixSqrtm.apply(tmp0.T.conj() @ tmp0))
+        theta1 = self.manifold()
         prob = (theta1*theta1.conj()).real @ self.EVL
         psiAB = (theta1 * torch.sqrt(self.EVL)) @ self.EVC.T.conj() / torch.sqrt(prob).reshape(-1,1)
         tmp1 = psiAB.reshape(-1, self.dimA, self.dimB)
         if self.dimA <= self.dimB:
-            reduced_dm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,3,2], [0,1,3])
+            rdm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,3,2], [0,1,3])
         else:
-            reduced_dm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,1,3], [0,2,3])
-        tmp2 = op_torch_logm(reduced_dm)
-        tmp3 = -torch.einsum(reduced_dm, [0,1,2], tmp2, [0,2,1], [0])
-        # assert torch.abs(tmp3.imag).max().item() < 1e-10
-        ret = torch.dot(prob, tmp3.real)
+            rdm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,1,3], [0,2,3])
+        EVL = torch.linalg.eigvalsh(rdm)
+        tmp0 = torch.log(torch.maximum(EVL,torch.tensor(1e-10, dtype=torch.float64)))
+        ret = -torch.einsum(prob, [0], EVL, [0,1], tmp0, [0,1])
         return ret

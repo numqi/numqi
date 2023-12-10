@@ -17,36 +17,6 @@ def test_eof_A_B():
     assert abs(ret0-ret1) < 1e-10
 
 
-def test_EntanglementFormationModel():
-    dimA = 4
-    dimB = 3
-    N0 = dimA*dimB*2
-    eps = 1e-10
-
-    dm0 = numqi.random.rand_density_matrix(dimA*dimB)
-    EVL,EVC = np.linalg.eigh(dm0)
-
-    theta = np_rng.uniform(-1, 1, size=(N0,dimA*dimB)) + 1j*np_rng.uniform(-1, 1, size=(N0,dimA*dimB))
-    theta1 = theta @ np.linalg.inv(scipy.linalg.sqrtm(theta.T.conj() @ theta).astype(np.complex128))
-
-    prob = (theta1*theta1.conj()).real @ EVL
-    assert np.abs(prob.sum() - 1) < 1e-10
-
-    tmp0 = (theta1 * np.sqrt(EVL)) @ EVC.T.conj()
-    assert np.abs(np.linalg.norm(tmp0, axis=1) - np.sqrt(prob)).max() < 1e-10
-    psiAB = (theta1 * np.sqrt(EVL)) @ EVC.T.conj() / np.sqrt(prob).reshape(-1,1)
-    tmp1 = psiAB.reshape(-1, dimA, dimB)
-    dm_A = np.einsum(tmp1, [0,1,2], tmp1.conj(), [0,3,2], [0,1,3], optimize=True)
-    tmp2 = np.linalg.eigvalsh(dm_A)
-    ret_ = -np.einsum(prob, [0], tmp2, [0,1], np.log(np.maximum(tmp2,eps)), [0,1], optimize=True)
-
-    model = numqi.entangle.EntanglementFormationModel(dimA, dimB, N0)
-    model.set_density_matrix(dm0)
-    model.theta.data[0] = torch.tensor(theta.real, dtype=torch.float64)
-    model.theta.data[1] = torch.tensor(theta.imag, dtype=torch.float64)
-    assert abs(ret_-model().item()) < 1e-10
-
-
 def test_EntanglementFormationModel_separable():
     num_sample = 5
     for dimA,dimB in [(2,2),(3,4),(4,3)]:

@@ -10,6 +10,7 @@ import numqi.gellmann
 import numqi.random
 import numqi.utils
 import numqi.optimize
+import numqi.manifold
 
 from ._misc import get_density_matrix_boundary, hf_interpolate_dm, _ree_bisection_solve
 
@@ -155,55 +156,28 @@ class AutodiffCHAREE(torch.nn.Module):
         self.num_state = num_state
         self.dim0 = dim0
         self.dim1 = dim1
-
-        np_rng = np.random.default_rng()
-        hf0 = lambda *size: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=size), dtype=torch.float64, requires_grad=True))
-        self.theta_p = hf0(num_state)
-        self.theta_psi0 = hf0(2, num_state, dim0) #2 for real and imag
-        self.theta_psi1 = hf0(2, num_state, dim1)
+        self.manifold_prob = numqi.manifold.DiscreteProbability(num_state, method='softmax')
+        self.manifold_psi0 = numqi.manifold.Sphere(dim0, batch_size=num_state, dtype=torch.complex128, method='quotient')
+        self.manifold_psi1 = numqi.manifold.Sphere(dim1, batch_size=num_state, dtype=torch.complex128, method='quotient')
 
         self.dm_sep_torch = None
-        self.probability = None
-
         self.dm_target = None
         self.expect_op_T_vec = None
 
     def set_dm_target(self, dm):
-        assert dm.shape[0]==(self.theta_psi0.shape[2]*self.theta_psi1.shape[2])
-        assert dm.shape[0]==dm.shape[1]
+        assert (dm.shape[0]==(self.dim0*self.dim1)) and (dm.shape[0]==dm.shape[1])
+        self.expect_op_T_vec = None
         self.dm_target = torch.tensor(dm, dtype=torch.complex128)
 
     def set_expectation_op(self, op):
         self.dm_target = None
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
 
-
     def forward(self):
-        probability = torch.nn.functional.softmax(self.theta_p, dim=0)
-        # self.np_rng = numqi.random.get_numpy_rng(seed)
-        # self.reset_threshold = 1e-4
-        # self.reset_round_max = 10
-        # self.reset_norm = 1e-1
-        # self.reset_round = np.zeros(num_state, dtype=np.int64)
-        # if not tag_fix:
-        #     tmp0 = torch.complex(self.theta_psi0[0], self.theta_psi0[1]).detach().numpy()
-        #     tmp1 = torch.complex(self.theta_psi1[0], self.theta_psi1[1]).detach().numpy()
-        #     ind0,tmp2,tmp3 = _cha_reset_state(tmp0, tmp1, probability.detach().numpy(),
-        #                 self.reset_threshold, self.reset_round<=0, self.reset_norm, self.np_rng)
-        #     self.reset_round = np.maximum(self.reset_round-1, 0)
-        #     if ind0 is not None:
-        #         # in most cases, these code will not be executed
-        #         self.theta_psi0.data[0,ind0] = torch.tensor(tmp2.real, dtype=self.theta_psi0.dtype)
-        #         self.theta_psi0.data[1,ind0] = torch.tensor(tmp2.imag, dtype=self.theta_psi0.dtype)
-        #         self.theta_psi1.data[0,ind0] = torch.tensor(tmp3.real, dtype=self.theta_psi1.dtype)
-        #         self.theta_psi1.data[1,ind0] = torch.tensor(tmp3.imag, dtype=self.theta_psi1.dtype)
-        #         self.reset_round[ind0] = self.reset_round_max
-        tmp0 = torch.complex(self.theta_psi0[0], self.theta_psi0[1])
-        state0 = tmp0 / torch.linalg.norm(tmp0, dim=1, keepdim=True)
-        tmp0 = torch.complex(self.theta_psi1[0], self.theta_psi1[1])
-        state1 = tmp0 / torch.linalg.norm(tmp0, dim=1, keepdim=True)
+        probability = self.manifold_prob()
+        state0 = self.manifold_psi0()
+        state1 = self.manifold_psi1()
         dm_sep_torch = torch.einsum(probability, [0], state0, [0,1], state0.conj(), [0,3], state1, [0,2], state1.conj(), [0,4], [1,2,3,4]).reshape(self.dim0*self.dim1,-1)
-        self.probability = probability
         self.dm_sep_torch = dm_sep_torch.detach()
         if self.dm_target is not None:
             if self.distance_kind=='gellmann':
@@ -246,104 +220,3 @@ class AutodiffCHAREE(torch.nn.Module):
             ret.append([np.trace(x @ rho).real for x in [op0,op1]])
         ret = np.array(ret)
         return ret
-
-
-class CHABoundaryAutodiff(torch.nn.Module):
-    # combine convex optimization with gradient descent
-    # TODO _rand_init_state
-    def __init__(self, dimA, dimB, num_state=None, seed=None):
-        print('[WARNING] CHABoundaryAutodiff bad performance, use "AutodiffCHAREE.get_boundary" or "CHABoundaryBagging" instead')
-        super().__init__()
-        num_state = 3*(dimA*dimB)**2 if (num_state is None) else num_state
-        self.num_state = num_state
-        self.dimA = dimA
-        self.dimB = dimB
-
-        np_rng = np.random.default_rng(seed)
-        hf0 = lambda *size: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=size), dtype=torch.float64, requires_grad=True))
-        self.theta_psiA = hf0(2, num_state, dimA) #2 for real and imag
-        self.theta_psiB = hf0(2, num_state, dimB)
-        self.np_rng = np_rng
-
-        self.solver_args = dict()
-        # self.solver_args = dict(eps=solver_eps, solve_method='ECS') #ECOS SCS MOSEK
-
-        # set in .set_dm_target()
-        self.dm_target = None
-        self.cvxpylayer = None
-        self.lambda_value = None
-
-        self.reset_round_max = 10
-        self.reset_norm = 1e-1
-        self.reset_threshold = 1e-7
-        self.reset_round = np.zeros(num_state, dtype=np.int64)
-
-    def set_dm_target(self, rho):
-        dimA = self.dimA
-        dimB = self.dimB
-        num_state = int(self.theta_psiA.shape[1])
-        assert rho.shape==(dimA*dimB,dimA*dimB)
-        assert np.abs(rho-rho.T.conj()).max() < 1e-10
-        assert abs(np.trace(rho)-1) < 1e-10
-        # rho cannot be maximally mixed state
-        rho_norm = numqi.gellmann.dm_to_gellmann_norm(rho)
-        assert rho_norm > 1e-10
-        self.dm_target = rho.copy()
-
-        import cvxpylayers.torch #optional dependenc (not installed by default)
-        tmp0 = dimA*dimA*dimB*dimB
-        tmp1 = (rho - np.eye(dimA*dimB)/(dimA*dimB)).reshape(-1)/rho_norm
-        # tmp1 = np.eye(dimA*dimB, dtype=np.complex128).view(np.float64).reshape(-1)/(dimA*dimB)
-        # tmp2 = np.asarray(rho, dtype=np.complex128).view(np.float64).reshape(-1)
-        cvx_beta = cvxpy.Variable(name='beta', complex=False)
-        cvx_lambda = cvxpy.Variable(num_state, name='lambda', complex=False)
-        # cvxpylayers not support complex
-        cvx_rho_r = cvxpy.Parameter((num_state,tmp0))
-        cvx_rho_i = cvxpy.Parameter((num_state,tmp0))
-        cvx_obj = cvxpy.Maximize(cvx_beta)
-        cvx_constrants = [
-            cvx_beta*(tmp1.real)==cvx_lambda@cvx_rho_r,
-            cvx_beta*(tmp1.imag)==cvx_lambda@cvx_rho_i,
-            cvx_lambda>=0,
-            cvxpy.sum(cvx_lambda)==1,
-        ]
-        cvx_problem = cvxpy.Problem(cvx_obj, cvx_constrants)
-        self.cvxpylayer = cvxpylayers.torch.CvxpyLayer(cvx_problem, parameters=[cvx_rho_r,cvx_rho_i], variables=[cvx_beta,cvx_lambda])
-
-    def _hf0(self, tag_fix):
-        dim = self.dimA*self.dimB
-        assert self.cvxpylayer is not None
-        tmp0 = torch.complex(self.theta_psiA[0], self.theta_psiA[1])
-        stateA = tmp0 / torch.linalg.norm(tmp0, dim=1, keepdim=True)
-        tmp0 = torch.complex(self.theta_psiB[0], self.theta_psiB[1])
-        stateB = tmp0 / torch.linalg.norm(tmp0, dim=1, keepdim=True)
-        tmp0 = torch.einsum(stateA, [0,1], stateA.conj(), [0,3], stateB, [0,2], stateB.conj(), [0,4], [0,1,2,3,4])
-        tmp1 = (tmp0.reshape(-1,dim,dim) - torch.eye(dim)/dim).reshape(self.num_state,dim*dim)
-        # tmp1 = torch.stack([tmp0.real, tmp0.imag], dim=-1).reshape(self.num_state,-1)
-        beta_,lambda_ = self.cvxpylayer(tmp1.real, tmp1.imag, solver_args=self.solver_args)
-        if not tag_fix:
-            tmp0 = torch.complex(self.theta_psiA[0], self.theta_psiA[1]).detach().numpy()
-            tmp1 = torch.complex(self.theta_psiB[0], self.theta_psiB[1]).detach().numpy()
-            ind0,tmp2,tmp3 = _cha_reset_state(tmp0, tmp1, lambda_.detach().numpy(),
-                        self.reset_threshold, self.reset_norm, self.np_rng, self.reset_round<=0)
-            self.reset_round = np.maximum(self.reset_round-1, 0)
-            if ind0 is not None:
-                self.theta_psiA.data[0,ind0] = torch.tensor(tmp2.real, dtype=self.theta_psiA.dtype)
-                self.theta_psiA.data[1,ind0] = torch.tensor(tmp2.imag, dtype=self.theta_psiA.dtype)
-                self.theta_psiB.data[0,ind0] = torch.tensor(tmp3.real, dtype=self.theta_psiB.dtype)
-                self.theta_psiB.data[1,ind0] = torch.tensor(tmp3.imag, dtype=self.theta_psiB.dtype)
-                self.reset_round[ind0] = self.reset_round_max
-        return beta_.real,lambda_.real,stateA,stateB
-
-    def forward(self, tag_fix=False):
-        loss = -self._hf0(tag_fix)[0]
-        return loss
-
-    def get_state(self):
-        with torch.no_grad():
-            alpha_,lambda_,stateA,stateB = self._hf0(tag_fix=True)
-            alpha_ = alpha_.item()
-            lambda_ = lambda_.detach().numpy()
-            stateA = stateA.detach().numpy()
-            stateB = stateB.detach().numpy()
-        return alpha_,lambda_,stateA,stateB
