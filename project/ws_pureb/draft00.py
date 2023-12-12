@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 import numqi
 
@@ -7,11 +8,43 @@ def hf_werner_beta2alpha(beta, dim):
     tmp0 = numqi.entangle.hf_interpolate_dm(rho, beta=beta)[0,0]
     ret = (tmp0*dim*dim - 1) / (tmp0*dim-1)
     return ret
+
 def hf_isotropic_beta2alpha(beta, dim):
     rho = numqi.state.Isotropic(dim, 1)
     tmp0 = numqi.entangle.hf_interpolate_dm(rho, beta=beta)[1,1]
     ret = 1-tmp0*dim*dim
     return ret
+
+class PureBosonicExt(torch.nn.Module):
+    def __init__(self, dimA, dimB, kext):
+        super().__init__()
+        Bij = numqi.dicke.get_partial_trace_ABk_to_AB_index(kext, dimB)
+        num_dicke = numqi.dicke.get_dicke_number(kext, dimB)
+        tmp0 = [torch.int64,torch.int64,torch.complex128]
+        self.Bij = [[torch.tensor(y0,dtype=y1) for y0,y1 in zip(x,tmp0)] for x in Bij]
+        self.manifold = numqi.manifold.Sphere(dimA*num_dicke, dtype=torch.float64, method='quotient')
+        self.dimA = dimA
+        self.dimB = dimB
+
+        self.dm_torch = None
+        self.dm_target = None
+
+    def set_dm_target(self, target):
+        assert target.ndim in {1,2}
+        if target.ndim==1:
+            target = target[:,np.newaxis] * target.conj()
+        assert (target.shape[0]==target.shape[1])
+        self.dm_target = torch.tensor(target, dtype=torch.complex128)
+
+    def forward(self):
+        tmp1 = self.manifold().reshape(self.dimA,-1).to(torch.complex128)
+        dm_torch = numqi.dicke.partial_trace_ABk_to_AB(tmp1, self.Bij)
+        self.dm_torch = dm_torch.detach()
+        tmp0 = numqi.gellmann.dm_to_gellmann_basis(self.dm_target)
+        tmp1 = numqi.gellmann.dm_to_gellmann_basis(dm_torch)
+        loss = torch.sum((tmp0-tmp1)**2)
+        return loss
+
 
 dim = 3
 use_boson = True
@@ -70,8 +103,30 @@ for kext in kext_list:
     model = numqi.entangle.PureBosonicExt(dim, dim, kext=kext, distance_kind='gellmann')
     tmp0 = (kext*dim+dim*dim-dim-kext) / (kext*(dim*dim-1))
     model.set_dm_target(numqi.state.Werner(dim, tmp0))
-    z0[(dim,kext)] = numqi.optimize.minimize(model, tol=1e-20, num_repeat=10, print_every_round=0).fun
+    z0[(dim,kext)] = numqi.optimize.minimize(model, tol=1e-20, num_repeat=10, print_every_round=1).fun
     print(dim, kext, z0[(dim,kext)])
 # isotropic(d=2) k=2(0.0355) k=3(0.016) k=4/5/6/7/8/9(1e-22)
 # isotropic(d=3) k=2(0.068) k=3(0.016) k=4(7e-5) k=5/6/7/8(1e-21)
 # isotropic(d=4) k=2(0.075) k=3(0.0086) k=4/5/6/7/8(1e-21)
+
+
+
+dim = 3
+for kext in [5,6,7,8]:
+    model = PureBosonicExt(dim, dim, kext=kext) #restrict to real number
+    # model = numqi.entangle.PureBosonicExt(dim, dim, kext=kext, distance_kind='gellmann')
+    tmp0 = (kext*dim+dim*dim-dim-kext) / (kext*(dim*dim-1))
+    model.set_dm_target(numqi.state.Werner(dim, tmp0))
+    numqi.optimize.minimize(model, tol=1e-20, num_repeat=10, print_every_round=1).fun
+    z0 = model.manifold().detach().numpy().copy()
+    print(kext, 1/np.sqrt(dim), np.linalg.svd(z0.reshape(dim, -1))[1])
+# d=4,k=4,real, not zero
+
+hession = numqi.optimize.get_model_hessian(model)
+EVL = np.linalg.eigvalsh(hession)
+print(EVL.shape[0], (EVL < 1e-8).sum())
+# d=3,k=5, 63/19
+# d=3,k=6, 84/40
+# d=3,k=7, 108/64
+# d=4,k=5, 224/89
+# d=5,k=6, 226/201
