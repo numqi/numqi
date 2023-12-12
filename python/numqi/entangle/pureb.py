@@ -43,16 +43,17 @@ class PureBosonicExt(torch.nn.Module):
 
     def forward(self):
         tmp1 = self.manifold().reshape(self.dimA,-1)
-        self.dm_torch = numqi.dicke.partial_trace_ABk_to_AB(tmp1, self.Bij)
+        dm_torch = numqi.dicke.partial_trace_ABk_to_AB(tmp1, self.Bij)
+        self.dm_torch = dm_torch.detach()
         if self.dm_target is not None:
             if self.distance_kind=='gellmann':
                 tmp0 = numqi.gellmann.dm_to_gellmann_basis(self.dm_target)
-                tmp1 = numqi.gellmann.dm_to_gellmann_basis(self.dm_torch)
+                tmp1 = numqi.gellmann.dm_to_gellmann_basis(dm_torch)
                 loss = torch.sum((tmp0-tmp1)**2)
             else:
-                loss = numqi.utils.get_relative_entropy(self.dm_target, self.dm_torch, kind='error')
+                loss = numqi.utils.get_relative_entropy(self.dm_target, dm_torch, kind='error')
         else:
-            loss = torch.dot(self.dm_torch.view(-1), self.expect_op_T_vec).real
+            loss = torch.dot(dm_torch.view(-1), self.expect_op_T_vec).real
         return loss
 
     def get_boundary(self, dm0, xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=1, use_tqdm=True, return_info=False, seed=None):
