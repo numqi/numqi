@@ -265,7 +265,7 @@ def rand_bipartite_state(dimA, dimB=None, k=None, seed=None, return_dm=False):
     return ret
 
 
-def rand_separable_dm(dimA, dimB=None, k=2, seed=None):
+def rand_separable_dm(dimA, dimB=None, k=2, seed=None, pure_term=False):
     r'''Generate random separable density matrix
 
     $$\left\{ \rho \in \mathbb{C} ^{d_1d_2\times d_1d_2}\,\,: \rho =\sum_k{p_i\rho _{i}^{\left( A \right)}\otimes \rho _{i}^{\left( B \right)}} \right\}$$
@@ -275,6 +275,7 @@ def rand_separable_dm(dimA, dimB=None, k=2, seed=None):
         dimB (int,None): dimension of subsystem B, if None, `dimB=dimA`
         k (int): number of terms in the separable state
         seed (int,None,numpy.RandomState): random seed
+        pure_term (bool): if True, each term is a pure state, otherwise each term is a density matrix
 
     Returns:
         ret (numpy.ndarray): density matrix, shape=(dimA*dimB, dimA*dimB), dtype=complex128
@@ -285,10 +286,17 @@ def rand_separable_dm(dimA, dimB=None, k=2, seed=None):
     probability = np_rng.uniform(0, 1, size=k)
     probability /= probability.sum()
     ret = 0
-    for ind0 in range(k):
-        tmp0 = rand_density_matrix(dimA, kind='haar', seed=np_rng)
-        tmp1 = rand_density_matrix(dimB, kind='haar', seed=np_rng)
-        ret = ret + probability[ind0] * np.kron(tmp0, tmp1)
+    if pure_term:
+        for ind0 in range(k):
+            tmp0 = rand_haar_state(dimA, seed=np_rng)
+            tmp1 = rand_haar_state(dimB, seed=np_rng)
+            tmp = np.kron(tmp0, tmp1)
+            ret = ret + probability[ind0] * tmp[:,np.newaxis] * tmp.conj()
+    else:
+        for ind0 in range(k):
+            tmp0 = rand_density_matrix(dimA, kind='haar', seed=np_rng)
+            tmp1 = rand_density_matrix(dimB, kind='haar', seed=np_rng)
+            ret = ret + probability[ind0] * np.kron(tmp0, tmp1)
     return ret
 
 
