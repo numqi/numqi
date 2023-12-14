@@ -22,6 +22,9 @@ def get_concurrence_2qubit(rho):
     # z0_ = tmp0 @ rho.conj() @ tmp0
     # assert np.abs(z0_-z0).max() < 1e-10
     tmp0 = scipy.linalg.sqrtm(rho)
+    if tmp0.dtype.name=='complex256':
+        # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
+        tmp0 = tmp0.astype(np.complex128)
     EVL = np.sqrt(np.maximum(0, np.linalg.eigvalsh(tmp0 @ z0 @ tmp0)))
     ret = np.maximum(2*EVL[-1]-EVL.sum(), 0)
     return ret
