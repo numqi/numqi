@@ -61,3 +61,59 @@ def test_EntanglementFormationModel_werner():
             ret0.append(theta_optim.fun)
         ret0 = np.array(ret0)
         assert np.abs(ret_-ret0).max() < 1e-7
+
+
+def test_2qubits_Concurrence_EntanglementFormation():
+    dimA = 2
+    dimB = 2
+
+    for _ in range(5):
+        while True:
+            rho = numqi.random.rand_density_matrix(dimA*dimB)
+            ret_ = numqi.entangle.get_concurrence_2qubit(rho)
+            if ret_>1e-5: #otherwise, optimization issue due to sqrt(0)
+                break
+        model = numqi.entangle.ConcurrenceModel(dimA, dimB, num_term=2*dimA*dimB, rank=dimA*dimB, zero_eps=1e-14)
+        model.set_density_matrix(rho)
+        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0)
+        assert abs(theta_optim.fun-ret_) < 1e-8
+
+        ret_ = numqi.entangle.get_eof_2qubit(rho)
+        model = numqi.entangle.EntanglementFormationModel(dimA, dimB, num_term=2*dimA*dimB, rank=dimA*dimB)
+        model.set_density_matrix(rho)
+        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0)
+        assert abs(theta_optim.fun-ret_) < 1e-8
+
+
+def test_Monogamy_of_entanglement():
+    # https://en.wikipedia.org/wiki/Monogamy_of_entanglement
+    num_qubit = 4
+    rank = 2
+    assert num_qubit >= 3
+    np_rng = np.random.default_rng()
+
+    while True:
+        tmp0 = [numqi.random.rand_haar_state(2**num_qubit, np_rng) for _ in range(rank)]
+        prob = numqi.manifold.to_discrete_probability_softmax(np_rng.uniform(-1,1,size=rank))
+        rho = sum(y*x[:,np.newaxis]*x.conj() for x,y in zip(tmp0,prob))
+        rdm_concurrence_list = []
+        for ind0 in range(1, num_qubit):
+            if ind0==1:
+                rdm = np.trace(rho.reshape(4,2**(num_qubit-2), 4,2**(num_qubit-2)), axis1=1, axis2=3)
+            elif ind0==num_qubit-1:
+                rdm = np.trace(rho.reshape(2,2**(num_qubit-2),2, 2,2**(num_qubit-2),2), axis1=1, axis2=4).reshape(4,4)
+            else:
+                shape = 2**(ind0+1), 2**(num_qubit-ind0-1)
+                tmp0 = np.trace(rho.reshape(*shape, *shape), axis1=1, axis2=3)
+                shape = 2, 2**(ind0-1), 2
+                rdm = np.trace(tmp0.reshape(*shape, *shape), axis1=1, axis2=4).reshape(4,4)
+            rdm_concurrence_list.append(numqi.entangle.get_concurrence_2qubit(rdm))
+        print(rdm_concurrence_list)
+        if sum(x>1e-5 for x in rdm_concurrence_list)>=2:
+            break
+
+    model = numqi.entangle.EntanglementFormationModel(2, 2**(num_qubit-1), num_term=2**(num_qubit+1), rank=rank, zero_eps=1e-14)
+    model.set_density_matrix(rho)
+    theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_freq=500)
+    print(sum(rdm_concurrence_list), theta_optim.fun)
+    assert sum(rdm_concurrence_list) < theta_optim.fun
