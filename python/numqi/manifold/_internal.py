@@ -57,18 +57,22 @@ def to_open_interval(theta, lower:float, upper:float):
 
 
 class Trace1PSD(torch.nn.Module):
-    def __init__(self, dim:int, rank:(int|None)=None, batch_size:(int|None)=None, requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+    def __init__(self, dim:int, rank:(int|None)=None, batch_size:(int|None)=None,
+                method:str='cholesky', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
         r'''positive semi-definite (PSD) matrix with trace 1 of rank `rank` using Cholesky decomposition
 
         Parameters:
             dim (int): dimension of the matrix.
             rank (int): rank of the matrix.
             batch_size (int,None): batch size.
+            method (str): method to map real vector to a PSD matrix.
+                'cholesky': Cholesky decomposition.
+                'ensemble': ensemble decomposition.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
         '''
-        # TODO method='exp' or 'cholesky'
         super().__init__()
+        assert method in {'cholesky','ensemble'}
         assert dim>=2
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
@@ -76,22 +80,62 @@ class Trace1PSD(torch.nn.Module):
         if rank is None:
             rank = dim
         tmp0 = torch.float32 if (dtype in {torch.float32,torch.complex64}) else torch.float64
-        N0 = (rank*(2*dim-rank+1))//2
-        tmp1 = N0 if is_real else (2*N0-rank)
+        if method=='cholesky':
+            N0 = (rank*(2*dim-rank+1))//2
+            tmp1 = N0 if is_real else (2*N0-rank)
+        else: #ensemble
+            tmp1 = (rank+dim*rank) if is_real else (rank+2*dim*rank)
         tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
         self.theta = _hf_para(tmp0, requires_grad, *tmp2)
         self.dim = int(dim)
         self.rank = int(rank)
         self.dtype = dtype
+        self.method = method
 
     def forward(self):
-        ret = to_trace1_psd_cholesky(self.theta, self.dim, self.rank)
+        if self.method=='cholesky':
+            ret = to_trace1_psd_cholesky(self.theta, self.dim, self.rank)
+        else: #ensemble
+            ret = to_trace1_psd_ensemble(self.theta, self.dim, self.rank)
         return ret
+
 
 def _np_softplus(x):
     tmp0 = np.sign(x)
     ret = np.log1p(np.exp(-tmp0 * x)) + (1+tmp0)/2 * x
     return ret
+
+
+def to_trace1_psd_ensemble(theta, dim:int, rank:(int|None)=None):
+    r'''map real vector to a positive semi-definite (PSD) matrix with trace 1 using ensemble method
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the matrix
+                and the rest dimensions will be batch dimensions
+        dim (int): dimension of the matrix.
+        rank (int): rank of the matrix.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,dim)`
+    '''
+    if rank is None:
+        rank = dim
+    if theta.shape[-1]==(rank+dim*rank):
+        is_real = True
+    else:
+        assert theta.shape[-1]==(rank+2*dim*rank)
+        is_real = False
+    shape = theta.shape
+    theta = theta.reshape(-1, shape[-1])
+    theta_p = to_discrete_probability_softmax(theta[:,:rank])
+    theta_psi = to_sphere_quotient(theta[:,rank:].reshape(theta.shape[0]*rank, -1), is_real).reshape(-1, rank, dim)
+    if isinstance(theta, torch.Tensor):
+        ret = torch.einsum(theta_p, [0,1], theta_psi, [0,1,2], theta_psi.conj(), [0,1,3], [0,2,3])
+    else:
+        ret = np.einsum(theta_p, [0,1], theta_psi, [0,1,2], theta_psi.conj(), [0,1,3], [0,2,3], optimize=True)
+    ret = ret.reshape(*shape[:-1], dim, dim)
+    return ret
+
 
 def to_trace1_psd_cholesky(theta, dim:int, rank:(int|None)=None):
     r'''map real vector to a positive semi-definite (PSD) matrix with trace 1 of rank `rank` using Cholesky decomposition
@@ -262,6 +306,63 @@ def to_symmetric_matrix(theta, dim:int, is_trace0=False, is_norm1=False):
     return ret
 
 
+class Ball(torch.nn.Module):
+    def __init__(self, dim:int, batch_size:(int|None)=None, requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+        r'''ball manifold
+
+        Parameters:
+            dim (int): dimension of the ball.
+            batch_size (int,None): batch size.
+            requires_grad (bool): whether to track the gradients of the parameters.
+            dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+        '''
+        super().__init__()
+        assert dim>=2
+        assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
+        assert (batch_size is None) or (batch_size>0)
+        if dtype in {torch.float32,torch.float64}:
+            self.is_real = True
+            tmp0 = torch.float32 if (dtype==torch.float32) else torch.float64
+            tmp1 = dim
+        else:
+            self.is_real = False
+            tmp0 = torch.float32 if (dtype==torch.complex64) else torch.float64
+            tmp1 = 2*dim
+        tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
+        self.theta = _hf_para(tmp0, requires_grad, *tmp2)
+        self.dim = int(dim)
+        self.dtype = dtype
+
+    def forward(self):
+        ret = to_ball(self.theta, self.is_real)
+        return ret
+
+def to_ball(theta, is_real:bool=True):
+    r'''map real vector to a point in the ball
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the point
+                and the rest dimensions will be batch dimensions.
+        is_real (bool): whether the output is real
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,)`
+    '''
+    if isinstance(theta, torch.Tensor):
+        tmp0 = torch.linalg.norm(theta, dim=-1, keepdims=True)
+        ret = theta * (tmp0 / (1+tmp0))
+        if not is_real:
+            tmp0 = theta.shape[-1]//2
+            ret = torch.complex(ret[...,:tmp0], ret[...,tmp0:])
+    else:
+        tmp0 = np.linalg.norm(theta, axis=-1, keepdims=True)
+        ret = theta * (tmp0 / (1+tmp0))
+        if not is_real:
+            tmp0 = theta.shape[-1]//2
+            ret = ret[...,:tmp0] + 1j* ret[...,tmp0:]
+    return ret
+
+
 class Sphere(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, method:str='quotient', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
         r'''sphere manifold
@@ -300,6 +401,7 @@ class Sphere(torch.nn.Module):
         else:
             ret = to_sphere_coordinate(self.theta, self.is_real)
         return ret
+
 
 def to_sphere_quotient(theta, is_real:bool=True):
     r'''map real vector to a point on the sphere via quotient
@@ -365,6 +467,7 @@ def to_sphere_coordinate(theta, is_real:bool=True):
     ret = ret.reshape(*shape[:-1], -1)
     return ret
 
+
 class DiscreteProbability(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, method:str='softmax', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
         r'''discrete probability distribution
@@ -414,6 +517,7 @@ class Stiefel(torch.nn.Module):
         assert (dim>=2) and (rank>=1) and (rank<=dim)
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
+        # choleskyL is really bad
         assert method in {'choleskyL','qr','so-exp','so-cayley','sqrtm'}
         if method in {'qr','sqrtm'}:
             tmp0 = dim*rank if (dtype in {torch.float32,torch.float64}) else 2*dim*rank

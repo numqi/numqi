@@ -156,9 +156,7 @@ class AutodiffCHAREE(torch.nn.Module):
         self.num_state = num_state
         self.dim0 = dim0
         self.dim1 = dim1
-        self.manifold_prob = numqi.manifold.DiscreteProbability(num_state, method='softmax')
-        self.manifold_psi0 = numqi.manifold.Sphere(dim0, batch_size=num_state, dtype=torch.complex128, method='quotient')
-        self.manifold_psi1 = numqi.manifold.Sphere(dim1, batch_size=num_state, dtype=torch.complex128, method='quotient')
+        self.manifold = numqi.manifold.SeparableDensityMatrix(dim0, dim1, num_state, dtype=torch.complex128)
 
         self.dm_sep_torch = None
         self.dm_target = None
@@ -174,10 +172,7 @@ class AutodiffCHAREE(torch.nn.Module):
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
 
     def forward(self):
-        probability = self.manifold_prob()
-        state0 = self.manifold_psi0()
-        state1 = self.manifold_psi1()
-        dm_sep_torch = torch.einsum(probability, [0], state0, [0,1], state0.conj(), [0,3], state1, [0,2], state1.conj(), [0,4], [1,2,3,4]).reshape(self.dim0*self.dim1,-1)
+        dm_sep_torch = self.manifold().reshape(self.dim0*self.dim1, -1)
         self.dm_sep_torch = dm_sep_torch.detach()
         if self.dm_target is not None:
             if self.distance_kind=='gellmann':
