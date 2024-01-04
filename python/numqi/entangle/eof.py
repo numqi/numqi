@@ -129,6 +129,7 @@ class EntanglementFormationModel(torch.nn.Module):
         # sometimes fail when method='qr'
         self.rank = rank
         self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
+        # torch.finfo(torch.float64).eps #TODO
         self.dm0 = None
         self.EVL = None
         self.EVC = None

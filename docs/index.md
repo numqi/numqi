@@ -102,14 +102,13 @@ final_state = circ.apply_state(initial_state)
 ## similar packages
 
 1. QETLAB [documentation](https://qetlab.com/) [github](https://github.com/nathanieljohnston/QETLAB)
-2. google/quantumlib [google/quantumAI](https://quantumai.google/software) [github](https://github.com/quantumlib) [openfermion](https://github.com/quantumlib/OpenFermion) [stim](https://github.com/quantumlib/Stim)
-3. pennylane [documentation](https://docs.pennylane.ai/en/stable/)
-4. [github/qustop](https://github.com/vprusso/qustop) [github/toqito](https://github.com/vprusso/toqito)
-5. [github/qutip](https://github.com/qutip)
-6. [github/pymanopt](https://github.com/pymanopt/pymanopt) Python toolbox for optimization on Riemannian manifolds with support for automatic differentiation
-7. [github/QGopt](https://github.com/LuchnikovI/QGOpt) Riemannian optimization for quantum technologies
-8. [qctrl](https://docs.q-ctrl.com/references/qctrl/index.html)
-
-> `qetlab`
-
-`qetlab` is a matlab toolbox designed for quantum entanglement detection and do a great work in this field. Honestly, `numqi` is mainly inspired by `qetlab`. In my personal view, the python package`numpy` and various python deep learning packages `pytorch/tensorflow/...` are much more powerful than the matlab builtin array manipulations. Then, why not combining them together.
+   * a matlab toolbox designed for quantum entanglement detection
+2. GeoTorch [github](https://github.com/Lezcano/geotorch)
+3. geoopt [github](https://github.com/geoopt/geoopt)
+4. google/quantumlib [google/quantumAI](https://quantumai.google/software) [github](https://github.com/quantumlib) [openfermion](https://github.com/quantumlib/OpenFermion) [stim](https://github.com/quantumlib/Stim)
+5. pennylane [documentation](https://docs.pennylane.ai/en/stable/)
+6. [github/qustop](https://github.com/vprusso/qustop) [github/toqito](https://github.com/vprusso/toqito)
+7. [github/qutip](https://github.com/qutip)
+8. [github/pymanopt](https://github.com/pymanopt/pymanopt) Python toolbox for optimization on Riemannian manifolds with support for automatic differentiation
+9. [github/QGopt](https://github.com/LuchnikovI/QGOpt) Riemannian optimization for quantum technologies
+9. [qctrl](https://docs.q-ctrl.com/references/qctrl/index.html)

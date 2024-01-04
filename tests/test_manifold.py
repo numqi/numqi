@@ -28,18 +28,27 @@ def test_OpenInterval():
 def test_Trace1PSD():
     batch_size = 3
     dim = 7
-    for rank in [1,3,7]:
-        for dtype in [torch.float64, torch.complex128]:
-            manifold = numqi.manifold.Trace1PSD(dim, rank, batch_size, dtype=dtype)
-            x0 = manifold().detach().numpy()
-            assert np.abs(x0 - x0.transpose(0,2,1).conj()).max() < 1e-10
-            assert np.abs(np.trace(x0, axis1=1, axis2=2)-1).max() < 1e-10
-            EVL = np.linalg.eigvalsh(x0)
-            assert np.all((EVL>1e-10).sum(axis=1) == rank)
+    method = 'cholesky'
+    for method in ['cholesky','ensemble']:
+        for rank in [1,3,7]:
+            for dtype in [torch.float64, torch.complex128]:
+                manifold = numqi.manifold.Trace1PSD(dim, rank, batch_size, method=method, dtype=dtype)
+                x0 = manifold().detach().numpy()
+                assert np.abs(x0 - x0.transpose(0,2,1).conj()).max() < 1e-10
+                assert np.abs(np.trace(x0, axis1=1, axis2=2)-1).max() < 1e-10
+                EVL = np.linalg.eigvalsh(x0)
+                if method=='cholesky':
+                    assert np.all((EVL>1e-10).sum(axis=1) == rank)
+                elif method=='ensemble':
+                    assert np.all((EVL>1e-10).sum(axis=1) <= rank) #generically, equal to rank
 
-            tmp0 = manifold.theta.detach().numpy()
-            x1 = numqi.manifold.to_trace1_psd_cholesky(tmp0, dim, rank)
-            assert np.abs(x0 - x1).max() < 1e-10
+                tmp0 = manifold.theta.detach().numpy()
+                if method=='cholesky':
+                    x1 = numqi.manifold.to_trace1_psd_cholesky(tmp0, dim, rank)
+                elif method=='ensemble':
+                    x1 = numqi.manifold.to_trace1_psd_ensemble(tmp0, dim, rank)
+                assert np.abs(x0 - x1).max() < 1e-10
+
 
 class DummyModel00(torch.nn.Module):
     def __init__(self, dm0):
@@ -77,6 +86,20 @@ def test_SymmetricMatrix():
 
         tmp0 = manifold.theta.detach().numpy()
         x1 = numqi.manifold.to_symmetric_matrix(tmp0, dim, is_trace0=is_trace0, is_norm1=is_norm1)
+        assert np.abs(x0-x1).max() < 1e-10
+
+
+def test_Ball():
+    batch_size = 3
+    dim = 7
+    for dtype in [torch.float64, torch.complex128]:
+        manifold = numqi.manifold.Ball(dim, batch_size, dtype=dtype)
+        x0 = manifold().detach().numpy()
+        assert np.linalg.norm(x0, axis=1).max() < 1
+
+        tmp0 = manifold.theta.detach().numpy()
+        is_real = dtype in [torch.float64, torch.float32]
+        x1 = numqi.manifold.to_ball(tmp0, is_real)
         assert np.abs(x0-x1).max() < 1e-10
 
 
@@ -239,3 +262,24 @@ def test_TwoHermitianSumModel():
     # 16, 0.22
     # 32, 0.45
     # 64, 1.4
+
+
+def test_QuantumChannel():
+    dim_in = 5
+    dim_out = 3
+    rank = 4
+
+    # kraus operator
+    manifold = numqi.manifold.QuantumChannel(dim_in, dim_out, rank, batch_size=None, method='qr', return_kind='kraus')
+    kop = manifold().detach().numpy().copy()
+    tmp0 = np.einsum(kop, [0,1,2], kop.conj(), [0,1,3], [2,3], optimize=True)
+    assert np.abs(tmp0 - np.eye(dim_in)).max() < 1e-10
+
+    # choi operator
+    manifold = numqi.manifold.QuantumChannel(dim_in, dim_out, rank, batch_size=None, method='qr', return_kind='choi')
+    choi = manifold().detach().numpy().copy() #(dim_out,dim_in,dim_out,dim_in)
+    assert np.abs(np.trace(choi, axis1=0, axis2=2) - np.eye(dim_in)).max() < 1e-10
+    assert np.abs(choi - choi.transpose(2,3,0,1).conj()).max() < 1e-10
+    EVL = np.linalg.eigvalsh(choi.reshape(dim_out*dim_in,-1))
+    assert np.all(EVL+1e-10 > 0)
+    assert np.sum(EVL>1e-10)==rank
