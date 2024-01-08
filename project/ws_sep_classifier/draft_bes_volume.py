@@ -33,6 +33,12 @@ class BESVolumeModel(torch.nn.Module):
         ret = torch.linalg.eigvalsh(mat)[0]
         return ret
 
+# three optimization problems
+# find a Ball $B(x,r)$ where $x$ is a BES and $r$ is a radius
+#     s.t. min_{x in B, y in CHA} d(x,y) > 0
+#     s.t. min_{x in B} lambda(x)>0
+#     s.t. min_{x in B} lambda(pt(x))>0
+
 np_rng = np.random.default_rng()
 
 dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]

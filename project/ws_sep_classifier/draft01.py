@@ -1,90 +1,105 @@
 import numpy as np
+import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-import concurrent.futures
-import torch
 
 import numqi
 
-if torch.get_num_threads()!=1:
-    torch.set_num_threads(1)
+from utils import DummyFCModel, plot_bloch_vector_plane
 
-def is_positive_semi_definite(np0):
-    # https://math.stackexchange.com/a/13311
-    # https://math.stackexchange.com/a/87538
-    # Sylvester's criterion
-    try:
-        np.linalg.cholesky(np0)
-        ret = True
-    except np.linalg.LinAlgError:
-        ret = False
-    return ret
+def generate_dm_boundary_data(batch_size, ratio_list, dim, seed=None):
+    # warning, the generated data here are always paired (x,-x)
+    tmp0 = np.array(ratio_list)
+    ratio_list = tmp0 / np.sum(tmp0)
+    num_list = np.around(ratio_list*(batch_size//2+1)).astype(np.int64)
 
-def _get_cha_distance_single(dm_list, model_kwargs, optim_kwargs):
-    # still batch of density matrix, avoid wasting time on starting up
-    model_cha = numqi.entangle.AutodiffCHAREE(**model_kwargs)
-    ret = []
-    for dm in dm_list:
-        model_cha.set_dm_target(dm)
-        ret.append(numqi.optimize.minimize(model_cha, **optim_kwargs).fun)
-    ret = np.array(ret)
-    return ret
-
-def get_cha_distance(dm_list, model_kwargs, optim_kwargs, num_worker, batch_size):
-    assert batch_size>0
-    tmp0 = int(np.ceil(len(dm_list)/batch_size))
-    task_list = [dm_list[(x*batch_size):((x+1)*batch_size)] for x in range(tmp0)]
-    with concurrent.futures.ProcessPoolExecutor(max_workers=num_worker) as executor:
-        job_list = [executor.submit(_get_cha_distance_single, x, model_kwargs, optim_kwargs) for x in task_list]
-        ret = np.array([y for x in tqdm(job_list) for y in x.result()]) #one-by-one
-    return ret
-
-# Fundamental Limitation on the Detectability of Entanglement
-# https://doi.org/10.1103/PhysRevLett.129.230503
+    np_rng = numqi.random.get_numpy_rng(seed)
+    # random density matrix
+    tmp0 = np_rng.normal(size=(num_list[0], dim*dim-1))
+    tmp0 /= np.linalg.norm(tmp0, axis=1, keepdims=True)
+    dm_list = [numqi.gellmann.gellmann_basis_to_dm(tmp0)]
+    # random pure state and its neighbors
+    tmp0 = np_rng.normal(size=(num_list[1], 2*dim)).astype(np.float32, copy=False).view(np.complex64)
+    tmp0 /= np.linalg.norm(tmp0, axis=1, keepdims=True)
+    tmp1 = numqi.gellmann.dm_to_gellmann_basis(np.einsum(tmp0, [0,1], tmp0.conj(), [0,2], [0,1,2], optimize=True))
+    tmp1 += np_rng.normal(scale=0.01, size=tmp1.shape)
+    tmp1 /= np.linalg.norm(tmp1, axis=1, keepdims=True)
+    dm_list.append(numqi.gellmann.gellmann_basis_to_dm(tmp1))
+    dm_list = np.concatenate(dm_list, axis=0)
+    vec = numqi.gellmann.dm_to_gellmann_basis(dm_list)
+    beta_dm_l, beta_dm_u = numqi.entangle.get_density_matrix_boundary(dm_list)
+    xdata = np.concatenate([-vec,vec], axis=0)[:batch_size]
+    ydata = np.concatenate([-beta_dm_l, beta_dm_u], axis=0)[:batch_size]
+    return xdata, ydata
 
 
-if __name__=='__main__':
-    np_rng = np.random.default_rng()
-    dimA = 3
-    dimB = 3
-    num_sample = 5000
-    haar_k_list = list(range(2, 5*dimA*dimB, 3))
-    # haar_k_list = [23]
-    num_worker = 12
-    batch_size = 10
-    cha_threshold = 1e-12
+def generate_ppt_boundary_data(batch_size, dim, seed=None):
+    # warning, the generated data here are always paired (x,-x)
+    assert hasattr(dim, '__len__') and (len(dim)==2)
+    dimA,dimB = dim
+    dim = dimA*dimB
+    np_rng = numqi.random.get_numpy_rng(seed)
+    vec = np_rng.normal(size=(batch_size//2+1, dim*dim-1))
+    vec /= np.linalg.norm(vec, axis=1, keepdims=True)
+    dm_list = numqi.gellmann.gellmann_basis_to_dm(vec)
+    beta_ppt_l,beta_ppt_u = numqi.entangle.get_ppt_boundary(dm_list, (dimA,dimB))
+    xdata = np.concatenate([-vec,vec], axis=0)[:batch_size]
+    ydata = np.concatenate([-beta_ppt_l, beta_ppt_u], axis=0)[:batch_size]
+    return xdata, ydata
 
-    ret_ppt = []
-    ret_cha = []
-    dm_list = []
-    model_cha = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
-    model_kwargs = dict(dim0=dimA, dim1=dimB, distance_kind='gellmann')
-    kwargs = dict(theta0='uniform', tol=1e-14, num_repeat=3, print_every_round=0, early_stop_threshold=cha_threshold)
-    for haar_k in haar_k_list:
-        print(f"k={haar_k}")
-        tmp0 = [numqi.random.rand_density_matrix(dimA*dimB, k=haar_k, seed=np_rng) for _ in range(num_sample)]
-        dm_list.append(tmp0)
-        ret_ppt.append([is_positive_semi_definite(x.reshape(dimA,dimB,dimA,dimB).transpose(0,3,2,1).reshape(dimA*dimB,dimA*dimB)) for x in tmp0])
-        ret_cha.append(get_cha_distance(tmp0, model_kwargs, kwargs, num_worker=num_worker, batch_size=batch_size))
-    ret_ppt = np.array(ret_ppt)
-    ret_cha = np.stack(ret_cha)
 
-    for haar_k,dm,ppt,cha in zip(haar_k_list,dm_list,ret_ppt,ret_cha):
-        EVL = np.array([np.linalg.eigvalsh(z.reshape(dimA,dimB,dimA,dimB).transpose(0,3,2,1).reshape(dimA*dimB,-1))[0] for z in dm])
-        tmp0 = EVL[np.logical_not(ppt)].max()
-        tmp1 = EVL[ppt].min()
-        tmp2 = cha[np.logical_not(ppt)].min()
-        tmp3 = cha[ppt].max()
-        print(f'[k={haar_k}] NPT: max(lambda)={tmp0}, min(CHA)={tmp2}')
-        print(f'[k={haar_k}] PPT: min(lambda)={tmp1}, max(CHA)={tmp3}')
 
-    # fig, ax = plt.subplots()
-    # ax.plot(haar_k_list, np.mean(ret_ppt, axis=1), 'x', label="PPT")
-    # ax.plot(haar_k_list, np.mean(ret_cha<cha_threshold, axis=1), label="CHA")
-    # ax.set_xlabel("k")
-    # ax.set_title(r'$\rho\leftarrow_r\; AA^\dag, A\in\mathbb{C}^{d\times k}'+rf', d={dimA}\times{dimB}$ #sample={num_sample}')
-    # ax.set_ylabel('Probability of SEP')
-    # ax.legend()
-    # ax.grid()
-    # fig.tight_layout()
-    # fig.savefig('tbd00.png', dpi=200)
+def get_lr_scheduler(optimizer, lr_start_end, total_step, every_step=1):
+    gamma = (lr_start_end[1]/lr_start_end[0])**(1/(total_step//every_step))
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=gamma)
+    return lr_scheduler
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+dim = 8
+batch_size = 4096
+lr_start_end = 0.01, 1e-5
+num_step = 30
+step_lr_scheduler = 10
+
+ratio_list = 7, 2
+
+model = DummyFCModel(dim, device=device)
+optimizer = torch.optim.Adam(model.parameters(), lr=lr_start_end[0])
+lr_scheduler = get_lr_scheduler(optimizer, lr_start_end, num_step, step_lr_scheduler)
+loss_history = []
+model.train()
+with tqdm(range(num_step)) as pbar:
+    for ind_step in pbar:
+        xdata_i, ydata_i = generate_dm_boundary_data(batch_size, ratio_list, dim)
+        xdata_i = torch.tensor(xdata_i, dtype=torch.float32, device=device)
+        ydata_i = torch.tensor(ydata_i, dtype=torch.float32, device=device)
+        xdata_i,ydata_i = xdata_i.to(device), ydata_i.to(device)
+        optimizer.zero_grad()
+        loss = torch.mean((model(xdata_i) - ydata_i)**2)
+        loss.backward()
+        optimizer.step()
+        loss_history.append(loss.item())
+        if ind_step%10==0:
+            pbar.set_postfix(train_loss='{:.5}'.format(sum(loss_history[-10:])/10))
+        if (ind_step>0) and (ind_step%step_lr_scheduler==0):
+            lr_scheduler.step()
+
+
+fig,ax = plt.subplots()
+ax.plot(np.arange(len(loss_history)), loss_history, '.', markersize=1)
+ax.set_xlabel('step')
+ax.set_ylabel('loss')
+ax.set_yscale('log')
+ax.grid()
+fig.tight_layout()
+fig.savefig('tbd00.png', dpi=200)
+
+
+op0 = numqi.random.rand_density_matrix(dim)
+op1 = numqi.random.rand_density_matrix(dim)
+plot_bloch_vector_plane(model, op0, op1, dim, filename='tbd01.png')
+if dim==(3,3):
+    op0 = numqi.state.Werner(d=3, alpha=1)
+    op1 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
+    plot_bloch_vector_plane(model, op0, op1, dim, filename='tbd01.png')
