@@ -40,25 +40,13 @@ class VarQECSchmidt(torch.nn.Module):
         super().__init__()
         self.num_logical_dim = num_logical_dim
         self.num_qubit = num_qubit
-        self.error_op_torch = torch.tensor(np.stack(error_op_full, axis=0).reshape(-1,2**num_qubit)).to_sparse_csr()
-        np_rng = np.random.default_rng()
-        tmp0 = np_rng.normal(size=(2,num_logical_dim,2**num_qubit))
-        self.theta = torch.nn.Parameter(torch.tensor(tmp0, dtype=torch.float64))
-        self.q0_torch = None
+        self.error_op_torch = torch.tensor(np.stack(error_op_full, axis=0).reshape(-1,2**num_qubit), dtype=torch.complex64).to_sparse_csr()
+        self.manifold = numqi.manifold.Stiefel(2**num_qubit, num_logical_dim, method='sqrtm', dtype=torch.complex64)
         self.mask = torch.triu(torch.ones(num_logical_dim, num_logical_dim, dtype=torch.complex128), diagonal=1)
 
-
     def forward(self):
-        q0 = torch.complex(self.theta[0], self.theta[1])
-        q0_orth = []
-        for ind0 in range(q0.shape[0]):
-            tmp0 = q0[ind0]
-            for x in q0_orth:
-                tmp0 = tmp0 - torch.vdot(x,tmp0)*x
-            q0_orth.append(tmp0 / torch.linalg.norm(tmp0))
-        q0 = torch.stack(q0_orth, dim=1)
+        q0 = self.manifold()
         inner_product = q0.T.conj() @ (self.error_op_torch @ q0).reshape(-1, *q0.shape)
-        self.q0_torch = q0.detach().T
         tmp0 = (inner_product*self.mask).reshape(-1)
         tmp1 = torch.diagonal(inner_product, dim1=1, dim2=2).real
         tmp2 = (tmp1 - tmp1.mean(axis=1, keepdims=True)).reshape(-1)
@@ -72,17 +60,15 @@ def hf_task(num_repeat):
     distance = 3
     error_op_full = make_error_list(num_qubit, distance, tag_full=True)
     model = VarQECSchmidt(num_qubit, num_logical_dim, error_op_full)
-    kwargs = dict(theta0=('uniform',-1,1), tol=1e-7, print_freq=0, early_stop_threshold=0.01, print_every_round=0)
+    kwargs = dict(theta0=('uniform',-1,1), tol=1e-5, print_freq=0, early_stop_threshold=0.01, print_every_round=0)
     theta_optim = numqi.optimize.minimize(model, num_repeat=num_repeat, **kwargs)
     return theta_optim
 
 if __name__ == '__main__':
     num_repeat_per_worker = 30 #1 second for each repeat
-    num_worker = 12
-    num_total_task = num_worker*10000 #100 for 1hour
+    num_worker = 4
+    num_total_task = num_worker*100000 #233 per hour
     best_theta_optim = None
-    # num_worker=2 [8/8][0.54s / 0.00s / 86.78s] loss=0.5489087
-    # num_worker=4 [16/16][0.35s / 0.00s / 111.96s] loss=0.5489087
     with concurrent.futures.ProcessPoolExecutor(max_workers=num_worker) as executor:
         job_list = [executor.submit(hf_task, num_repeat_per_worker) for _ in range(num_total_task)]
         t0 = time.time()
