@@ -163,13 +163,22 @@ def gellmann_basis_to_dm(vec):
 
 
 def dm_to_gellmann_norm(dm):
+    r'''get the norm of a density matrix in Gell-Mann basis,
+    For traceless hermitian matrix, the norm is the Frobenius norm divided by sqrt(2)
+
+    Parameters:
+        dm (np.ndarray): density matrix, 2d array (support batch)
+
+    Returns:
+        ret (np.ndarray): norm of dm
+    '''
     shape = dm.shape
     assert shape[-1]==shape[-2]
     N0 = dm.shape[-1]
     dm = dm.reshape(-1, N0, N0)
     tmp0 = (np.trace(dm, axis1=1, axis2=2)/N0).reshape(-1,1,1) * np.eye(N0)
     ret = np.linalg.norm((dm - tmp0).reshape(-1,N0*N0), ord=2, axis=1)/np.sqrt(2)
-    ret = ret.item() if (len(shape)==2) else ret.reshape(*shape[:-2])
+    ret = ret[0] if (len(shape)==2) else ret.reshape(*shape[:-2])
     ## the following code is equivalent to the above one
     # tmp0 = dm_to_gellmann_basis(dm)
     # shape = tmp0.shape

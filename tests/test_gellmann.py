@@ -56,3 +56,12 @@ def test_dm_to_gellmann_norm():
         ret_ = np.linalg.norm(numqi.gellmann.dm_to_gellmann_basis(dm0), axis=1)
         ret0 = numqi.gellmann.dm_to_gellmann_norm(dm0)
         assert np.abs(ret_-ret0).max() < 1e-10
+
+
+def test_dm_to_gellmann_norm():
+    dim = 5
+    tmp0 = hf_randc(dim, dim)
+    mat = tmp0 + tmp0.T - np.trace(tmp0)*np.eye(dim)*2/dim #traceless hermitian matrix
+    ret_ = np.linalg.norm(mat, ord='fro') / np.sqrt(2)
+    ret0 = numqi.gellmann.dm_to_gellmann_norm(mat)
+    assert abs(ret_-ret0) < 1e-10

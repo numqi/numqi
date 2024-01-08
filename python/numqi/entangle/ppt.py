@@ -82,17 +82,44 @@ def get_ppt_numerical_range(op_list, direction, dim, return_info=False, use_tqdm
 
 
 def get_ppt_boundary(dm, dim, dm_norm=None, within_dm=True):
+    r'''get the PPT (positive partial transpose) boundary of a density matrix
+
+    Parameters:
+        dm (np.ndarray): density matrix (support batch)
+        dim (tuple[int]): tuple of integers, must be of length 2
+        dm_norm (float,NoneType): norm of the density matrix. if None, then calculate it internally
+        within_dm (bool): if `True`, then the boundary is within the density matrix space
+
+    Returns:
+        beta_pt_l (float): minimum value of beta
+        beta_pt_u (float): maximum value of beta
+    '''
     assert len(dim)==2
     dimA,dimB = dim
-    assert dm.shape==(dimA*dimB,dimA*dimB)
+    assert (dm.shape[-1]==dm.shape[-2]) and (dm.shape[-1]==dimA*dimB)
+    shape = dm.shape
+    dm = dm.reshape(-1, dimA*dimB, dimA*dimB)
     if dm_norm is None:
         dm_norm = numqi.gellmann.dm_to_gellmann_norm(dm)
-    tmp0 = dm.reshape(dimA,dimB,dimA,dimB).transpose(0,3,2,1).reshape(dimA*dimB,dimA*dimB)
+    else:
+        dm_norm = np.asarray(dm_norm)
+        if dm_norm.size==1:
+            dm_norm = dm_norm.reshape(1)
+        else:
+            assert dm_norm.shape==shape[:-2]
+        dm_norm = dm_norm.reshape(-1)
+    tmp0 = dm.reshape(-1,dimA,dimB,dimA,dimB).transpose(0,1,4,3,2).reshape(-1,dimA*dimB,dimA*dimB)
     beta_pt_l,beta_pt_u = get_density_matrix_boundary(tmp0, dm_norm=dm_norm)
     if within_dm:
         beta_l,beta_u = get_density_matrix_boundary(dm, dm_norm=dm_norm)
         beta_pt_l = max(beta_l, beta_pt_l)
         beta_pt_u = min(beta_u, beta_pt_u)
+    if len(shape)==2:
+        beta_pt_l = beta_pt_l[0]
+        beta_pt_u = beta_pt_u[0]
+    else:
+        beta_pt_l = beta_pt_l.reshape(shape[:-2])
+        beta_pt_u = beta_pt_u.reshape(shape[:-2])
     return beta_pt_l,beta_pt_u
 
 

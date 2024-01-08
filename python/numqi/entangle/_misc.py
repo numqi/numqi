@@ -70,24 +70,34 @@ def get_density_matrix_boundary(dm, dm_norm=None):
     r'''return the boundary of the density matrix
 
     Args:
-        dm (np.ndarray): density matrix, 2d array
-        dm_norm (float): norm of the density matrix. Defaults to None.
-        return_alpha (bool, optional): whether to return `alpha`. Defaults to False.
-        return_both (bool, optional): whether to return both the upper and lower boundary. Defaults to False.
+        dm (np.ndarray): density matrix, 2d array (support batch)
+        dm_norm (float,NoneType): norm of the density matrix. if None, then calculate it internally
 
     Returns:
         beta_l (float): minimum value of beta
         beta_u (float): maximum value of beta
     '''
-    # TODO remove return_alpha, return_both
-    # return: alpha, beta, dm
-    assert (dm.ndim==2) and (dm.shape[0]==dm.shape[1])
-    N0 = dm.shape[0]
+    assert (dm.ndim>=2) and (dm.shape[-2]==dm.shape[-1])
+    shape = dm.shape
+    N0 = shape[-1]
+    dm = dm.reshape(-1, N0, N0)
     if dm_norm is None:
         dm_norm = numqi.gellmann.dm_to_gellmann_norm(dm)
+    else:
+        dm_norm = np.asarray(dm_norm)
+        if dm_norm.size==1:
+            dm_norm = dm_norm.reshape(1)
+        else:
+            assert dm_norm.shape==shape[:-2]
+            dm_norm = dm_norm.reshape(-1)
+    assert np.abs(dm-dm.transpose(0,2,1).conj()).max() < 1e-10, 'dm must be Hermitian'
     tmp0 = (np.linalg.eigvalsh(dm) - 1/N0)/dm_norm
-    beta_l = -1/(N0*tmp0[-1])
-    beta_u = -1/(N0*tmp0[0])
+    beta_l = -1/(N0*tmp0[:,-1])
+    beta_u = -1/(N0*tmp0[:,0])
+    if len(shape)==2:
+        beta_l,beta_u = beta_l[0],beta_u[0]
+    else:
+        beta_l,beta_u = beta_l.reshape(shape[:-2]),beta_u.reshape(shape[:-2])
     return beta_l,beta_u
 
 
