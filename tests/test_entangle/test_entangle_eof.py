@@ -76,7 +76,7 @@ def test_2qubits_Concurrence_EntanglementFormation():
         model = numqi.entangle.ConcurrenceModel(dimA, dimB, num_term=2*dimA*dimB, rank=dimA*dimB, zero_eps=1e-14)
         model.set_density_matrix(rho)
         theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0)
-        assert abs(theta_optim.fun-ret_) < 1e-8
+        assert abs(theta_optim.fun-ret_) < 1e-8 #fail sometimes, gradient at sqrt(0) might be bad
 
         ret_ = numqi.entangle.get_eof_2qubit(rho)
         model = numqi.entangle.EntanglementFormationModel(dimA, dimB, num_term=2*dimA*dimB, rank=dimA*dimB)
