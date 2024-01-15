@@ -91,7 +91,7 @@ def get_density_matrix_boundary(dm, dm_norm=None):
             assert dm_norm.shape==shape[:-2]
             dm_norm = dm_norm.reshape(-1)
     assert np.abs(dm-dm.transpose(0,2,1).conj()).max() < 1e-10, 'dm must be Hermitian'
-    tmp0 = (np.linalg.eigvalsh(dm) - 1/N0)/dm_norm
+    tmp0 = (np.linalg.eigvalsh(dm) - 1/N0)/dm_norm.reshape(-1,1)
     beta_l = -1/(N0*tmp0[:,-1])
     beta_u = -1/(N0*tmp0[:,0])
     if len(shape)==2:

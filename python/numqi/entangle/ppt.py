@@ -114,8 +114,8 @@ def get_ppt_boundary(dm, dim, dm_norm=None, within_dm=True):
     beta_pt_l,beta_pt_u = get_density_matrix_boundary(tmp0, dm_norm=dm_norm)
     if within_dm:
         beta_l,beta_u = get_density_matrix_boundary(dm, dm_norm=dm_norm)
-        beta_pt_l = max(beta_l, beta_pt_l)
-        beta_pt_u = min(beta_u, beta_pt_u)
+        beta_pt_l = np.maximum(beta_l, beta_pt_l)
+        beta_pt_u = np.minimum(beta_u, beta_pt_u)
     if len(shape)==2:
         beta_pt_l = beta_pt_l[0]
         beta_pt_u = beta_pt_u[0]
