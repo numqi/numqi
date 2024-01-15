@@ -469,7 +469,8 @@ def to_sphere_coordinate(theta, is_real:bool=True):
 
 
 class DiscreteProbability(torch.nn.Module):
-    def __init__(self, dim:int, batch_size:(int|None)=None, method:str='softmax', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+    def __init__(self, dim:int, batch_size:(int|None)=None, method:str='softmax', weight=None,
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64):
         r'''discrete probability distribution
 
         Parameters:
@@ -478,6 +479,7 @@ class DiscreteProbability(torch.nn.Module):
             method (str): method to map real vector to a probability vector.
                 'softmax': softmax function.
                 'sphere': quotient map.
+            weight (np.ndarray,torch.Tensor): weight of each dimension.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
         '''
@@ -488,6 +490,11 @@ class DiscreteProbability(torch.nn.Module):
         assert method in {'softmax','sphere'}
         tmp0 = (dim,) if (batch_size is None) else (batch_size, dim)
         self.theta = _hf_para(dtype, requires_grad, *tmp0)
+        if weight is not None:
+            assert (weight.min()>0) and weight.shape==(dim,)
+            self.weight_inv = torch.tensor(1/weight, dtype=dtype)
+        else:
+            self.weight_inv = None
         self.dim = int(dim)
         self.dtype = dtype
         self.method = method
@@ -497,6 +504,8 @@ class DiscreteProbability(torch.nn.Module):
             ret = to_discrete_probability_softmax(self.theta)
         else: #sphere
             ret = to_discrete_probability_sphere(self.theta)
+        if self.weight_inv is not None:
+            ret = ret * self.weight_inv
         return ret
 
 def to_discrete_probability_sphere(theta):

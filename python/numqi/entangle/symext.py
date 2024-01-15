@@ -75,6 +75,27 @@ def get_cvxpy_transpose0213_indexing(N0, N1, N2=None, N3=None):
 
 
 def get_ABk_symmetric_extension_ree(rho, dim, kext, use_ppt=False, use_boson=False, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=False):
+    r'''get the relative entropy of entanglement of k-symmetric extension on B-party
+
+    Parameters:
+        rho (np.ndarray,list): density matrix, or list of density matrices (3d array)
+        dim (tuple(int)): tuple of length 2, dimension of A-party and B-party
+        kext (int): number of copies of symmetric extension
+        use_ppt (bool): if True, use PPT (positive partial transpose) constraint
+        use_boson (bool): if True, use bosonic symmetry
+        return_info (bool): if True, return information of the SDP solver
+        sqrt_order (int): the order of sqrtm approximation
+        pade_order (int): the order of Pade approximation
+        use_tqdm (bool): if True, use tqdm to show progress bar
+
+    Returns:
+        ret0 (float,np.array):  `ret` is a float indicates relative entropy of entanglement.
+            If `rho` is list of density matrices, `ret` is a 1d `np.array` of float
+        ret1 (list[dict]): if `return_info` is `True`, then `ret1` is a list of information of the SDP solver.
+    '''
+    assert kext>=1
+    if kext==1:
+        assert use_ppt, 'kext=1 with use_ppt=False is meaningless'
     rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm)
 
     coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
@@ -257,7 +278,7 @@ def get_ABk_extension_numerical_range(op_list, direction, dim, kext, use_ppt=Fal
     return ret
 
 
-def get_ABk_extension_boundary(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
+def get_ABk_symmetric_extension_boundary(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
     '''get the boundary (in Euclidean space) of k-ext symmetric extension on B-party along rho direction
 
     Parameters:
@@ -306,25 +327,20 @@ def get_ABk_extension_boundary(rho, dim, kext, use_ppt=False, use_boson=False, u
         tmp0 = np.array(beta_list)
         ret = tmp0 if (not return_info) else (tmp0, np.stack(vecA_list,axis=0), np.stack(vecN_list,axis=0))
     return ret
-# TODO rename
-get_ABk_symmetric_extension_boundary = get_ABk_extension_boundary
 
 
 class SymmetricExtABkIrrepModel(torch.nn.Module):
-    def __init__(self, dimA, dimB, kext, use_cholesky=False) -> None:
+    def __init__(self, dimA:int, dimB:int, kext:int):
         super().__init__()
         assert dimA>=2
         self.dimA = int(dimA)
         self.dimB = int(dimB)
         self.kext = int(kext)
-        self.use_cholesky = use_cholesky
         coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dimB, kext)
+        multiplicity_list = np.array(multiplicity_list, dtype=np.float64)
         self.coeffB_list = [torch.tensor(x.reshape(-1,self.dimB**2), dtype=torch.complex128) for x in coeffB_list] #TODO complex128?
-        self.multiplicity_list = torch.tensor(multiplicity_list, dtype=torch.int64) #absorbed into self.coeffB_list
-        np_rng = np.random.default_rng()
-        hf0 = lambda x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=(x,x)), dtype=torch.float64))
-        self.theta_list = torch.nn.ParameterList([hf0(self.dimA*x.shape[0]) for x in coeffB_list])
-        self.theta_portion = torch.nn.Parameter(torch.tensor(np_rng.uniform(0, 1, size=len(self.coeffB_list)), dtype=torch.float64))
+        self.manifold_psd = torch.nn.ModuleList([numqi.manifold.Trace1PSD(self.dimA*x.shape[0], method='cholesky', dtype=torch.complex128) for x in coeffB_list])
+        self.manifold_prob = numqi.manifold.DiscreteProbability(len(self.coeffB_list), method='softmax', weight=multiplicity_list, dtype=torch.float64)
 
         self.dm_target_transpose = None
         self.rhoAB_transpose = None
@@ -340,11 +356,10 @@ class SymmetricExtABkIrrepModel(torch.nn.Module):
         assert self.dm_target_transpose is not None
         rhoAB_list = []
         for ind0 in range(len(self.coeffB_list)):
-            tmp0 = numqi.param.real_matrix_to_trace1_PSD(self.theta_list[ind0], use_cholesky=self.use_cholesky)
+            tmp0 = self.manifold_psd[ind0]()
             tmp1 = tmp0.reshape(self.dimA, tmp0.shape[0]//self.dimA, self.dimA, -1)
             rhoAB_list.append(tmp1.transpose(1,2).reshape(self.dimA**2,-1) @ self.coeffB_list[ind0])
-        tmp0 = torch.nn.functional.softplus(self.theta_portion)
-        tmp1 = tmp0 / (torch.sum(tmp0)*self.multiplicity_list)
+        tmp1 = self.manifold_prob()
         rhoAB_transpose = sum([rhoAB_list[x]*tmp1[x] for x in range(len(rhoAB_list))])
         self.rhoAB_transpose = rhoAB_transpose
         tmp0 = (rhoAB_transpose-self.dm_target_transpose).reshape(-1)

@@ -134,8 +134,6 @@ for dim in dim_list:
 
 # dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
 # dm_pyramid = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
-# fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm_tiles, dm1=dm_pyramid, dimA=3, dimB=3,
-#             num_point=201, pureb_kext=[32], num_eig0=0, tag_cha=False, label0=r'Tiles UPB', label1=r'Pyramid UPB')
 
 # hf0 = lambda x: x*dm_pyramid+(1-x)*dm_tiles
 # dm0 = hf0(0.01)

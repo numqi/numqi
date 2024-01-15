@@ -21,9 +21,30 @@ def quick_beta_boundary(dm0, dimA, dimB, kext=16):
     ret_l = [-beta_l,beta_ppt_l,beta_svqc_l, f'PPT-SVQC={beta_ppt_l-beta_svqc_l:.4f},dm-PPT={-beta_l-beta_ppt_l:.4f}']
     return ret_u,ret_l
 
+def quick_plot_dm0_dm1_plane(rho0, rho1, dim, num_point, pureb_kext, tag_cha, tag_gppt=False,
+                            savepath='tbd00.png', num_eig0=0, label0=None, label1=None):
+    dimA,dimB = dim
+    theta1,hf_theta = numqi.entangle.get_density_matrix_plane(rho0, rho1)
+    theta_list = np.linspace(-np.pi, np.pi, num_point)
+    pureb_kext = [int(x) for x in pureb_kext] if hasattr(pureb_kext, '__len__') else [int(pureb_kext)]
+
+    beta_pureb = dict()
+    kwargs = dict(xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=3, use_tqdm=False)
+    for key in pureb_kext:
+        model = numqi.entangle.PureBosonicExt(dimA, dimB, kext=key)
+        beta_pureb[key] = [model.get_boundary(hf_theta(x), **kwargs) for x in tqdm(theta_list, desc=f'PureB({key})')]
+
+    if tag_cha:
+        model_cha = numqi.entangle.CHABoundaryBagging(dim)
+        beta_cha = np.array([model_cha.solve(hf_theta(x),use_tqdm=False) for x in tqdm(theta_list, desc='CHA')])
+    else:
+        beta_cha = None
+    fig,ax,all_data = numqi.entangle.plot_bloch_vector_cross_section(dm_tiles, dm_pyramid, (3,3), num_point,
+            beta_pureb, beta_cha, num_eig0=num_eig0, tag_gppt=tag_gppt, label0=label0, label1=label1, savepath=savepath)
+    return fig,ax
+
 dimA = 3
 dimB = 3
-
 
 dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
 dm_pyramid = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
@@ -32,11 +53,11 @@ dm_sixparam = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
 dm_sixparam1 = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
 dm_genshift3 = numqi.entangle.load_upb('genshifts', 3, return_bes=True)[1]
 
-fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm_tiles, dm1=dm_pyramid, dimA=3, dimB=3,
-            num_point=201, pureb_kext=16, tag_cha=False, label0=r'$\rho_{tiles}$', label1=r'$\rho_{pyramid}$')
+fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm_pyramid, (3,3), num_point=201,
+            pureb_kext=16, tag_cha=False, label0=r'$\rho_{tiles}$', label1=r'$\rho_{pyramid}$')
 
-# fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm_tiles, dm1=dm_pyramid, dimA=3, dimB=3,
-#             num_point=201, pureb_kext=[8,32], num_eig0=0, tag_cha=True, label0=r'Tiles UPB', label1=r'Pyramid UPB')
+# fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm_pyramid, (3,3), num_point=201,
+#             pureb_kext=[8,32], tag_cha=True, label0=r'Tiles UPB', label1=r'Pyramid UPB')
 # fig.savefig('data/20220726_3x3_upb_cha_ppt_gellman_distance_polar.png', dpi=200)
 # with open('data/20220726_3x3_upb_cha_ppt_gellman_distance_polar.pkl', 'wb') as fid:
 #     pickle.dump(all_data, fid)
@@ -78,7 +99,7 @@ print(quick_beta_boundary(best_theta, dimA, dimB, kext=16))
 
 dm0 = numqi.gellmann.gellmann_basis_to_dm(best_theta)
 dm1 = numqi.gellmann.gellmann_basis_to_dm(best_theta)
-fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm0, dm1=dm1, dimA=dimA, dimB=dimB,
+fig,ax,all_data = quick_plot_dm0_dm1_plane(dm0, dm1, (dimA,dimB),
             num_point=201, pureb_kext=None, tag_cha=False, num_eig0=5)
 # fig.savefig('data/20220806_4x3_plane01.png', dpi=200)
 # with open('data/20220806_4x3_plane01.pkl', 'wb') as fid:
@@ -107,7 +128,7 @@ print(best_loss)
 print(quick_beta_boundary(best_theta, 4, 2, kext=16))
 
 dm0 = numqi.gellmann.gellmann_basis_to_dm(best_theta)
-fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm0, dm1=dm1, dimA=4, dimB=2,
+fig,ax,all_data = quick_plot_dm0_dm1_plane(dm0, dm1, (4,2),
             num_point=201, pureb_kext=None, tag_cha=True, num_eig0=4)
 # with open('data/20220806_2x2x2_plane.pkl', 'wb') as fid:
 #     pickle.dump(all_data, fid)
@@ -120,8 +141,7 @@ fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm0, dm1=dm1, dimA=4, di
 # model = numqi.pureb.PureBosonicExt(dimA, dimB, kext=32)
 # beta_pureb = model.get_boundary(dm_target, xtol=1e-4, threshold=1e-7, num_repeat=1)
 
-fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm0=dm_tiles, dm1=dm1, dimA=dimA, dimB=dimB,
-            num_point=201, pureb_kext=None, tag_cha=False)
+fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm1, (dimA,dimB), num_point=201, pureb_kext=None, tag_cha=False)
 # fig.savefig('data/20220806_4x3_plane00.png', dpi=200)
 # with open('data/20220806_4x3_plane00.pkl', 'wb') as fid:
 #     pickle.dump(all_data, fid)
@@ -153,5 +173,7 @@ def demo_misc00():
     dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
     dm_pyramid = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
 
-    fig,ax,all_data = numqi.entangle.plot_dm0_dm1_plane(dm_tiles, dm_pyramid, 3, 3, num_point=201, with_gppt=True)
+    fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm_pyramid, (3,3), num_point=201,
+                pureb_kext=None, tag_cha=False, tag_gppt=True)
     # fig.savefig('data/20220905_realign_upb_bes.png', dpi=200)
+

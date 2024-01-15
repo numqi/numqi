@@ -11,53 +11,49 @@ from .cha import CHABoundaryBagging
 from .ppt import get_generalized_ppt_boundary, get_ppt_boundary
 from .pureb import PureBosonicExt
 
-def plot_dm0_dm1_plane(dm0, dm1, dimA, dimB, num_point=201, pureb_kext=None, tag_cha=False,
-        num_eig0=None, label0=None, label1=None, with_gppt=False):
+
+def plot_bloch_vector_cross_section(dm0, dm1, dim:tuple[int], num_point:int=201, beta_pureb:(dict|None)=None, beta_cha=None,
+            num_eig0:(int|None)=None, tag_gppt:bool=False, label0:(str|None)=None, label1:(str|None)=None, savepath=None):
     if label0 is None:
         label0 = r'$\rho_a$'
     if label1 is None:
         label1 = r'$\rho_b$'
     theta1,hf_theta = get_density_matrix_plane(dm0, dm1)
     if num_eig0 is None:
-        tmp0 = np.linalg.eigvalsh(hf_interpolate_dm(hf_theta(theta1),
-                beta=get_density_matrix_boundary(dm1)[1]))
+        tmp0 = np.linalg.eigvalsh(hf_interpolate_dm(hf_theta(theta1), beta=get_density_matrix_boundary(dm1)[1]))
         num_eig0 = (tmp0<1e-7).sum()
+    dimA = int(dim[0])
+    dimB = int(dim[1])
+    assert dm0.shape[0]==(dimA*dimB)
+    assert np.abs(dm0-dm0.T.conj()).max() < 1e-10
+    assert np.abs(dm1-dm1.T.conj()).max() < 1e-10
 
     theta_list = np.linspace(-np.pi, np.pi, num_point)
     beta_ppt = np.zeros_like(theta_list)
     beta_dm = np.zeros_like(theta_list)
     eig_dm = np.zeros((dimA*dimB, len(theta_list)), dtype=np.float64)
-    for ind0,x in enumerate(tqdm(theta_list)):
+    for ind0,x in enumerate(theta_list):
         dm_target = hf_theta(x)
         beta_ppt[ind0] = get_ppt_boundary(dm_target, (dimA, dimB))[1]
         beta_dm[ind0] = get_density_matrix_boundary(dm_target)[1]
         eig_dm[:,ind0] = np.linalg.eigvalsh(hf_interpolate_dm(dm_target, beta=beta_dm[ind0]))
 
-    if tag_cha:
-        dm_target_list = [hf_theta(x) for x in theta_list]
-        model_cha = CHABoundaryBagging((dimA,dimB))
-        beta_cha = np.array([model_cha.solve(x,use_tqdm=False) for x in tqdm(dm_target_list)])
+    if beta_cha is not None:
+        beta_cha = np.asarray(beta_cha) #(-pi,pi)
+        assert beta_cha.shape==theta_list.shape
+    if beta_pureb is not None:
+        assert isinstance(beta_pureb, dict)
+        beta_pureb = {int(x):np.asarray(y) for x,y in beta_pureb.items()}
+        assert all(x.shape==theta_list.shape for x in beta_pureb.values())
     else:
-        beta_cha = None
-    if pureb_kext is not None:
-        if not hasattr(pureb_kext, '__len__'):
-            pureb_kext = [int(pureb_kext)]
-        beta_pureb = np.zeros((len(pureb_kext), len(theta_list)), dtype=np.float64)
-        for ind0 in range(len(pureb_kext)):
-            model = PureBosonicExt(dimA, dimB, kext=pureb_kext[ind0])
-            for ind1,x in enumerate(tqdm(theta_list, desc=f'PureB-{pureb_kext[ind0]}')):
-                beta_pureb[ind0,ind1] = model.get_boundary(hf_theta(x), xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=1, use_tqdm=False)
-    else:
-        beta_pureb = None
-
-    if with_gppt:
+        beta_pureb = dict()
+    if tag_gppt:
         beta_gppt = np.zeros_like(theta_list)
-        for ind0,x in enumerate(tqdm(theta_list, desc='generalized-ppt')):
+        for ind0,x in enumerate(theta_list):
             dm_target = hf_theta(x)
             beta_gppt[ind0] = get_generalized_ppt_boundary(dm_target, (dimA,dimB), xtol=1e-5)
     else:
         beta_gppt = None
-
     fig,ax = plt.subplots()
     hf0 = lambda theta,r: (r*np.cos(theta), r*np.sin(theta))
     for theta, label in [(0,label0),(theta1,label1)]:
@@ -65,9 +61,8 @@ def plot_dm0_dm1_plane(dm0, dm1, dimA, dimB, num_point=201, pureb_kext=None, tag
         ax.plot([0, radius*np.cos(theta)], [0, radius*np.sin(theta)], linestyle=':', label=label)
     ax.plot(*hf0(theta_list, beta_dm), label='DM')
     ax.plot(*hf0(theta_list, beta_ppt), linestyle='--', label='PPT')
-    if beta_pureb is not None:
-        for ind0 in range(len(pureb_kext)):
-            ax.plot(*hf0(theta_list, beta_pureb[ind0]), label=f'PureB({pureb_kext[ind0]})')
+    for key,value in beta_pureb.items():
+        ax.plot(*hf0(theta_list, value), label=f'PureB({key})')
     if beta_cha is not None:
         ax.plot(*hf0(theta_list, beta_cha), label='CHA')
     for ind0 in range(1, num_eig0):
@@ -78,10 +73,83 @@ def plot_dm0_dm1_plane(dm0, dm1, dimA, dimB, num_point=201, pureb_kext=None, tag
     # ax.legend(fontsize=11, ncol=2, loc='lower right')
     # ax.tick_params(axis='both', which='major', labelsize=11)
     fig.tight_layout()
-    fig.savefig('tbd00.png', dpi=200)
-    all_data = dict(dm0=dm0, dm1=dm1, theta_list=theta_list, eig_dm=eig_dm, beta_dm=beta_dm,
-            beta_ppt=beta_ppt, beta_cha=beta_cha, pureb_kext=pureb_kext, beta_pureb=beta_pureb, num_eig0=num_eig0, beta_gppt=beta_gppt)
+    if savepath is not None:
+        fig.savefig(savepath, dpi=200)
+    all_data = dict(theta_list=theta_list, eig_dm=eig_dm, beta_dm=beta_dm,
+        beta_ppt=beta_ppt, beta_cha=beta_cha, beta_pureb=beta_pureb, beta_gppt=beta_gppt)
     return fig,ax,all_data
+
+# def plot_dm0_dm1_plane(dm0, dm1, dimA, dimB, num_point=201, pureb_kext=None, tag_cha=False,
+#         num_eig0=None, label0=None, label1=None, with_gppt=False):
+#     if label0 is None:
+#         label0 = r'$\rho_a$'
+#     if label1 is None:
+#         label1 = r'$\rho_b$'
+#     theta1,hf_theta = get_density_matrix_plane(dm0, dm1)
+#     if num_eig0 is None:
+#         tmp0 = np.linalg.eigvalsh(hf_interpolate_dm(hf_theta(theta1),
+#                 beta=get_density_matrix_boundary(dm1)[1]))
+#         num_eig0 = (tmp0<1e-7).sum()
+
+#     theta_list = np.linspace(-np.pi, np.pi, num_point)
+#     beta_ppt = np.zeros_like(theta_list)
+#     beta_dm = np.zeros_like(theta_list)
+#     eig_dm = np.zeros((dimA*dimB, len(theta_list)), dtype=np.float64)
+#     for ind0,x in enumerate(tqdm(theta_list)):
+#         dm_target = hf_theta(x)
+#         beta_ppt[ind0] = get_ppt_boundary(dm_target, (dimA, dimB))[1]
+#         beta_dm[ind0] = get_density_matrix_boundary(dm_target)[1]
+#         eig_dm[:,ind0] = np.linalg.eigvalsh(hf_interpolate_dm(dm_target, beta=beta_dm[ind0]))
+
+#     if tag_cha:
+#         dm_target_list = [hf_theta(x) for x in theta_list]
+#         model_cha = CHABoundaryBagging((dimA,dimB))
+#         beta_cha = np.array([model_cha.solve(x,use_tqdm=False) for x in tqdm(dm_target_list)])
+#     else:
+#         beta_cha = None
+#     if pureb_kext is not None:
+#         if not hasattr(pureb_kext, '__len__'):
+#             pureb_kext = [int(pureb_kext)]
+#         beta_pureb = np.zeros((len(pureb_kext), len(theta_list)), dtype=np.float64)
+#         for ind0 in range(len(pureb_kext)):
+#             model = PureBosonicExt(dimA, dimB, kext=pureb_kext[ind0])
+#             for ind1,x in enumerate(tqdm(theta_list, desc=f'PureB-{pureb_kext[ind0]}')):
+#                 beta_pureb[ind0,ind1] = model.get_boundary(hf_theta(x), xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=1, use_tqdm=False)
+#     else:
+#         beta_pureb = None
+
+#     if with_gppt:
+#         beta_gppt = np.zeros_like(theta_list)
+#         for ind0,x in enumerate(tqdm(theta_list, desc='generalized-ppt')):
+#             dm_target = hf_theta(x)
+#             beta_gppt[ind0] = get_generalized_ppt_boundary(dm_target, (dimA,dimB), xtol=1e-5)
+#     else:
+#         beta_gppt = None
+
+#     fig,ax = plt.subplots()
+#     hf0 = lambda theta,r: (r*np.cos(theta), r*np.sin(theta))
+#     for theta, label in [(0,label0),(theta1,label1)]:
+#         radius = 0.3
+#         ax.plot([0, radius*np.cos(theta)], [0, radius*np.sin(theta)], linestyle=':', label=label)
+#     ax.plot(*hf0(theta_list, beta_dm), label='DM')
+#     ax.plot(*hf0(theta_list, beta_ppt), linestyle='--', label='PPT')
+#     if beta_pureb is not None:
+#         for ind0 in range(len(pureb_kext)):
+#             ax.plot(*hf0(theta_list, beta_pureb[ind0]), label=f'PureB({pureb_kext[ind0]})')
+#     if beta_cha is not None:
+#         ax.plot(*hf0(theta_list, beta_cha), label='CHA')
+#     for ind0 in range(1, num_eig0):
+#         ax.plot(*hf0(theta_list, eig_dm[ind0]), label=rf'$\lambda_{ind0+1}$ dm')
+#     if beta_gppt is not None:
+#         ax.plot(*hf0(theta_list, beta_gppt), label='realignment')
+#     ax.legend(fontsize='small')
+#     # ax.legend(fontsize=11, ncol=2, loc='lower right')
+#     # ax.tick_params(axis='both', which='major', labelsize=11)
+#     fig.tight_layout()
+#     fig.savefig('tbd00.png', dpi=200)
+#     all_data = dict(dm0=dm0, dm1=dm1, theta_list=theta_list, eig_dm=eig_dm, beta_dm=beta_dm,
+#             beta_ppt=beta_ppt, beta_cha=beta_cha, pureb_kext=pureb_kext, beta_pureb=beta_pureb, num_eig0=num_eig0, beta_gppt=beta_gppt)
+#     return fig,ax,all_data
 
 
 class DensityMatrixLocalUnitaryEquivalentModel(torch.nn.Module):

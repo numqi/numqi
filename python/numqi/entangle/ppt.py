@@ -14,6 +14,8 @@ from ._misc import get_density_matrix_boundary, _sdp_ree_solve, _check_input_rho
 def get_ppt_numerical_range(op_list, direction, dim, return_info=False, use_tqdm=True):
     r'''get the PPT (positive partial transpose) numerical range of a list of operators
 
+    TODO bug, this is cross-section, not numerical range
+
     $$ \max\;\beta $$
 
     $$ s.t.\;\begin{cases} \rho\succeq 0\\ \mathrm{Tr}[\rho]=1\\ \rho^{\Gamma}\succeq 0\\ \mathrm{Tr}[\rho A_{i}]=\beta\hat{n}_{i} & i=1,\cdots,m \end{cases} $$
@@ -124,6 +126,17 @@ def get_ppt_boundary(dm, dim, dm_norm=None, within_dm=True):
 
 
 def is_ppt(rho, dim=None, eps=-1e-7, return_info=False):
+    '''Positive Partial Transpose (PPT)
+
+    Parameters:
+        rho (np.ndarray): density matrix
+        dim (tuple[int]): tuple of integers
+        eps (float): threshold for the eigenvalues
+        return_info (bool): whether to return the list of eigenvalues
+
+    Returns:
+        tag (bool): whether rho is PPT
+    '''
     # Positive Partial Transpose (PPT)
     # https://en.wikipedia.org/wiki/Entanglement_witness
     # https://en.wikipedia.org/wiki/Peres%E2%80%93Horodecki_criterion
@@ -163,6 +176,8 @@ def _is_generalized_ppt_dim_list(num_partite):
 def is_generalized_ppt(rho, dim, return_info=False):
     '''Generalized Positive Partial Transpose (PPT)
 
+    doi-link: doi.org/10.1016/S0375-9601(02)01538-4
+
     Parameters:
         rho (np.ndarray): density matrix
         dim (tuple[int]): tuple of integers
@@ -172,7 +187,6 @@ def is_generalized_ppt(rho, dim, return_info=False):
         tag (bool): whether rho is generalized PPT (superset of SEP)
         info (list[float]): list of nuclear norms
     '''
-    # doi.org/10.1016/S0375-9601(02)01538-4
     assert (rho.ndim==2) and rho.shape[0]==rho.shape[1]
     N0 = rho.shape[0]
     dim = tuple(int(x) for x in dim)

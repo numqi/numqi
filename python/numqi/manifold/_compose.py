@@ -27,7 +27,7 @@ class SeparableDensityMatrix(torch.nn.Module):
         if num_cha is None:
             num_cha = 2*dimA*dimB
         tmp0 = torch.float32 if (dtype==[torch.complex64,torch.float32]) else torch.float64
-        self.manifold_p = DiscreteProbability(num_cha, batch_size, 'softmax', requires_grad, dtype=tmp0)
+        self.manifold_p = DiscreteProbability(num_cha, batch_size, 'softmax', requires_grad=requires_grad, dtype=tmp0)
         tmp0 = num_cha if (batch_size is None) else (batch_size*num_cha)
         self.manifold_psiA = Sphere(dimA, tmp0, 'quotient', requires_grad, dtype=dtype)
         self.manifold_psiB = Sphere(dimB, tmp0, 'quotient', requires_grad, dtype=dtype)
