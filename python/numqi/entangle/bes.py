@@ -13,7 +13,7 @@ from .pureb import PureBosonicExt
 
 
 def plot_bloch_vector_cross_section(dm0, dm1, dim:tuple[int], num_point:int=201, beta_pureb:(dict|None)=None, beta_cha=None,
-            num_eig0:(int|None)=None, tag_gppt:bool=False, label0:(str|None)=None, label1:(str|None)=None, savepath=None):
+            num_eig0:(int|None)=None, tag_gppt:bool=False, label0:(str|None)=None, label1:(str|None)=None, savepath=None, ax=None):
     if label0 is None:
         label0 = r'$\rho_a$'
     if label1 is None:
@@ -54,7 +54,10 @@ def plot_bloch_vector_cross_section(dm0, dm1, dim:tuple[int], num_point:int=201,
             beta_gppt[ind0] = get_generalized_ppt_boundary(dm_target, (dimA,dimB), xtol=1e-5)
     else:
         beta_gppt = None
-    fig,ax = plt.subplots()
+    if ax is not None:
+        fig = ax.get_figure()
+    else:
+        fig,ax = plt.subplots()
     hf0 = lambda theta,r: (r*np.cos(theta), r*np.sin(theta))
     for theta, label in [(0,label0),(theta1,label1)]:
         radius = 0.3
