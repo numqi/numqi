@@ -1,3 +1,4 @@
+import os
 import pickle
 import time
 import numpy as np
@@ -9,49 +10,71 @@ import plotly.subplots
 
 import numqi
 
+hf_data = lambda *x: os.path.join('data', *x)
+
 tableau = ['#006BA4', '#FF800E', '#ABABAB', '#595959', '#5F9ED1', '#C85200', '#898989', '#A2C8EC', '#FFBC79', '#CFCFCF']
 # import seaborn as sns
 # sns.palplot(sns.color_palette(tableau))
 
 
 def demo_multipartite_Maciej2019_gm():
-    num_party = 3
-    bipartition_list = numqi.matrix_space.get_bipartition_list(num_party)
-    # [tuple(range(x)) for x in range(1,num_party)] is not correct since B^k is not symmetric
-    dimB_list = list(range(3,6))
-    theta_list = np.linspace(0, np.pi, 20)
+    datapath = hf_data('analytic_gm.pkl')
+    if os.path.exists(datapath):
+        with open(datapath, 'rb') as fid:
+            tmp0 = pickle.load(fid)
+        dimB_list = tmp0['dimB_list']
+        theta_list = tmp0['theta_list']
+        ret_analytical = tmp0['ret_analytical']
+        ret_ppt = tmp0['ret_ppt']
+        ret_gd = tmp0['ret_gd']
+    else:
+        num_party = 3
+        bipartition_list = numqi.matrix_space.get_bipartition_list(num_party)
+        # [tuple(range(x)) for x in range(1,num_party)] is not correct since B^k is not symmetric
+        dimB_list = list(range(3,8))
+        theta_list = np.linspace(0, np.pi, 20)
 
-    ret_analytical = np.stack([numqi.matrix_space.get_GM_Maciej2019(x, theta_list) for x in dimB_list])
-    ret_ppt = []
-    for dimB in dimB_list:
-        dim_list = [2]+[dimB]*(num_party-1)
-        for theta in tqdm(theta_list, desc=f'[ppt][d={dimB}]'):
-            matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta, num_party=num_party)
-            ret_ppt.append(numqi.matrix_space.get_generalized_geometric_measure_ppt(matrix_subspace, dim_list, bipartition_list))
-    ret_ppt = np.array(ret_ppt).reshape(len(dimB_list), len(theta_list))
+        ret_analytical = np.stack([numqi.matrix_space.get_GM_Maciej2019(x, theta_list) for x in dimB_list])
+        ret_ppt = []
+        for dimB in dimB_list:
+            dim_list = [2]+[dimB]*(num_party-1)
+            for theta in tqdm(theta_list, desc=f'[ppt][d={dimB}]'):
+                matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta, num_party=num_party)
+                ret_ppt.append(numqi.matrix_space.get_generalized_geometric_measure_ppt(matrix_subspace, dim_list, bipartition_list))
+        ret_ppt = np.array(ret_ppt).reshape(len(dimB_list), len(theta_list))
 
-    ret_gd = []
-    gd_kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
-    for dimB in dimB_list:
-        dim_list = [2]+[dimB]*(num_party-1)
-        model_list = [numqi.matrix_space.DetectCanonicalPolyadicRankModel(dim_list, rank=1, bipartition=x) for x in bipartition_list]
-        for theta in tqdm(theta_list, desc=f'[gd][d={dimB}]'):
-            matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta, num_party=num_party)
-            for model in model_list:
-                model.set_target(matrix_subspace)
-                ret_gd.append(numqi.optimize.minimize(model, **gd_kwargs).fun)
-    ret_gd = np.array(ret_gd).reshape(len(dimB_list), len(theta_list), len(bipartition_list))
+        ret_gd = []
+        gd_kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
+        for dimB in dimB_list:
+            dim_list = [2]+[dimB]*(num_party-1)
+            model_list = [numqi.matrix_space.DetectCanonicalPolyadicRankModel(dim_list, rank=1, bipartition=x) for x in bipartition_list]
+            for theta in tqdm(theta_list, desc=f'[gd][d={dimB}]'):
+                matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta, num_party=num_party)
+                for model in model_list:
+                    model.set_target(matrix_subspace)
+                    ret_gd.append(numqi.optimize.minimize(model, **gd_kwargs).fun)
+        ret_gd = np.array(ret_gd).reshape(len(dimB_list), len(theta_list), len(bipartition_list))
 
+        with open(datapath, 'wb') as fid:
+            tmp0 = dict(dimB_list=dimB_list, theta_list=theta_list, ret_analytical=ret_analytical, ret_ppt=ret_ppt, ret_gd=ret_gd)
+            pickle.dump(tmp0, fid)
+
+    FONTSIZE = 14
+    marker_list = '.+x^*'
+    linestyle_list = ['solid', 'dashed', 'dashdot', (0, (3, 1, 1, 1)), 'dotted'] #'densely dashdotted'
     fig,ax = plt.subplots()
+    color_list = [tableau[x] for x in [0,1,2,3,5]]
     for ind0 in range(len(dimB_list)):
-        ax.plot(theta_list, ret_analytical[ind0], '-', label=f'd={dimB_list[ind0]}', color=tableau[ind0])
-        ax.plot(theta_list, ret_gd[ind0].min(axis=1), 'o', markersize=6, markerfacecolor='none', markeredgecolor=tableau[ind0])
-        ax.plot(theta_list, ret_ppt[ind0], 'x', markersize=6, color=tableau[ind0])
-    ax.set_xlabel(r'$\theta$')
-    ax.set_ylabel(r'$E_2(\mathcal{S}_{2\times d\times d}^{\theta}$)')
-    ax.legend()
+        ax.plot(theta_list, ret_analytical[ind0], linestyle=linestyle_list[ind0], label=f'd={dimB_list[ind0]}', color=color_list[ind0])
+        ax.plot(theta_list, ret_gd[ind0].min(axis=1), 'o', markersize=6, markerfacecolor='none', markeredgecolor=color_list[ind0])
+        ax.plot(theta_list, ret_ppt[ind0], 'x', markersize=6, color=color_list[ind0])
+    ax.set_xlabel(r'$\theta$', fontsize=FONTSIZE)
+    ax.set_ylabel(r'$E_2(\mathcal{S}_{2\times d\times d}^{\theta}$)', fontsize=FONTSIZE)
+    ax.tick_params(axis='both', which='major', labelsize=FONTSIZE-3)
+    ax.legend(fontsize=FONTSIZE)
     fig.tight_layout()
-    # fig.savefig('data/Maciej2019_multipartite_gm.pdf')
+    fig.savefig(hf_data('analytic_gm.pdf'))
+    fig.savefig(hf_data('analytic_gm.png'), dpi=200)
 
 
 def demo_ces():
@@ -171,6 +194,14 @@ def demo_qubit_dicke_state_gm():
 
 
 def demo_qubit_dicke_state_border_rank():
+    datapath = hf_data('qubit_dicke_state_border_rank.pkl')
+    if os.path.exists(datapath):
+        with open(datapath, 'rb') as fid:
+            tmp0 = pickle.load(fid)
+            all_data = tmp0['all_data']
+    else:
+        pass
+
     num_qubit = 5
     dicke_k = 2
     dim_list = [2]*num_qubit
@@ -199,20 +230,32 @@ def demo_qubit_dicke_state_border_rank():
                 model.set_target(dicke_basis[dicke_k].reshape(dim_list))
                 tmp0.append(numqi.optimize.minimize(model, **kwargs).fun)
             all_data[(num_qubit, dicke_k)] = rlist, np.array(tmp0)
+    with open(datapath, 'wb') as fid:
+        tmp0 = dict(all_data=all_data)
+        pickle.dump(tmp0, fid)
+
+    FONTSIZE = 14
+    marker_list = '.+*x^'
+    linestyle_list = ['solid', 'dashed', 'dashdot', (0, (3, 1, 1, 1)), 'dotted'] #'densely dashdotted'
 
     fig,ax = plt.subplots()
+    key_to_linestyle = ({(x,1):linestyle_list[i] for i,x in enumerate((2,3,4,5,6))}
+                        | {(x,2):linestyle_list[i] for i,x in enumerate((4,5,6))}
+                        | {(6,3):linestyle_list[0]})
     n_to_alpha = dict(zip([2,3,4,5,6,7], np.linspace(0.4, 1, 5)))
     k_to_color = dict(zip([1,2,3], [tableau[0],tableau[1],tableau[3]]))
-    tmp0 = sorted(all_data.items(), key=lambda x: x[0])
+    tmp0 = sorted(all_data.items(), key=lambda x: x[0][::-1])
     for (n,k),(rlist,Er) in tmp0:
-        ax.plot(rlist, Er, 'o-', label=f'n={n}, k={k}', color=k_to_color[k], alpha=n_to_alpha[n])
+        ax.plot(rlist, Er, marker=marker_list[k-1], linestyle=key_to_linestyle[(n,k)], label=f'n={n}, k={k}', color=k_to_color[k], alpha=n_to_alpha[n], markersize=8)
     ax.set_ylim([-0.03, 0.72])
     ax.set_xticks(np.arange(2, 6))
-    ax.set_xlabel('$r$')
-    ax.set_ylabel(r'$E_r(|D_n^k \rangle)$')
-    ax.legend()
+    ax.set_xlabel('$r$', fontsize=FONTSIZE)
+    ax.set_ylabel(r'$E_r(|D_n^k \rangle)$', fontsize=FONTSIZE)
+    ax.legend(fontsize=FONTSIZE)
+    ax.tick_params(axis='both', which='major', labelsize=FONTSIZE-3)
     fig.tight_layout()
-    # fig.savefig('data/qubit_dicke_state_border_rank.pdf')
+    fig.savefig(hf_data('qubit_dicke_state_border_rank.pdf'))
+    fig.savefig(hf_data('qubit_dicke_state_border_rank.png'), dpi=200)
 
 
 def _rand_hermtian_matrix_with_trace_norm(d:int, norm:float, seed=None):
@@ -225,36 +268,45 @@ def _rand_hermtian_matrix_with_trace_norm(d:int, norm:float, seed=None):
 
 
 def demo_robustness():
+    datapath = hf_data('robustness.pkl')
     kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
     norm_list = np.linspace(0.1, 5, 20)
     num_sample = 1000
     theta_list = [np.pi/2, np.pi/4, np.pi/6]
     dimB = 3
+    if os.path.exists(datapath):
+        with open(datapath, 'rb') as fid:
+            tmp0 = pickle.load(fid)
+            norm_list, ret_list = tmp0['norm_list'], tmp0['ret_list']
+    else:
+        model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((2,dimB), rank=1)
+        ret_list = []
+        for theta_i in theta_list:
+            matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta_i)
+            for norm_i in tqdm(norm_list, desc=f'[theta={theta_i:.2f}]'):
+                for _ in range(num_sample):
+                    matU = scipy.linalg.expm(-1j*_rand_hermtian_matrix_with_trace_norm(2*dimB, norm_i))
+                    tmp0 = np.einsum(matU, [0,1], matrix_subspace.reshape(-1,2*dimB), [2,1], [2,0], optimize=True).reshape(-1,2,dimB)
+                    model.set_target(tmp0)
+                    ret_list.append(numqi.optimize.minimize(model, **kwargs).fun)
+        ret_list = np.array(ret_list).reshape(len(theta_list), len(norm_list), num_sample)
 
-    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((2,dimB), rank=1)
-    ret_list = []
-    for theta_i in theta_list:
-        matrix_subspace = numqi.matrix_space.get_GES_Maciej2019(dimB, theta=theta_i)
-        for norm_i in tqdm(norm_list, desc=f'[theta={theta_i:.2f}]'):
-            for _ in range(num_sample):
-                matU = scipy.linalg.expm(-1j*_rand_hermtian_matrix_with_trace_norm(2*dimB, norm_i))
-                tmp0 = np.einsum(matU, [0,1], matrix_subspace.reshape(-1,2*dimB), [2,1], [2,0], optimize=True).reshape(-1,2,dimB)
-                model.set_target(tmp0)
-                ret_list.append(numqi.optimize.minimize(model, **kwargs).fun)
-    ret_list = np.array(ret_list).reshape(len(theta_list), len(norm_list), num_sample)
+        with open(datapath, 'wb') as fid:
+            pickle.dump(dict(norm_list=norm_list, ret_list=ret_list), fid)
 
-    # with open('data/robustness.pkl', 'wb') as fid:
-    #     pickle.dump(dict(norm_list=norm_list, ret_list=ret_list), fid)
-
+    FONTSIZE = 14
+    # marker_list = '.+x^*'
     fig,ax = plt.subplots()
-    ax.plot(norm_list, ret_list[0].min(axis=1), 'o-', label=r'$\theta=\pi/2$', color=tableau[0])
-    ax.plot(norm_list, ret_list[1].min(axis=1), 'o-', label=r'$\theta=\pi/4$', color=tableau[1])
-    ax.plot(norm_list, ret_list[2].min(axis=1), 'o-', label=r'$\theta=\pi/6$', color=tableau[4])
-    ax.set_xlabel(r'$\|H\|_{tr}$')
-    ax.set_ylabel(r'Minimum value of $E_2$')
-    ax.legend()
+    ax.plot(norm_list, ret_list[0].min(axis=1), '.-', label=r'$\theta=\pi/2$', color=tableau[0], markersize=8)
+    ax.plot(norm_list, ret_list[1].min(axis=1), '+-', label=r'$\theta=\pi/4$', color=tableau[1], markersize=8)
+    ax.plot(norm_list, ret_list[2].min(axis=1), '*-', label=r'$\theta=\pi/6$', color=tableau[4], markersize=8)
+    ax.set_xlabel(r'$\|H\|_{tr}$', fontsize=FONTSIZE)
+    ax.set_ylabel(r'Minimum value of $E_2$', fontsize=FONTSIZE)
+    ax.tick_params(axis='both', which='major', labelsize=FONTSIZE-3)
+    ax.legend(fontsize=FONTSIZE)
     fig.tight_layout()
-    fig.savefig('data/robustness.pdf')
+    fig.savefig(hf_data('robustness.pdf'))
+    fig.savefig(hf_data('robustness.png'), dpi=200)
 
 
 def demo_Wlike_state_gme():
@@ -297,8 +349,9 @@ def demo_Wlike_state_gme():
 
 
 if __name__=='__main__':
-    demo_bipartite_Maciej2019_gm()
+    # demo_bipartite_Maciej2019_gm()
     # demo_Wstate_border_rank()
     # demo_qubit_dicke_state_border_rank()
     # demo_qubit_dicke_state_border_rank()
     # demo_robustness()
+    demo_multipartite_Maciej2019_gm()
