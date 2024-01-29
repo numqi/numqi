@@ -21,6 +21,7 @@ def hf_cos_sin_wrapper(order):
         return ret
     return hf0
 
+# TODO put in tutorial
 
 def hf_is_similar(x, y, zero_eps=0.001):
     assert (x.ndim==1) and (x.shape==y.shape) and (x.shape[0]%2==1)
