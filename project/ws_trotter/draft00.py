@@ -78,6 +78,40 @@ def demo_2qubits():
     fig.savefig('tbd02.png', dpi=200)
 
 
+def demo_20231124():
+    matA = np.kron(PauliZ, PauliZ)
+    matB = (np.kron(PauliZ, Pauli0) + np.kron(Pauli0, PauliZ))
+    matC = np.kron(PauliX, Pauli0) + np.kron(Pauli0, PauliX)
+    alpha = 1
+    alpha_list = []
+    t_list = np.linspace(0, 0.95, 50)[1:-1]
+
+    fidelity01_list = []
+    fidelity23_list = []
+    for ti in t_list:
+        tmp0 = scipy.linalg.expm(0.5j*(ti*matB + alpha*matC*np.tan(ti)))
+        ret0 = tmp0 @ scipy.linalg.expm(1j*ti * matA) @ tmp0
+        ret1 = scipy.linalg.expm(1j*ti * (matA + matB + alpha*matC))
+        # ret2 = scipy.linalg.expm(1j*ti * (matA + matB + alpha*matC))
+        tmp0 = scipy.linalg.expm(0.5j*(ti*matB + alpha*ti*matC))
+        ret3 = tmp0 @ scipy.linalg.expm(1j*ti * matA) @ tmp0
+        fidelity01_list.append(get_unitary_fidelity(ret0, ret1))
+        fidelity23_list.append(get_unitary_fidelity(ret1, ret3))
+    fidelity01_list = np.array(fidelity01_list)
+    fidelity23_list = np.array(fidelity23_list)
+
+    fig,ax = plt.subplots()
+    ax.plot(t_list, fidelity01_list, label=r'$F(U_0,U_1)$')
+    ax.plot(t_list, fidelity23_list, label=r'$F(U_1,U_3)$')
+    ax.set_xlabel('t')
+    ax.legend()
+    ax.set_title(f'alpha={alpha:.3f}')
+    ax.set_ylabel('fidelity')
+    ax.grid()
+    fig.tight_layout()
+    fig.savefig('tbd02.png', dpi=200)
+
+
 ## TODO debug
 # z0 = []
 # for ti in t_list:
