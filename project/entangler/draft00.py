@@ -101,6 +101,7 @@ if __name__=='__main__':
 
     num_round = 1000
     t0 = time.time()
+    loss_list = []
     for ind_round in range(num_round):
         theta_u = from_pickle('theta_optim_u')
         hf0 = lambda x, tag_grad=False: hf_dummy_233(x, tag_grad, kwargs_model, kwargs_optim, zero_eps=1e-7, num_worker=16)
@@ -111,6 +112,10 @@ if __name__=='__main__':
         eta_time = total_time*num_round / (ind_round+1) - total_time
         to_pickle(theta_optim_u=theta_optim.x)
         print(f'[{ind_round+1}/{num_round}][{average_time:.0f}s / {eta_time:.0f}s / {total_time:.0f}s] loss={theta_optim.fun:.6f}')
+        loss_list.append(theta_optim.fun)
+    for x in loss_list:
+        print(x)
+    to_pickle(loss_list=loss_list)
 
     # theta_optim_u = from_pickle('theta_optim_u')
     # matU = numqi.param.real_matrix_to_special_unitary(theta_optim_u.reshape(dimA*dimB, dimA*dimB))
