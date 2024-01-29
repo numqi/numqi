@@ -347,6 +347,67 @@ def demo_Wlike_state_gme():
     fig.write_image("tbd00.png") # pip install -U kaleido
 
 
+def demo_misc00():
+    # range criterion
+    dimA = 3
+    dimB = 3
+    rho_bes = numqi.entangle.load_upb('tiles', return_bes=True)[1]
+    EVL,EVC = np.linalg.eigh(rho_bes)
+    matrix_subspace = (EVC[:, EVL>1e-4]).reshape(dimA,dimB,-1).transpose(2,0,1)
+    print(numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=1))
+    print(numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=2))
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((dimA, dimB), rank=1)
+    model.set_target(matrix_subspace)
+    kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
+    theta_optim = numqi.optimize.minimize(model,**kwargs)
+    print(f'numerical result = {theta_optim.fun}')
+    print(f'lower bound given by PPT = {numqi.matrix_space.get_geometric_measure_ppt(matrix_subspace, [dimA, dimB])}')
+
+
+    dimA = 4
+    dimB = 4
+    tmp0 = [
+        [(0,0,1), (1,1,1), (2,2,1), (3,3,1)],
+        [(0,1,1), (1,2,1), (2,3,1), (3,0,1)],
+        [(0,2,1), (1,3,1), (2,0,1), (3,1,-1)],
+    ]
+    matrix_subspace = np.stack([numqi.matrix_space.build_matrix_with_index_value(dimA, dimB, x) for x in tmp0])
+    print(numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=2, hierarchy_k=1))
+    print(numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=3, hierarchy_k=1))
+    print(numqi.matrix_space.has_rank_hierarchical_method(matrix_subspace, rank=4, hierarchy_k=1))
+    print(f'lower bound given by PPT = {numqi.matrix_space.get_geometric_measure_ppt(matrix_subspace, [dimA, dimB])}')
+
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((dimA, dimB), rank=1)
+    model.set_target(matrix_subspace)
+    kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
+    theta_optim = numqi.optimize.minimize(model,**kwargs)
+    print(f'numerical result = {theta_optim.fun}')
+
+
+def benchmark_is_ABC_completely_entangled_subspace():
+    case_list = [(2,2,2,2), (2,2,3,2), (2,2,4,2), (2,2,5,2), (2,2,6,2), (2,2,7,2),
+                (2,2,8,2), (2,2,9,2),]# (2,3,3,3), (2,3,4,3), (2,3,5,3)]
+    info_list = []
+    for dimA,dimB,dimC,kmax in case_list:
+        np_list = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
+        for k in [kmax-1,kmax]:
+            t0 = time.time()
+            ret = numqi.matrix_space.is_ABC_completely_entangled_subspace(np_list, hierarchy_k=k)
+            info_list.append((dimA,dimB,dimC,k, ret, time.time()-t0))
+        print(f'[{dimA}x{dimB}x{dimC}] {info_list[-2][-2]}@(k={kmax-1}) {info_list[-1][-2]}@(k={kmax}) time(k={kmax})={info_list[-1][-1]:.2f}s')
+    # mac-studio 20230826
+    # [2x2x2] False@(k=1) True@(k=2) time(k=2)=0.01s
+    # [2x2x3] False@(k=1) True@(k=2) time(k=2)=0.22s
+    # [2x2x4] False@(k=1) True@(k=2) time(k=2)=0.52s
+    # [2x2x5] False@(k=1) True@(k=2) time(k=2)=0.55s
+    # [2x2x6] False@(k=1) True@(k=2) time(k=2)=0.69s
+    # [2x2x7] False@(k=1) True@(k=2) time(k=2)=0.96s
+    # [2x2x8] False@(k=1) True@(k=2) time(k=2)=1.40s
+    # [2x2x9] False@(k=1) True@(k=2) time(k=2)=2.18s
+    # [2x3x3] False@(k=2) True@(k=3) time(k=3)=1.30s
+    # [2x3x4] False@(k=2) True@(k=3) time(k=3)=8.59s
+    # [2x3x5] False@(k=2) True@(k=3) time(k=3)=328.46s
+
 
 if __name__=='__main__':
     # demo_bipartite_Maciej2019_gm()
@@ -355,3 +416,5 @@ if __name__=='__main__':
     # demo_qubit_dicke_state_border_rank()
     # demo_robustness()
     demo_multipartite_Maciej2019_gm()
+    # demo_misc00()
+    # benchmark_is_ABC_completely_entangled_subspace()
