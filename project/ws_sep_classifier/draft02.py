@@ -25,18 +25,25 @@ class PositiveWeightLinear(torch.nn.Module):
         # ret = torch.nn.functional.linear(x, tmp0, self.bias)
         return ret
 
-def generate_ppt_boundary_data(batch_size, dim, seed=None):
+def generate_ppt_boundary_data(batch_size, dim, tag_symmetry=True, seed=None):
     # warning, the generated data here are always paired (x,-x)
     assert hasattr(dim, '__len__') and (len(dim)==2)
     dimA,dimB = dim
     dim = dimA*dimB
     np_rng = numqi.random.get_numpy_rng(seed)
-    vec = np_rng.normal(size=(batch_size//2+1, dim*dim-1))
+    if tag_symmetry:
+        vec = np_rng.normal(size=(batch_size//2+1, dim*dim-1))
+    else:
+        vec = np_rng.normal(size=(batch_size, dim*dim-1))
     vec /= np.linalg.norm(vec, axis=1, keepdims=True)
     dm_list = numqi.gellmann.gellmann_basis_to_dm(vec)
     beta_ppt_l,beta_ppt_u = numqi.entangle.get_ppt_boundary(dm_list, (dimA,dimB))
-    xdata = np.concatenate([-vec,vec], axis=0)[:batch_size]
-    ydata = np.concatenate([-beta_ppt_l, beta_ppt_u], axis=0)[:batch_size]
+    if tag_symmetry:
+        xdata = np.concatenate([-vec,vec], axis=0)[:batch_size]
+        ydata = np.concatenate([-beta_ppt_l, beta_ppt_u], axis=0)[:batch_size]
+    else:
+        xdata = vec
+        ydata = beta_ppt_u
     ret = xdata*ydata[:,np.newaxis]
     return ret
 
@@ -72,7 +79,7 @@ class DummyConvexModel(torch.nn.Module):
         super().__init__()
         dtype = torch.float32
         if dim_fc_list is None:
-            dim_fc_list = [dim**2-1, 128, 128, 128, 128, 128, 128, 128, 128, 1]
+            dim_fc_list = [dim**2-1, 128, 128, 128, 128, 1]
         else:
             assert dim_fc_list[0] == dim**2-1
         if device is None:
@@ -92,6 +99,7 @@ class DummyConvexModel(torch.nn.Module):
             if ind0<(len(self.fc_list)-1):
                 y = torch.nn.functional.leaky_relu(y)
                 # y = torch.nn.functional.prelu(y, torch.nn.functional.softplus(self.theta_prelu[ind0]))
+                # y = torch.nn.functional.selu(y)
             if x.shape[-1]==y.shape[-1]: #TODO resnet may not convex
                 x = y + x
             else:
