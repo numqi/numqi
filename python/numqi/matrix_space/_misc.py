@@ -232,7 +232,7 @@ def get_matrix_subspace_example(key, arg=None):
         ], 4, 4)
         ret = tmp0, 'real'
         # hierarchy(rank=2, k=1): True
-        # DetectMatrixSpaceRank(rank=2): loss=0
+        # DetectRankModel(rank=2): loss=0
     elif key in {'hierarchy-ex1','hierarchy-ex3'}:
         # https://arxiv.org/abs/2210.16389v1 example1 example3
         #at least rank=2
@@ -251,13 +251,13 @@ def get_matrix_subspace_example(key, arg=None):
             tmp0 = hf0(tmp0[:-1], 4, 4)
             ret = tmp0, 'complex'
             # hierarchy(rank=2, k=1): True
-            # DetectMatrixSpaceRank(rank=2): loss=0
+            # DetectRankModel(rank=2): loss=0
         else:
             tmp0 = hf0(tmp0, 4, 4)
             ret = tmp0, 'complex'
             # hierarchy(rank=2, k=2): False
             # hierarchy(rank=2, k=3): True
-            # DetectMatrixSpaceRank(rank=2): loss=0
+            # DetectRankModel(rank=2): loss=0
     elif key=='hierarchy-ex5':
         tmp0 = [
             [(0,0,1), (1,1,1), (2,2,1), (3,3,1)],

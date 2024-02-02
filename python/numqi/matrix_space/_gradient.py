@@ -12,7 +12,6 @@ from ._misc import find_closest_vector_in_space
 # hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
 hf_torch_norm_square = lambda x: torch.sum((x.conj() * x).real)
 
-# old_name DetectMatrixSpaceRank
 class DetectRankModel(torch.nn.Module):
     def __init__(self, basis_orth, space_char, rank, dtype='float64', device='cpu'):
         r'''detect the rank of a matrix subspace
@@ -297,7 +296,6 @@ class DetectOrthogonalRankOneModel(torch.nn.Module):
 
 
 # bad, second-svd(a_i A_i)
-# old name: DetectMatrixSubspaceRank1Model
 class DetectRankOneModel(torch.nn.Module):
     def __init__(self, matA, dtype='float64'):
         super().__init__()
