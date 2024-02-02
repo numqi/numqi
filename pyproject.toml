@@ -51,3 +51,6 @@ where = ["python"]
 
 [tool.setuptools_scm]
 write_to = "python/numqi/_version.py"
+
+[tool.setuptools.package-data]
+numqi = ["_data/*"]

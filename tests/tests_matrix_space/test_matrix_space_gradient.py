@@ -24,9 +24,9 @@ def test_matrix_subspace_XZ_R_XZ_C():
     assert residual < 1e-7
 
 
-def test_matrix_subspace_UDA():
-    pauli_str = 'XX XY'
-    matrix_subspace,matrix_subspace_orth = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+def test_matrix_subspace_real_complex_field_2qubit():
+    pauli_str = 'XX XY'.split(' ')
+    matrix_subspace = np.stack([numqi.gate.PauliOperator.from_str(x).full_matrix for x in pauli_str])
 
     # span_R(C_H)
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')
@@ -68,8 +68,10 @@ def test_matrix_subspace_misc():
 
 
 def test_matrix_subspace_sparse():
-    pauli_str = 'XX XY'
-    matrix_subspace,matrix_subspace_orth = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+    pauli_str = ['XX', 'XY']
+    pauli_str_orth = set(numqi.gate.get_pauli_group(2, kind='str')) - set(pauli_str)
+    matrix_subspace = np.stack([numqi.gate.PauliOperator.from_str(x).full_matrix for x in pauli_str])
+    matrix_subspace_orth = np.stack([numqi.gate.PauliOperator.from_str(x).full_matrix for x in pauli_str_orth])
 
     model = numqi.matrix_space.DetectRankModel(torch.tensor(matrix_subspace_orth).to_sparse(), space_char='C_H', rank=(0,2,2))
     theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)

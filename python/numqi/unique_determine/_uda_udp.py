@@ -1,5 +1,3 @@
-import os
-import json
 import time
 import concurrent.futures
 import multiprocessing
@@ -8,129 +6,153 @@ import torch
 import scipy.sparse
 
 import numqi.matrix_space
+import numqi.random
 import numqi.optimize
+from ._internal import save_index_to_file, get_matrix_list_indexing
 
 # cannot be torch.linalg.norm()**2 nan when calculating the gradient when norm is almost zero
-# see https://github.com/pytorch/pytorch/issues/99868
+# not using torch.dot because torch.dot(complex) might be wrong for see https://github.com/pytorch/pytorch/issues/99868
 # hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
 hf_torch_norm_square = lambda x: torch.sum((x.conj() * x).real)
 
-
-def get_matrix_list_indexing(mat_list, index):
-    if isinstance(mat_list, np.ndarray):
-        index = np.asarray(index)
-        assert (mat_list.ndim==3) and (index.ndim==1)
-        ret = mat_list[index]
-    else:
-        ret = [mat_list[x] for x in index]
-    return ret
-
-
-class DetectUDPModel(torch.nn.Module):
-    def __init__(self, basis_orth, dtype='float32', device='cpu'):
+class _UDAEigenvalueManifold(torch.nn.Module):
+    def __init__(self, dim:int, dtype:torch.dtype=torch.float32):
         super().__init__()
-        self.is_torch = isinstance(basis_orth, torch.Tensor)
-        self.use_sparse = self.is_torch and basis_orth.is_sparse #use sparse only when is a torch.tensor
-        assert basis_orth.ndim==3
+        assert dtype in {torch.float32, torch.float64}
+        dim = int(dim)
+        assert dim>=2
+        tmp0 = np.random.default_rng().uniform(0, 1, size=dim-1)
+        self.theta = torch.nn.Parameter(torch.tensor(tmp0, dtype=dtype))
+
+    def forward(self):
+        tmp0 = torch.nn.functional.softplus(self.theta)
+        tmp1 = torch.sum(tmp0)
+        tmp2 = 1/torch.sqrt(torch.dot(tmp0,tmp0) + tmp1*tmp1)
+        ret = torch.concat([tmp0, -tmp1.reshape(1)], dim=0) * tmp2
+        return ret
+
+
+class DetectUDModel(torch.nn.Module):
+    def __init__(self, dim:int, is_uda:bool, dtype:str='float32'):
+        super().__init__()
         assert dtype in {'float32','float64'}
         self.dtype = torch.float32 if dtype=='float32' else torch.float64
         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
-        self.device = device
-        self.basis_orth_conj = self._setup_basis_orth_conj(basis_orth)
-        np_rng = np.random.default_rng()
-        hf0 = lambda *size: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=size), dtype=self.dtype))
-        self.theta = hf0(4, basis_orth[0].shape[0])
-        self.EVL = hf0(2)
-        self.matH = None
-
-    def _setup_basis_orth_conj(self, basis_orth):
-        # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
-        if self.use_sparse:
-            assert self.is_torch
-            assert self.device=='cpu', f'sparse tensor not support device "{self.device}"'
-            index = basis_orth.indices()
-            shape = basis_orth.shape
-            tmp0 = torch.stack([index[0], index[1]*shape[2] + index[2]])
-            basis_orth_conj = torch.sparse_coo_tensor(tmp0, basis_orth.values().conj().to(self.cdtype), (shape[0], shape[1]*shape[2]))
+        if is_uda:
+            self.manifold_EVC = numqi.manifold.SpecialOrthogonal(dim, method='exp', dtype=self.cdtype)
+            self.manifold_EVL = _UDAEigenvalueManifold(dim, dtype=self.dtype)
         else:
-            if self.is_torch:
-                basis_orth_conj = basis_orth.conj().reshape(basis_orth.shape[0],-1).to(device=self.device, dtype=self.cdtype)
+            self.manifold = numqi.manifold.Stiefel(dim, 2, method='qr', dtype=self.cdtype)
+            self._s12 = 1/np.sqrt(2).item()
+        self.matH = None
+        self.mat_list_conj = None
+
+    def set_mat_list(self, mat_list):
+        # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
+        assert mat_list.ndim==3
+        if isinstance(mat_list, torch.Tensor) and mat_list.is_sparse:
+            index = mat_list.indices()
+            shape = mat_list.shape
+            tmp0 = torch.stack([index[0], index[1]*shape[2] + index[2]])
+            mat_list_conj = torch.sparse_coo_tensor(tmp0, mat_list.values().conj().to(self.cdtype), (shape[0], shape[1]*shape[2]))
+        else:
+            if isinstance(mat_list, torch.Tensor):
+                mat_list_conj = mat_list.conj().reshape(mat_list.shape[0],-1).to(dtype=self.cdtype)
             else:
-                basis_orth_conj = torch.tensor(basis_orth.conj().reshape(basis_orth.shape[0],-1), dtype=self.cdtype, device=self.device)
-        return basis_orth_conj
+                mat_list_conj = torch.tensor(mat_list.conj().reshape(mat_list.shape[0],-1), dtype=self.cdtype)
+        self.mat_list_conj = mat_list_conj
 
     def forward(self):
-        tmp0 = self.theta[0] + 1j*self.theta[1]
-        EVC0 = tmp0 / torch.linalg.norm(tmp0)
-        tmp0 = self.theta[2] + 1j*self.theta[3]
-        tmp0 = tmp0 - torch.dot(EVC0.conj(), tmp0) * EVC0
-        EVC1 = tmp0 / torch.linalg.norm(tmp0)
-        tmp0 = torch.nn.functional.softplus(self.EVL)
-        EVL = tmp0 / torch.linalg.norm(tmp0)
-        matH = EVC0.reshape(-1,1)*(EVC0.conj()*EVL[0]) - EVC1.reshape(-1,1)*(EVC1.conj()*EVL[1])
-        self.matH = matH
-        loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
+        if hasattr(self, 'manifold_EVL'): #UDA
+            EVC = self.manifold_EVC()
+            EVL = self.manifold_EVL()
+            matH = (EVC * EVL) @ (EVC.conj().T)
+        else: #UDP
+            EVC0,EVC1 = self.manifold().T
+            matH = EVC0.reshape(-1,1)*(EVC0.conj()*self._s12) - EVC1.reshape(-1,1)*(EVC1.conj()*self._s12)
+        self.matH = matH.detach()
+        loss = hf_torch_norm_square(self.mat_list_conj @ matH.reshape(-1))
         return loss
 
+def _is_mat_list_full_rank(mat_list, zero_eps=1e-7):
+    dim = mat_list[0].shape[0]
+    if len(mat_list)>=dim*dim:
+        if isinstance(mat_list, np.ndarray):
+            tmp0 = mat_list.reshape(-1, dim*dim)
+            tmp0 = tmp0 @ tmp0.T.conj()
+        else: # scipy.sparse
+            tmp0 = scipy.sparse.vstack([x.reshape(1,-1) for x in mat_list])
+            tmp0 = (tmp0 @ tmp0.T.conj()).toarray()
+        ret = np.abs(np.diag(scipy.linalg.lu(tmp0)[2])).min() > zero_eps #full rank
+    else:
+        ret = False
+    return ret
 
-def _check_UDA_UDP_matrix_subspace_one(is_uda, matB, num_repeat, converge_tol,
-            early_stop_threshold, udp_use_vector_model, dtype, tag_single_thread):
+def _check_UD_one(is_uda, mat_list, num_repeat, converge_tol, early_stop_threshold, dtype, tag_single_thread, np_rng, print_every_round):
+    # always assume that identity is measured
+    # mat_list: 3d-array or list of sparse matrix
     if tag_single_thread and torch.get_num_threads()!=1:
         torch.set_num_threads(1)
-    if len(matB)==0:
-        ret = True,np.inf
+    if len(mat_list)==0:
+        ret = False,0,None
+    elif _is_mat_list_full_rank(mat_list):
+        ret = True, np.inf, None #TODO, np.inf is not a good choice
     else:
-        rank = (0,matB[0].shape[0]-1,1) if is_uda else (0,1,1)
-        if not isinstance(matB, np.ndarray): #sparse matrix
-            index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row, y.col]) for x,y in enumerate(matB)], axis=1)
-            value = np.concatenate([x.data for x in matB])
-            matB = torch.sparse_coo_tensor(index, value, (len(matB), *matB[0].shape)).coalesce()
-        if udp_use_vector_model:
-            model = DetectUDPModel(matB, dtype)
-        else:
-            model = numqi.matrix_space.DetectRankModel(matB, space_char='C_H', rank=rank, dtype=dtype)
-        theta_optim = numqi.optimize.minimize(model, theta0='normal', num_repeat=num_repeat,
-                tol=converge_tol, early_stop_threshold=early_stop_threshold, print_every_round=0, print_freq=0)
-        ret = theta_optim.fun>early_stop_threshold, theta_optim.fun
-        # always assume that identity is measured, and matrix subspace A is traceless, so no need to test loss(0,n,0)
+        if not isinstance(mat_list, np.ndarray): #sparse matrix
+            index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row, y.col]) for x,y in enumerate(mat_list)], axis=1)
+            value = np.concatenate([x.data for x in mat_list])
+            mat_list = torch.sparse_coo_tensor(index, value, (len(mat_list), *mat_list[0].shape)).coalesce()
+        model = DetectUDModel(mat_list[0].shape[0], is_uda, dtype)
+        model.set_mat_list(mat_list)
+        theta_optim = numqi.optimize.minimize(model, theta0='normal', num_repeat=num_repeat, tol=converge_tol,
+                early_stop_threshold=early_stop_threshold, print_every_round=print_every_round, print_freq=0, seed=np_rng)
+        ret = theta_optim.fun>early_stop_threshold, theta_optim.fun, theta_optim.x
     return ret
 
 
-def _check_UDA_UDP_matrix_subspace_parallel(is_uda, matB, num_repeat, converge_tol,
-            early_stop_threshold, udp_use_vector_model, dtype, num_worker, tag_single_thread):
-    if isinstance(matB, np.ndarray) or scipy.sparse.issparse(matB[0]):
+def check_UD(kind:str, mat_list, num_repeat:int, converge_tol:float=1e-5, early_stop_threshold:float=1e-2,
+                dtype:str='float32', num_worker:int=1, tag_single_thread:bool=True,
+                tag_print:int=0, return_model:bool=False, seed=None):
+    kind = kind.lower()
+    assert kind in {'uda','udp'}
+    is_uda = kind=='uda'
+    np_rng = np.random.default_rng(seed)
+    matS = mat_list #matrix subspace (matS)
+    if isinstance(matS, np.ndarray) or scipy.sparse.issparse(matS[0]):
         is_single_item = True
-        if isinstance(matB, np.ndarray):
-            assert (matB.ndim==3) and (matB.shape[1]==matB.shape[2])
-            matB_list = [matB]
+        if isinstance(matS, np.ndarray):
+            assert (matS.ndim==3) and (matS.shape[1]==matS.shape[2])
+            matS_list = [matS]
         else:
-            assert all((x.shape[0]==x.shape[1]) and (x.format=='coo') for x in matB)
-            matB_list = [matB]
+            assert all((x.shape[0]==x.shape[1]) and (x.format=='coo') for x in matS)
+            matS_list = [matS]
     else:
         is_single_item = False
-        if isinstance(matB[0], np.ndarray):
-            assert all(((x.ndim==3) and (x.shape[1]==x.shape[2])) for x in matB)
+        if isinstance(matS[0], np.ndarray):
+            assert all(((x.ndim==3) and (x.shape[1]==x.shape[2])) for x in matS)
         else:
-            assert all((y.shape[0]==y.shape[1]) and (y.format=='coo') for x in matB for y in x)
-        matB_list = matB
-    assert len(matB_list)>0
+            assert all((y.shape[0]==y.shape[1]) and (y.format=='coo') for x in matS for y in x)
+        matS_list = matS
+    assert len(matS_list)>0
     kwargs = {'is_uda':is_uda, 'num_repeat':num_repeat, 'converge_tol':converge_tol, 'early_stop_threshold':early_stop_threshold,
-            'udp_use_vector_model':udp_use_vector_model, 'dtype':dtype, 'tag_single_thread':tag_single_thread}
-    num_worker = min(num_worker, len(matB_list))
+            'dtype':dtype, 'tag_single_thread':tag_single_thread}
+    kwargs['print_every_round'] = 0 if num_worker>1 else int(tag_print>1)
+    num_worker = min(num_worker, len(matS_list))
     if num_worker == 1:
         time_start = time.time()
         num_pass = 0
         ret = []
-        for matB in matB_list:
-            ret.append(_check_UDA_UDP_matrix_subspace_one(matB=matB, **kwargs))
+        for matS in matS_list:
+            ret.append(_check_UD_one(mat_list=matS, **kwargs, np_rng=np_rng))
             if ret[-1][0]:
                 tmp0 = time.time()-time_start
                 num_pass = num_pass + 1
-                print(f'[{tmp0:.1f}] {num_pass}/{len(ret)}/{len(matB_list)}')
+                if tag_print>=1:
+                    print(f'[{tmp0:.1f}] {num_pass}/{len(ret)}/{len(matS_list)}')
     else:
         # https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_worker, mp_context=multiprocessing.get_context('spawn')) as executor:
-            job_list = [executor.submit(_check_UDA_UDP_matrix_subspace_one, matB=x, **kwargs) for x in matB_list]
+            job_list = [executor.submit(_check_UD_one, mat_list=x, **kwargs, np_rng=y) for x,y in zip(matS_list, np_rng.spawn(len(matS_list)))]
             jobid_to_result = dict()
             time_start = time.time()
             num_pass = 0
@@ -140,88 +162,30 @@ def _check_UDA_UDP_matrix_subspace_parallel(is_uda, matB, num_repeat, converge_t
                 if ret_i[0]:
                     tmp0 = time.time()-time_start
                     num_pass = num_pass + 1
-                    print(f'[{tmp0:.1f}] {num_pass}/{len(jobid_to_result)}/{len(job_list)}')
+                    if tag_print:
+                        print(f'[{tmp0:.1f}] {num_pass}/{len(jobid_to_result)}/{len(job_list)}')
             ret = [jobid_to_result[id(x)] for x in job_list]
+    if return_model:
+        ret_old = ret
+        ret = []
+        for (x0,x1,x2),matS in zip(ret_old,matS_list):
+            model = DetectUDModel(matS[0].shape[0], is_uda=is_uda, dtype=dtype)
+            model.set_mat_list(matS)
+            numqi.optimize.set_model_flat_parameter(model, x2)
+            with torch.no_grad():
+                model() #set .matH
+            ret.append((x0,x1,model))
+    else:
+        ret = [x[:2] for x in ret]
     if is_single_item:
         ret = ret[0]
     return ret
 
-def check_UDA_matrix_subspace(matB, num_repeat, converge_tol=1e-5, early_stop_threshold=1e-2, dtype='float32',
-                                    udp_use_vector_model=False, num_worker=1, tag_single_thread=True):
-    is_uda = True
-    udp_use_vector_model = False #ignore this parameter
-    ret = _check_UDA_UDP_matrix_subspace_parallel(is_uda, matB, num_repeat, converge_tol,
-            early_stop_threshold, udp_use_vector_model, dtype, num_worker, tag_single_thread)
-    return ret
-
-
-def check_UDP_matrix_subspace(matB, num_repeat, converge_tol=1e-5, early_stop_threshold=1e-2, dtype='float32',
-                                    udp_use_vector_model=False, num_worker=1, tag_single_thread=True):
-    is_uda = False
-    ret = _check_UDA_UDP_matrix_subspace_parallel(is_uda, matB, num_repeat, converge_tol,
-            early_stop_threshold, udp_use_vector_model, dtype, num_worker, tag_single_thread)
-    return ret
-
-
-def save_index_to_file(file, key_str=None, index=None):
-    if os.path.exists(file):
-        with open(file, 'r', encoding='utf-8') as fid:
-            all_data = json.load(fid)
-    else:
-        all_data = dict()
-    if (index is not None) and len(index)>0:
-        if isinstance(index[0], int): #[2,3,4]
-            index_batch = [[int(x) for x in index]]
-        elif isinstance(index[0], str): #["2 3 4"]
-            index_batch = [[int(y) for y in x.split(' ')] for x in index]
-        else: #[[2,3,4]]
-            index_batch = [[int(y) for y in x] for x in index]
-        data_i = [[int(y) for y in x.split(' ')] for x in all_data.get(key_str, [])] + index_batch
-        hf1 = lambda x: (len(x),)+x
-        tmp0 = sorted(set([tuple(sorted(set(x))) for x in data_i]), key=hf1)
-        all_data[key_str] = [' '.join(str(y) for y in x) for x in tmp0]
-        with open(file, 'w', encoding='utf-8') as fid:
-            json.dump(all_data, fid, indent=2)
-    if key_str is None:
-        ret = {k:[[int(y) for y in x.split(' ')] for x in v] for k,v in all_data.items()}
-    else:
-        ret = [[int(y) for y in x.split(' ')] for x in all_data.get(key_str,[])]
-    return ret
-
-
-def remove_index_from_file(file, key_str, index):
-    assert os.path.exists(file)
-    assert len(index)>0
-    with open(file, 'r', encoding='utf-8') as fid:
-        all_data = json.load(fid)
-    if isinstance(index[0], int): #[2,3,4]
-        index_batch = [[int(x) for x in index]]
-    elif isinstance(index[0], str): #["2 3 4"]
-        index_batch = [[int(y) for y in x.split(' ')] for x in index]
-    else: #[[2,3,4]]
-        index_batch = [[int(y) for y in x] for x in index]
-    index_set = {tuple(sorted(set(x))) for x in index_batch}
-    data_i = {tuple(sorted(set([int(y) for y in x.split(' ')]))) for x in all_data.get(key_str, [])}
-    hf1 = lambda x: (len(x),)+x
-    tmp0 = sorted(data_i-index_set, key=hf1)
-    all_data[key_str] = [' '.join(str(y) for y in x) for x in tmp0]
-    with open(file, 'w', encoding='utf-8') as fid:
-        json.dump(all_data, fid, indent=2)
-
-
-def _find_UDA_UDP_over_matrix_basis_one(is_uda, matrix_basis, num_repeat, num_random_select, indexF, tag_reduce,
-            early_stop_threshold, converge_tol, last_converge_tol, last_num_repeat,
-            udp_use_vector_model, dtype, tag_single_thread, tag_print):
-    if tag_single_thread:
+def _find_optimal_UD_one(is_uda, mat_list, num_repeat, num_init_sample, indexF, early_stop_threshold,
+            converge_tol, last_converge_tol, last_num_repeat, dtype, tag_single_thread, tag_print, np_rng):
+    if tag_single_thread and torch.get_num_threads()!=1:
         torch.set_num_threads(1)
-    if last_converge_tol is None:
-        last_converge_tol = converge_tol/10
-    if last_num_repeat is None:
-        last_num_repeat = num_repeat*5
-    np_rng = np.random.default_rng()
-    N0 = len(matrix_basis)
-    if not isinstance(matrix_basis, np.ndarray): #list of sparse matrix
-        assert not tag_reduce, 'tag_reduce=True is not compatible with sparse matrix'
+    N0 = len(mat_list)
 
     time_start = time.time()
     if indexF is not None:
@@ -229,146 +193,95 @@ def _find_UDA_UDP_over_matrix_basis_one(is_uda, matrix_basis, num_repeat, num_ra
         assert all(0<=x<N0 for x in indexF)
     else:
         indexF = set()
-    indexB = set(list(range(N0)))
+    indexA = set(list(range(N0)))
     kwargs = {'is_uda':is_uda, 'num_repeat':num_repeat, 'converge_tol':converge_tol, 'early_stop_threshold':early_stop_threshold,
-        'udp_use_vector_model':udp_use_vector_model, 'dtype':dtype, 'tag_single_thread':False}
+        'dtype':dtype, 'tag_single_thread':False, 'print_every_round':0}
     # tag_single_thread is already set
-    index_B_minus_F = np.array(sorted(indexB - set(indexF)), dtype=np.int64)
-    assert len(index_B_minus_F)>=num_random_select
-    while num_random_select>0:
-        selectX = set(np_rng.choice(index_B_minus_F, size=num_random_select, replace=False, shuffle=False).tolist())
-        matB = get_matrix_list_indexing(matrix_basis, sorted(indexB-selectX))
-        if tag_reduce:
-            matB,matB_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matB, field='real', zero_eps=1e-10)
-            assert space_char in {'R_T','C_H'}
-        if (tag_reduce and len(matB_orth)==0) or (_check_UDA_UDP_matrix_subspace_one(matB=matB, **kwargs)[0]):
-            indexB = indexB - selectX
+    index_A_minus_F = np.array(sorted(indexA - set(indexF)), dtype=np.int64)
+    assert len(index_A_minus_F)>=num_init_sample
+    while num_init_sample>0:
+        selectX = set(np_rng.choice(index_A_minus_F, size=num_init_sample, replace=False, shuffle=False).tolist())
+        if _check_UD_one(mat_list=get_matrix_list_indexing(mat_list, sorted(indexA-selectX)), **kwargs, np_rng=np_rng)[0]:
+            indexA = indexA - selectX
             break
     while True:
-        tmp0 = sorted(indexB - indexF)
+        tmp0 = sorted(indexA - indexF)
         if len(tmp0)==0:
             break
         selectX = tmp0[np_rng.integers(len(tmp0))]
-        matB = get_matrix_list_indexing(matrix_basis, sorted(indexB-{selectX}))
-        if tag_reduce:
-            matB,matB_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matB, field='real', zero_eps=1e-10)
-            assert space_char in {'R_T','C_H'}
-        if tag_reduce and (matB_orth.shape[0]==0):
-            ret_hfT = True,np.inf
-        else:
-            ret_hfT = _check_UDA_UDP_matrix_subspace_one(matB=matB, **kwargs)
+        ret_hfT = _check_UD_one(mat_list=get_matrix_list_indexing(mat_list, sorted(indexA-{selectX})), **kwargs, np_rng=np_rng)
         if ret_hfT[0]:
-            indexB = indexB - {selectX}
+            indexA = indexA - {selectX}
             if tag_print:
                 tmp0 = time.time() - time_start
-                tmp1 = 'loss(n-1,1)' if is_uda else 'loss(1,1)'
-                print(f'[{tmp0:.1f}s/{len(indexB)}/{len(indexF)}] {tmp1}={ret_hfT[1]:.5f}')
+                print(f'[{tmp0:.1f}s/{len(indexA)}/{len(indexF)}] loss={ret_hfT[1]:.5f}')
         else:
             indexF = indexF | {selectX}
-    matB = get_matrix_list_indexing(matrix_basis, sorted(indexB))
     kwargs['converge_tol'] = last_converge_tol
     kwargs['num_repeat'] = last_num_repeat
-    ret_hfT = _check_UDA_UDP_matrix_subspace_one(matB=matB, **kwargs)
+    ret_hfT = _check_UD_one(mat_list=get_matrix_list_indexing(mat_list, sorted(indexA)), **kwargs, np_rng=np_rng)
     if tag_print and ret_hfT[0]:
         tmp0 = time.time() - time_start
-        tmp1 = 'loss(n-1,1)' if is_uda else 'loss(1,1)'
-        print(f'[{tmp0:.1f}s/{len(indexB)}/{len(indexF)}] {tmp1}={ret_hfT[1]:.5f} [{len(indexB)}] {sorted(indexB)}')
-    ret = sorted(indexB) if ret_hfT[0] else None
+        print(f'[{tmp0:.1f}s/{len(indexA)}/{len(indexF)}] loss={ret_hfT[1]:.5f} [{len(indexA)}] {sorted(indexA)}')
+    ret = sorted(indexA) if ret_hfT[0] else None
     return ret
 
 
-def _find_UDA_UDP_over_matrix_basis(is_uda, num_round, matrix_basis, num_repeat, num_random_select, indexF, tag_reduce,
-            early_stop_threshold, converge_tol, last_converge_tol, last_num_repeat, udp_use_vector_model,
-            dtype, num_worker, key, file, tag_single_thread):
+def find_optimal_UD(kind:str, num_round:int, mat_list, num_repeat:int, num_init_sample:int=0, indexF=None,
+            early_stop_threshold:float=0.01, converge_tol:float=1e-5, last_converge_tol=None, last_num_repeat=None,
+            dtype:str='float32', num_worker:int=1, key:(str|None)=None, file:(str|None)=None,
+            tag_single_thread:bool=True, tag_print:bool=False, seed=None):
+    kind = kind.lower()
+    assert kind in {'uda', 'udp'}
+    is_uda = kind=='uda'
     num_worker = min(num_worker, num_round)
+    np_rng = numqi.random.get_numpy_rng(seed)
     assert num_worker>=1
-    if isinstance(matrix_basis,np.ndarray):
-        assert (matrix_basis.ndim==3) and (matrix_basis.shape[1]==matrix_basis.shape[2])
-        assert np.abs(matrix_basis-matrix_basis.transpose(0,2,1).conj()).max() < 1e-10
+    if num_worker>1:
+        tag_print = False
+        tag_single_thread = True
+    if last_converge_tol is None:
+        last_converge_tol = converge_tol/10
+    if last_num_repeat is None:
+        last_num_repeat = num_repeat*5
+
+    if isinstance(mat_list,np.ndarray):
+        assert (mat_list.ndim==3) and (mat_list.shape[1]==mat_list.shape[2])
+        assert np.abs(mat_list-mat_list.transpose(0,2,1).conj()).max() < 1e-10
     else:
         # should be scipy.sparse.coo_matrix
-        assert not tag_reduce, 'tag_reduce not support sparse data'
-        assert all(scipy.sparse.issparse(x) and (x.format=='coo') and (x.shape[0]==x.shape[1]) for x in matrix_basis)
-        for x in matrix_basis:
+        assert all(scipy.sparse.issparse(x) and (x.format=='coo') and (x.shape[0]==x.shape[1]) for x in mat_list)
+        for x in mat_list:
             tmp0 = (x-x.T.conj()).data
             assert (len(tmp0)==0) or np.abs(tmp0).max() < 1e-10
     ret = []
-    kwargs = {'is_uda':is_uda, 'matrix_basis':matrix_basis, 'num_repeat':num_repeat, 'num_random_select':num_random_select,
-            'indexF':indexF, 'tag_reduce':tag_reduce, 'early_stop_threshold':early_stop_threshold, 'converge_tol':converge_tol,
-            'last_converge_tol':last_converge_tol, 'last_num_repeat':last_num_repeat, 'udp_use_vector_model':udp_use_vector_model,
-            'dtype':dtype, 'tag_single_thread':tag_single_thread}
+    kwargs = dict(is_uda=is_uda, mat_list=mat_list, num_repeat=num_repeat, num_init_sample=num_init_sample,
+                  indexF=indexF, early_stop_threshold=early_stop_threshold, converge_tol=converge_tol,
+                  last_converge_tol=last_converge_tol, last_num_repeat=last_num_repeat,
+                  dtype=dtype, tag_single_thread=tag_single_thread, tag_print=tag_print)
     if num_worker==1:
-        kwargs['tag_print'] = True
         for _ in range(num_round):
-            ret_i = _find_UDA_UDP_over_matrix_basis_one(**kwargs)
+            ret_i = _find_optimal_UD_one(**kwargs, np_rng=np_rng)
             if ret_i is not None:
                 ret.append(ret_i)
                 if key is not None:
                     assert file is not None
                     save_index_to_file(file, key, ret_i)
     else:
-        kwargs['tag_print'] = False
-        kwargs['tag_single_thread'] = True
         # https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_worker, mp_context=multiprocessing.get_context('spawn')) as executor:
-            job_list = [executor.submit(_find_UDA_UDP_over_matrix_basis_one, **kwargs) for _ in range(num_round)]
+
+            job_list = [executor.submit(_find_optimal_UD_one, **kwargs, np_rng=x) for x in range(np_rng.spawn(num_round))]
             time_start = time.time()
             for ind0,job_i in enumerate(concurrent.futures.as_completed(job_list)):
                 ret_i = job_i.result()
                 if ret_i is not None:
                     ret.append(ret_i)
                     tmp0 = time.time() - time_start
-                    print(f'[round-{ind0}][{tmp0:.1f}s/{len(ret_i)}] {sorted(ret_i)}')
+                    if tag_print:
+                        print(f'[round-{ind0}][{tmp0:.1f}s/{len(ret_i)}] {sorted(ret_i)}')
                     if key is not None:
                         assert file is not None
                         save_index_to_file(file, key, ret_i)
     ret = sorted(ret, key=len)
     return ret
-
-
-# TODO remove indexF
-def find_UDA_over_matrix_basis(num_round, matrix_basis, num_repeat, num_random_select, indexF=None, tag_reduce=True,
-            early_stop_threshold=0.01, converge_tol=1e-5, last_converge_tol=None, last_num_repeat=None,
-            udp_use_vector_model=False, dtype='float32', num_worker=1, key=None, file=None, tag_single_thread=True):
-    is_uda = True
-    udp_use_vector_model = False
-    ret = _find_UDA_UDP_over_matrix_basis(is_uda, num_round, matrix_basis, num_repeat, num_random_select, indexF, tag_reduce,
-            early_stop_threshold, converge_tol, last_converge_tol, last_num_repeat, udp_use_vector_model,
-            dtype, num_worker, key, file, tag_single_thread)
-    return ret
-
-
-def find_UDP_over_matrix_basis(num_round, matrix_basis, num_repeat, num_random_select, indexF=None, tag_reduce=True,
-            early_stop_threshold=0.01, converge_tol=1e-5, last_converge_tol=None, last_num_repeat=None,
-            udp_use_vector_model=False, dtype='float32', num_worker=1, key=None, file=None, tag_single_thread=True):
-    is_uda = False
-    ret = _find_UDA_UDP_over_matrix_basis(is_uda, num_round, matrix_basis, num_repeat, num_random_select, indexF, tag_reduce,
-            early_stop_threshold, converge_tol, last_converge_tol, last_num_repeat, udp_use_vector_model,
-            dtype, num_worker, key, file, tag_single_thread)
-    return ret
-
-
-def get_UDA_theta_optim_special_EVC(matB, num_repeat=100, tol=1e-12, early_stop_threshold=1e-10, tag_single_thread=True, print_every_round=0):
-    if tag_single_thread and torch.get_num_threads()!=1:
-        torch.set_num_threads(1)
-    if not isinstance(matB, np.ndarray): #sparse matrix
-        index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row, y.col]) for x,y in enumerate(matB)], axis=1)
-        value = np.concatenate([x.data for x in matB])
-        matB = torch.sparse_coo_tensor(index, value, (len(matB), *matB[0].shape)).coalesce()
-    model = numqi.matrix_space.DetectRankModel(matB, space_char='C_H', rank=(0, matB[0].shape[0]-1,1), dtype='float64')
-    theta_optim = numqi.optimize.minimize(model, theta0='normal', num_repeat=num_repeat,
-            tol=tol, early_stop_threshold=early_stop_threshold, print_every_round=print_every_round, print_freq=0)
-    model()
-    matH = model.matH.detach().cpu().numpy().copy()
-    EVL,EVC = np.linalg.eigh(matH)
-    assert (EVL[0]<=0) and (np.abs(matH @ EVC[:,0] - EVC[:,0]*EVL[0]).max() < 1e-8)
-    return theta_optim, EVC[:,0]
-
-
-# pauli
-# num_qubit=3, num_repeat=10, num_random_select=10
-# num_qubit=4, num_repeat=80, num_random_select=80
-# device = 'cpu' #slow on gpu-gtx3060
-
-# gellmann
-# num_qudit=2, dim_qudit=3, num_repeat=80, num_random_select=10, early_stop_threshold=0.001

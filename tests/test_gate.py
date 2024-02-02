@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import scipy.linalg
 import torch
@@ -133,6 +134,26 @@ def test_PauliOperator_convert():
         assert np.all(pauli0.F2 == pauli3.F2)
         assert np.all(pauli0.F2 == pauli4.F2)
 
+    # test batch
+    pauli_F2 = numqi.random.rand_F2(2, 3, 10)
+    pauli_str,pauli_sign = numqi.gate.pauli_F2_to_str(pauli_F2)
+    ret0 = numqi.gate.pauli_str_to_F2(pauli_str, pauli_sign)
+    assert np.all(ret0==pauli_F2)
+
+
+def test_pauli_str_to_index():
+    rng = random.Random()
+    num_qubit = 34
+    x0 = rng.randint(0, 4**num_qubit)
+    x1 = numqi.gate.pauli_index_to_str(x0, num_qubit)
+    assert numqi.gate.pauli_str_to_index(x1)==x0
+
+    num_qubit = 28 #should be less than 31
+    x0 = np_rng.integers(0, 4**num_qubit, size=(2,3)).astype(np.uint64)
+    x1 = numqi.gate.pauli_index_to_str(x0, num_qubit)
+    assert np.all(numqi.gate.pauli_str_to_index(x1)==x0)
+
+
 def test_PauliOperator_matmul():
     for num_qubit in [1,2,3]:
         for _ in range(10):
@@ -164,3 +185,60 @@ def test_PauliOperator_inverse():
             pauli3 = pauli1 @ pauli0
             assert np.all(pauli2.F2==0)
             assert np.all(pauli3.F2==0)
+
+
+def test_pauli_F2_to_index():
+    np_rng = np.random.default_rng()
+    for num_qubit in [3,4,5]:
+        N0 = 4**num_qubit
+        np0 = np_rng.integers(0, N0, size=23).astype(np.uint64)
+        np1 = numqi.gate.pauli_index_to_F2(np0, num_qubit, with_sign=False)
+        np2 = numqi.gate.pauli_F2_to_index(np1, with_sign=False)
+        assert np.array_equal(np0, np2)
+
+        np0 = np_rng.integers(0, N0, size=23).astype(np.uint64)
+        np1 = numqi.gate.pauli_index_to_F2(np0, num_qubit, with_sign=True)
+        tmp0 = np.array([numqi.gate.PauliOperator(x).sign for x in np1])
+        assert np.abs(tmp0-1).max() < 1e-10
+
+
+def test_get_pauli_subset_equivalent():
+    ud_subset = (0, 1, 2, 3, 4, 9, 10, 11, 13, 14, 15)
+    equivalent_set = numqi.gate.get_pauli_subset_equivalent(ud_subset, num_qubit=2)
+    ret_ = {
+        (0, 1, 2, 3, 4, 9, 10, 11, 13, 14, 15),
+        (0, 1, 2, 3, 5, 6, 7, 8, 13, 14, 15),
+        (0, 1, 2, 3, 5, 6, 7, 9, 10, 11, 12),
+        (0, 1, 4, 6, 7, 8, 10, 11, 12, 14, 15),
+        (0, 2, 4, 5, 7, 8, 9, 11, 12, 13, 15),
+        (0, 3, 4, 5, 6, 8, 9, 10, 12, 13, 14),
+    }
+    assert equivalent_set==ret_
+    # all 2-qubit UD measurement schemes of size 11 (x6)
+
+    ud_subset = (0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 13, 14, 15)
+    equivalent_set = numqi.gate.get_pauli_subset_equivalent(ud_subset, num_qubit=2)
+    ret_ = {
+        (0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 13, 14, 15),
+        (0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14),
+        (0, 1, 2, 3, 4, 5, 7, 8, 9, 11, 13, 14, 15),
+        (0, 1, 2, 3, 4, 5, 7, 9, 10, 11, 12, 13, 15),
+        (0, 1, 2, 3, 4, 6, 7, 8, 10, 11, 13, 14, 15),
+        (0, 1, 2, 3, 4, 6, 7, 9, 10, 11, 12, 14, 15),
+        (0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 12, 13, 14),
+        (0, 1, 2, 3, 5, 6, 7, 8, 9, 11, 12, 13, 15),
+        (0, 1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 14, 15),
+        (0, 1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15),
+        (0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15),
+        (0, 1, 2, 4, 5, 6, 7, 8, 11, 12, 13, 14, 15),
+        (0, 1, 2, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+        (0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14),
+        (0, 1, 3, 4, 5, 6, 7, 8, 10, 12, 13, 14, 15),
+        (0, 1, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15),
+        (0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13),
+        (0, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15),
+        (0, 2, 3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15),
+        (0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    }
+    assert equivalent_set==ret_
+    # all 2-qubit UD measurement schemes of size 13 (x20)

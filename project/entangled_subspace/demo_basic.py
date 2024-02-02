@@ -6,10 +6,11 @@ import numqi
 np_rng = np.random.default_rng()
 hf_randc = lambda *size: np_rng.normal(size=size) + 1j*np_rng.normal(size=size)
 
-def demo_matrix_subspace_XZ_R_XZ_C():
+def demo_matrix_subspace_real_complex_field_1qubit():
+    matrix_subspace = np.stack([numqi.gate.PauliOperator.from_str(x).full_matrix for x in 'XZ'])
+
     # XZ_R
-    matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('XZ_R')
-    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,0))
     theta_optim010 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,0))
@@ -27,24 +28,22 @@ def demo_matrix_subspace_XZ_R_XZ_C():
     # loss(011): 3.222853017830347e-26, residual=1.6095880932274593e-26
 
     # XZ_C
-    matrix_subspace,field = numqi.matrix_space.get_matrix_subspace_example('XZ_C')
-    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='complex')
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
     theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     matH,coeff,residual = model.get_matrix(theta_optim1.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}, residual={residual}') #1e-9
     # space=C_T basis.shape=(2, 2, 2) basis_orth.shape=(1, 2, 2)
-    # loss(011): 8.314191254116187e-15, residual=4.1570956204761624e-15
+    # loss(1): 8.314191254116187e-15, residual=4.1570956204761624e-15
 
 
-def demo_matrix_space_UDA():
-    # UDA
-    pauli_str = 'XX XY'
-    rank_space,rank_space_orth = numqi.gate.pauli_str_to_matrix(pauli_str, return_orth=True)
+def demo_matrix_space_real_complex_field_2qubit():
+    pauli_str = 'XX XY'.split(' ')
+    matrix_subspace = np.stack([numqi.gate.PauliOperator.from_str(x).full_matrix for x in pauli_str])
 
     # span_R(C_H)
-    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='real')
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')
 
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,3,1))
     theta_optim031 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
@@ -52,20 +51,20 @@ def demo_matrix_space_UDA():
     theta_optim040 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,2))
     theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim022.x, rank_space)
+    matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(031): {theta_optim031.fun}') #0.5
     print(f'loss(040): {theta_optim040.fun}') #1.0
     print(f'loss(022): {theta_optim022.fun}, residual={residual}') #1e-9
 
     # span_C(C_H)
-    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(rank_space, field='complex')
+    basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='complex')
 
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
     theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=2)
     theta_optim2 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim2.x, rank_space)
+    matH,coeff,residual = model.get_matrix(theta_optim2.x, matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}') #0.5
     print(f'loss(2): {theta_optim2.fun}, residual={residual}') #0

@@ -1,10 +1,7 @@
-import os
 import numpy as np
+import itertools
 
 import numqi
-
-DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-hf_data = lambda *x: os.path.join(DATA_DIR, *x)
 
 np_rng = np.random.default_rng()
 
@@ -14,7 +11,7 @@ def test_density_matrix_recovery_SDP():
     noise_rate = 0.01
     cvxpy_eps = 1e-6
     pauli_matrix_list = numqi.gate.get_pauli_group(num_qubit, use_sparse=False)
-    tmp0 = numqi.unique_determine.save_index_to_file(hf_data('pauli-indexB-core.json'), f'{num_qubit},uda')
+    tmp0 = numqi.unique_determine.load_pauli_ud_example(num_qubit)
     tmp1 = tmp0[np_rng.integers(0, len(tmp0))]
     matrix_subspace = numqi.unique_determine.get_matrix_list_indexing(pauli_matrix_list, tmp1)
 
@@ -26,7 +23,6 @@ def test_density_matrix_recovery_SDP():
     rho, eps = numqi.unique_determine.density_matrix_recovery_SDP(matrix_subspace, measure_with_noise, converge_eps=cvxpy_eps)
     tmp0 = np.linalg.norm(np.trace(matrix_subspace @ rho, axis1=1, axis2=2).real - measure_with_noise)
     assert abs(eps - tmp0) < 1e-5
-    print(f'{eps=}, {noise_rate=}')
     assert eps < noise_rate #mostly should be fine
 
 
@@ -36,10 +32,10 @@ def test_pauli_UDP_is_UDA():
 
     for num_qubit,num_repeat in num_repeat_dict.items():
         pauli_matrix_list = numqi.gate.get_pauli_group(num_qubit, use_sparse=True)
-        tmp0 = numqi.unique_determine.save_index_to_file(hf_data('pauli-indexB-core.json'), f'{num_qubit},udp')
+        tmp0 = numqi.unique_determine.load_pauli_ud_example(num_qubit)
         ind0 = np.sort(np_rng.choice(np.arange(len(tmp0)), size=1, replace=False))
         matB_list = [numqi.unique_determine.get_matrix_list_indexing(pauli_matrix_list, tmp0[x]) for x in ind0]
-        z0 = numqi.unique_determine.check_UDA_matrix_subspace(matB_list, num_repeat=num_repeat, num_worker=1)
+        z0 = numqi.unique_determine.check_UD('uda', matB_list, num_repeat=num_repeat, num_worker=1)
         # num_worker=1 pytest seems to limit the cpu usage, so num_worker>1 doesn't help
         assert all(x[0] for x in z0)
 

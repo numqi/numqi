@@ -113,14 +113,15 @@ def gellmann_basis_to_matrix(vec, norm_I='sqrt(2/d)'):
     vec3 = vec[:,-1:] * factor_I
     assert vec.shape[1]==N1*N1
     if isinstance(vec, torch.Tensor):
+        isfloat32 = vec1.dtype in (torch.float32,torch.complex64)
         indU0,indU1 = torch.triu_indices(N1,N1,1)
         indU01 = torch.arange(N1*N1).reshape(N1,N1)[indU0,indU1]
         ind0 = torch.arange(N1)
         indU012 = (((N1*N1)*torch.arange(N0).view(-1,1)) + indU01).view(-1)
-        zero0 = torch.zeros(N0*N1*N1, dtype=torch.complex128)
+        zero0 = torch.zeros(N0*N1*N1, dtype=(torch.complex64 if isfloat32 else torch.complex128))
         ret0 = torch.scatter(zero0, 0, indU012, (vec0 - 1j*vec1).view(-1)).reshape(N0, N1, N1)
         ret1 = torch.scatter(zero0, 0, indU012, (vec0 + 1j*vec1).view(-1)).reshape(N0, N1, N1).transpose(1,2)
-        tmp0 = torch.sqrt(torch.tensor(2,dtype=torch.float64)/(ind0[1:]*(ind0[1:]+1)))
+        tmp0 = torch.sqrt(torch.tensor(2,dtype=(torch.float32 if isfloat32 else torch.float64))/(ind0[1:]*(ind0[1:]+1)))
         tmp1 = torch.concat([tmp0*vec2, vec3], axis=1)
         ret2 = torch.diag_embed(tmp1 @ ((ind0.view(-1,1)>=ind0) + torch.diag(-ind0[1:], diagonal=1)).to(tmp1.dtype))
         ret = ret0 + ret1 + ret2

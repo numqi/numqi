@@ -1,4 +1,17 @@
+import os
+import json
+import itertools
 import numpy as np
+
+def get_matrix_list_indexing(mat_list, index):
+    if isinstance(mat_list, np.ndarray):
+        index = np.asarray(index)
+        assert (mat_list.ndim==3) and (index.ndim==1)
+        ret = mat_list[index]
+    else:
+        ret = [mat_list[x] for x in index]
+    return ret
+
 
 def get_qutrit_projector_basis(num_qutrit=1):
     # TODO with-identity
@@ -55,4 +68,133 @@ def get_chebshev_orthonormal(dim_qudit, alpha, with_computational_basis=False, r
     ret = tmp0[:,:,np.newaxis]*(tmp0[:,np.newaxis].conj())
     if return_basis:
         ret = ret,basis_list
+    return ret
+
+
+def save_index_to_file(file:str, key:str|None=None, index=None):
+    if os.path.exists(file):
+        with open(file, 'r', encoding='utf-8') as fid:
+            all_data = json.load(fid)
+    else:
+        all_data = dict()
+    if (index is not None) and len(index)>0:
+        if isinstance(index[0], int): #[2,3,4]
+            index_batch = [[int(x) for x in index]]
+        elif isinstance(index[0], str): #["2 3 4"]
+            index_batch = [[int(y) for y in x.split(' ')] for x in index]
+        else: #[[2,3,4]]
+            index_batch = [[int(y) for y in x] for x in index]
+        data_i = [[int(y) for y in x.split(' ')] for x in all_data.get(key, [])] + index_batch
+        hf1 = lambda x: (len(x),)+x
+        tmp0 = sorted(set([tuple(sorted(set(x))) for x in data_i]), key=hf1)
+        all_data[key] = [' '.join(str(y) for y in x) for x in tmp0]
+        with open(file, 'w', encoding='utf-8') as fid:
+            json.dump(all_data, fid, indent=2)
+    if key is None:
+        ret = {k:[[int(y) for y in x.split(' ')] for x in v] for k,v in all_data.items()}
+    else:
+        ret = [[int(y) for y in x.split(' ')] for x in all_data.get(key,[])]
+    return ret
+
+
+def remove_index_from_file(file, key_str, index):
+    assert os.path.exists(file)
+    assert len(index)>0
+    with open(file, 'r', encoding='utf-8') as fid:
+        all_data = json.load(fid)
+    if isinstance(index[0], int): #[2,3,4]
+        index_batch = [[int(x) for x in index]]
+    elif isinstance(index[0], str): #["2 3 4"]
+        index_batch = [[int(y) for y in x.split(' ')] for x in index]
+    else: #[[2,3,4]]
+        index_batch = [[int(y) for y in x] for x in index]
+    index_set = {tuple(sorted(set(x))) for x in index_batch}
+    data_i = {tuple(sorted(set([int(y) for y in x.split(' ')]))) for x in all_data.get(key_str, [])}
+    hf1 = lambda x: (len(x),)+x
+    tmp0 = sorted(data_i-index_set, key=hf1)
+    all_data[key_str] = [' '.join(str(y) for y in x) for x in tmp0]
+    with open(file, 'w', encoding='utf-8') as fid:
+        json.dump(all_data, fid, indent=2)
+
+
+def load_pauli_ud_example(num_qubit:int|None=None, tag_group_by_size:bool=False):
+    r'''load Pauli UD measurement schemes from built-in data
+
+    Parameters:
+        num_qubit(int,None): number of qubits
+        tag_group_by_size(bool): if True, return a dict of data grouped by size
+
+    Returns:
+        ret(dict,list): the return type depends on (num_qubit,tag_group_by_size)
+            (None,False): dict[int,list[tuple[int]]]
+            (None,True): dict[int,dict[int,list[tuple[int]]]]
+            (int,False): list[tuple[int]]
+            (int,True): dict[int,list[tuple[int]]]
+    '''
+    path = os.path.join(os.path.dirname(__file__), '..', '_data', 'pauli_ud_core.json')
+    assert os.path.exists(path), f'installation error, file "{path}" missing'
+    with open(path, 'r', encoding='utf-8') as fid:
+        all_data = {int(k):v for k,v in json.load(fid).items()}
+    hf_groupby = lambda x: {y0:list(y1) for y0,y1 in itertools.groupby(x,key=len)}
+    if num_qubit is None:
+        ret = {k:[tuple(int(y) for y in x.split(' ')) for x in v] for k,v in all_data.items()}
+        if tag_group_by_size:
+            ret = {k:hf_groupby(v) for k,v in ret.items()}
+    else:
+        if num_qubit not in all_data:
+            raise ValueError(f'"num_qubit={num_qubit}" not found in {path}')
+        ret = [tuple(int(y) for y in x.split(' ')) for x in all_data[num_qubit]]
+        if tag_group_by_size:
+            ret = hf_groupby(ret)
+    return ret
+
+
+def get_element_probing_POVM(kind:str, dim:int):
+    r'''element probing POVM
+
+    Strictly-complete measurements for bounded-rank quantum-state tomography
+    [doi-link](https://journals.aps.org/pra/abstract/10.1103/PhysRevA.93.052105)
+
+    Parameters:
+        kind(str): 'eq8' or 'eq9'
+        dim(int): dimension of the system
+
+    Returns:
+        ret(np.ndarray): 3D array
+        ret(dict,list): the return type depends on (num_qubit,tag_group_by_size)
+    '''
+    assert kind in ('eq8', 'eq9')
+    if kind == 'eq8':
+        dim = int(dim)
+        assert dim>=2
+        ret = np.zeros((2*dim, dim, dim), dtype=np.complex128)
+        ret[0] = np.eye(dim)
+        ret[1,0,0] = 1
+        ind0 = np.arange(1,dim)
+        ret[ind0+1, 0, ind0] = 1
+        ret[ind0+1, ind0, 0] = 1
+        ret[ind0+dim, 0, ind0] = -1j
+        ret[ind0+dim, ind0, 0] = 1j
+    else: #eq9
+        # faiure set
+        #       |00> + |02> + |20> + |22> - (|11> + |13> + |31> + |33>)
+        #       (I+sx) \otimes sz
+        assert dim>=4
+        assert (dim%2)==0
+        s12 = 1/np.sqrt(2)
+        ind0 = np.arange(dim, dtype=np.int64)
+        tmp0 = np.zeros((dim,dim), dtype=np.complex128) #B1
+        tmp0[ind0,(ind0//2)*2] = s12
+        tmp0[ind0,(ind0//2)*2+1] = s12 * (1-2*(ind0%2))
+        tmp1 = np.zeros((dim,dim), dtype=np.complex128) #B2
+        tmp1[ind0,(ind0//2)*2+1] = s12
+        tmp1[ind0,((ind0//2)*2+2)%dim] = s12 * (1-2*(ind0%2))
+        tmp2 = np.zeros((dim,dim), dtype=np.complex128) #B3
+        tmp2[ind0,(ind0//2)*2] = s12
+        tmp2[ind0,(ind0//2)*2+1] = (1j*s12) * (1-2*(ind0%2))
+        tmp3 = np.zeros((dim,dim), dtype=np.complex128) #B4
+        tmp3[ind0,(ind0//2)*2+1] = s12
+        tmp3[ind0,((ind0//2)*2+2)%dim] = (1j*s12) * (1-2*(ind0%2))
+        tmp4 = np.concatenate([tmp0,tmp1,tmp2,tmp3], axis=0)
+        ret = tmp4[:,:,np.newaxis] * tmp4[:,np.newaxis].conj()
     return ret
