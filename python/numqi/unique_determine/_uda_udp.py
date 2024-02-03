@@ -38,6 +38,7 @@ class DetectUDModel(torch.nn.Module):
         assert dtype in {'float32','float64'}
         self.dtype = torch.float32 if dtype=='float32' else torch.float64
         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
+        self.dim = dim
         if is_uda:
             self.manifold_EVC = numqi.manifold.SpecialOrthogonal(dim, method='exp', dtype=self.cdtype)
             self.manifold_EVL = _UDAEigenvalueManifold(dim, dtype=self.dtype)
@@ -49,17 +50,22 @@ class DetectUDModel(torch.nn.Module):
 
     def set_mat_list(self, mat_list):
         # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
-        assert mat_list.ndim==3
-        if isinstance(mat_list, torch.Tensor) and mat_list.is_sparse:
+        # mat_list: 3d-nparray, list of sparse
+        assert self.dim==mat_list[0].shape[0]
+        dim = self.dim
+        N0 = len(mat_list)
+        if scipy.sparse.issparse(mat_list[0]):
+            index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row, y.col]) for x,y in enumerate(mat_list)], axis=1)
+            value = np.concatenate([x.data for x in mat_list])
+            mat_list = torch.sparse_coo_tensor(index, value, (N0, dim, dim)).coalesce()
+            # TODO skip create mat_list
             index = mat_list.indices()
-            shape = mat_list.shape
-            tmp0 = torch.stack([index[0], index[1]*shape[2] + index[2]])
-            mat_list_conj = torch.sparse_coo_tensor(tmp0, mat_list.values().conj().to(self.cdtype), (shape[0], shape[1]*shape[2]))
+            tmp0 = torch.stack([index[0], index[1]*dim + index[2]])
+            mat_list_conj = torch.sparse_coo_tensor(tmp0, mat_list.values().conj().to(self.cdtype), (N0, dim*dim))
         else:
-            if isinstance(mat_list, torch.Tensor):
-                mat_list_conj = mat_list.conj().reshape(mat_list.shape[0],-1).to(dtype=self.cdtype)
-            else:
-                mat_list_conj = torch.tensor(mat_list.conj().reshape(mat_list.shape[0],-1), dtype=self.cdtype)
+            mat_list = np.asarray(mat_list)
+            assert mat_list.ndim==3
+            mat_list_conj = torch.tensor(mat_list.conj().reshape(mat_list.shape[0],-1), dtype=self.cdtype)
         self.mat_list_conj = mat_list_conj
 
     def forward(self):
@@ -98,10 +104,6 @@ def _check_UD_one(is_uda, mat_list, num_repeat, converge_tol, early_stop_thresho
     elif _is_mat_list_full_rank(mat_list):
         ret = True, np.inf, None #TODO, np.inf is not a good choice
     else:
-        if not isinstance(mat_list, np.ndarray): #sparse matrix
-            index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row, y.col]) for x,y in enumerate(mat_list)], axis=1)
-            value = np.concatenate([x.data for x in mat_list])
-            mat_list = torch.sparse_coo_tensor(index, value, (len(mat_list), *mat_list[0].shape)).coalesce()
         model = DetectUDModel(mat_list[0].shape[0], is_uda, dtype)
         model.set_mat_list(mat_list)
         theta_optim = numqi.optimize.minimize(model, theta0='normal', num_repeat=num_repeat, tol=converge_tol,
