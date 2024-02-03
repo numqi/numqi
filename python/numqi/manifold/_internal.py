@@ -12,6 +12,63 @@ def _hf_para(dtype, requires_grad, *size):
 
 # TODO torch.device support
 
+class PositiveReal(torch.nn.Module):
+    def __init__(self, batch_size:(int|None)=None, method:str='softplus', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+        r'''positive real number
+
+        Parameters:
+            batch_size (int,None): batch size.
+            method (str): method to map real vector to a positive real number.
+                'softplus': softplus function.
+                'exp': exponential function.
+            requires_grad (bool): whether to track the gradients of the parameters.
+            dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+        '''
+        assert dtype in {torch.float32,torch.float64}
+        assert (batch_size is None) or (batch_size>0)
+        assert method in {'softplus','exp'}
+        super().__init__()
+        self.theta = _hf_para(dtype, requires_grad, 1 if (batch_size is None) else batch_size)
+        self.method = method
+
+    def forward(self):
+        if self.method=='softplus':
+            ret = to_positive_real_softplus(self.theta)
+        else:
+            ret = to_positive_real_exp(self.theta)
+        return ret
+
+def to_positive_real_softplus(theta):
+    r'''map real vector to a positive real number using softplus function
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): array of any shape.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of the same shape as `theta`.
+    '''
+    if isinstance(theta, torch.Tensor):
+        ret = torch.nn.functional.softplus(theta)
+    else:
+        ret = _np_softplus(theta)
+    return ret
+
+
+def to_positive_real_exp(theta):
+    r'''map real vector to a positive real number using exponential function
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): array of any shape.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of the same shape as `theta`.
+    '''
+    if isinstance(theta, torch.Tensor):
+        ret = torch.exp(theta)
+    else:
+        ret = np.exp(theta)
+    return ret
+
 class OpenInterval(torch.nn.Module):
     def __init__(self, lower:float, upper:float, batch_size:(int|None)=None, requires_grad:bool=True, dtype:torch.dtype=torch.float64):
         r'''open interval manifold (lower,upper) using sigmoid function

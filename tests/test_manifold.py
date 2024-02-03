@@ -7,6 +7,23 @@ import numqi
 
 np_rng = np.random.default_rng()
 
+
+def test_PositiveReal():
+    batch_size = 3
+    for dtype in [torch.float32, torch.float64]:
+        for method in ['exp', 'softplus']:
+            manifold = numqi.manifold.PositiveReal(batch_size, method, dtype=dtype)
+            x0 = manifold().detach().numpy()
+            assert np.all(x0 > 0)
+
+            tmp0 = manifold.theta.detach().numpy()
+            if method=='exp':
+                x1 = numqi.manifold.to_positive_real_exp(tmp0)
+            else:
+                x1 = numqi.manifold.to_positive_real_softplus(tmp0)
+            assert np.abs(x0 - x1).max() < 1e-10
+
+
 def test_OpenInterval():
     a = -1
     b = 1
