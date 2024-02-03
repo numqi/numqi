@@ -5,6 +5,7 @@ import torch
 import numqi.utils
 import numqi.param
 import numqi.optimize
+import numqi.manifold
 from ._misc import find_closest_vector_in_space
 
 # cannot be torch.linalg.norm()**2 nan when calculating the gradient when norm is almost zero
@@ -181,10 +182,8 @@ class DetectCanonicalPolyadicRankModel(torch.nn.Module):
         assert all(x>1 for x in dim_list)
         assert rank>=1
         self.rank = rank
-        np_rng = np.random.default_rng()
-        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=torch.float64))
-        self.theta_psi = torch.nn.ParameterList([hf0(rank,x,2) for x in dim_list])
-        self.theta_coeff = hf0(rank)
+        self.manifold_psi_list = torch.nn.ModuleList([numqi.manifold.Sphere(x, batch_size=rank, dtype=torch.complex128) for x in dim_list])
+        self.manifold_coeff = numqi.manifold.PositiveReal(rank, method='softplus', dtype=torch.float64)
 
         N0 = len(dim_list)
         tmp0 = [(rank,),(rank,)] + [(rank,x) for x in dim_list] + [(rank,x) for x in dim_list]
@@ -223,28 +222,27 @@ class DetectCanonicalPolyadicRankModel(torch.nn.Module):
         self.target_conj = self.target.conj().resolve_conj()
 
     def forward(self):
-        theta_psi, theta_coeff, psi_psi = self._get_state()
-        target_psi = self.contract_target_psi(self.target_conj, theta_coeff, *theta_psi)
+        psi_list, coeff = self._get_state()
+        target_psi = self.contract_target_psi(self.target_conj, coeff, *psi_list)
         if target_psi.ndim==1:
-            loss = 1 - torch.vdot(target_psi, target_psi).real / psi_psi
+            loss = 1 - torch.vdot(target_psi, target_psi).real
         else:
-            loss = 1 - (target_psi.real**2 + target_psi.imag**2) / psi_psi
+            loss = 1 - (target_psi.real**2 + target_psi.imag**2)
         return loss
 
     def _get_state(self):
-        tmp0 = (x/torch.linalg.norm(x,axis=(1,2),keepdims=True) for x in self.theta_psi)
-        theta_psi = [torch.complex(x[:,:,0],x[:,:,1]) for x in tmp0]
-        theta_coeff = torch.nn.functional.softplus(self.theta_coeff).to(theta_psi[0].dtype)
-        # theta_coeff = torch.exp(self.theta_coeff).to(theta_psi[0].dtype) #not help
-        theta_psi_conj = [x.conj().resolve_conj() for x in theta_psi]
-        psi_psi = self.contract_psi_psi(theta_coeff, theta_coeff, *theta_psi, *theta_psi_conj).real
-        return theta_psi, theta_coeff, psi_psi
+        psi_list = [x() for x in self.manifold_psi_list]
+        coeff = self.manifold_coeff().to(psi_list[0].dtype)
+        psi_list_conj = [x.conj().resolve_conj() for x in psi_list]
+        psi_psi = self.contract_psi_psi(coeff, coeff, *psi_list, *psi_list_conj).real
+        coeff = coeff / torch.sqrt(psi_psi)
+        return psi_list, coeff
 
     def get_state(self):
         with torch.no_grad():
-            theta_psi, theta_coeff, psi_psi = self._get_state()
-            coeff = (theta_coeff / torch.sqrt(psi_psi)).numpy().copy()
-            psi = [x.numpy().copy() for x in theta_psi]
+            psi_list, coeff = self._get_state()
+            coeff = coeff.numpy().copy()
+            psi = [x.numpy().copy() for x in psi_list]
         if self.bipartition is not None:
             assert len(psi)==2
             tmp0 = [self.dim_list_ori[x] for x in self.bipartition]
