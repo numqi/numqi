@@ -1,11 +1,13 @@
 import time
 import sys
+import contextlib
 import collections
 import functools
 import itertools
 import numpy as np
 import scipy.sparse
 from tqdm.auto import tqdm
+import functools
 
 from ._internal import pauli
 import numqi.group.spf2
@@ -327,9 +329,9 @@ class PauliOperator:
         return ret
 
     @staticmethod
-    def from_pauli_index():
-        # TODO
-        pass
+    def from_index(index:int, num_qubit:int):
+        ret = PauliOperator(_pauli_index_int_to_F2(index, num_qubit, with_sign=True))
+        return ret
 
     @staticmethod
     def from_np_list(np_list, sign=1):
@@ -402,23 +404,26 @@ class PauliOperator:
         return ret
 
 
-def get_pauli_subset_equivalent(subset:tuple[int], num_qubit:int, print_every_N:int=10000):
+def get_pauli_subset_equivalent(subset:tuple[int], num_qubit:int, use_tqdm:bool=False):
     first_element = tuple(sorted(subset))
     equivalent_set = {first_element}
     first_element_GF4 = pauli_index_to_F2(first_element, num_qubit, with_sign=False)
     tmp0 = [((1<<(2*x))-1) for x in range(1,num_qubit+1)]
     tmp1 = [(1<<(2*x-1)) for x in range(1,num_qubit+1)]
     order_a_b_list = [y for x in zip(tmp0,tmp1) for y in x]
-    t0 = time.time()
-    last_print_N0 = 0
-    for ind_sp2n in itertools.product(*[range(x) for x in order_a_b_list]):
-        tmp0 = numqi.group.spf2.from_int_tuple(ind_sp2n)
-        tmp1 = np.sort(pauli_F2_to_index((first_element_GF4 @ tmp0) % 2, with_sign=False))
-        equivalent_set.add(tuple(tmp1.tolist()))
-        N0 = len(equivalent_set)
-        if (print_every_N>0) and (N0%print_every_N==0) and (N0>last_print_N0):
-            print(f'[{time.time()-t0:.1f}s] {N0}')
-            last_print_N0 = N0
+    tmp0 = itertools.product(*[range(x) for x in order_a_b_list])
+    total = functools.reduce(lambda x,y:x*y, order_a_b_list, 1)
+    if use_tqdm:
+        tmp1 = tqdm(tmp0, total=total, desc='found=0')
+    else:
+        tmp1 = contextlib.nullcontext(tmp0)
+    with tmp1 as pbar:
+        for ind0,ind_sp2n in enumerate(pbar):
+            tmp0 = numqi.group.spf2.from_int_tuple(ind_sp2n)
+            tmp1 = np.sort(pauli_F2_to_index((first_element_GF4 @ tmp0) % 2, with_sign=False))
+            equivalent_set.add(tuple(tmp1.tolist()))
+            if use_tqdm and ((ind0%1000==0) or (ind0==total-1)):
+                pbar.set_description(f'found={len(equivalent_set)}')
     return equivalent_set
 
 
@@ -445,7 +450,7 @@ def get_pauli_subset_stabilizer(subset:tuple[int], num_qubit:int, print_every_N:
 
 
 # TODO unittest
-def get_pauli_all_subset_equivalent(num_qubit:int, order_start:int=1, order_end:int|None=None):
+def get_pauli_all_subset_equivalent(num_qubit:int, order_start:int=1, order_end:int|None=None, use_tqdm:bool=False):
     num_pauli = 4**num_qubit
     assert num_qubit in {2,3} #>=3 is too slow
     if order_end is None:
@@ -454,7 +459,7 @@ def get_pauli_all_subset_equivalent(num_qubit:int, order_start:int=1, order_end:
     for subset_order in range(max(1,order_start), min(order_end, num_pauli)):
         subset_list = list(itertools.combinations(list(range(num_pauli)), subset_order))
         z0 = []
-        for subset_i in tqdm(subset_list):
+        for subset_i in (tqdm(subset_list) if use_tqdm else subset_list):
             for x in z0:
                 if subset_i in x:
                     break

@@ -95,6 +95,10 @@ nav:
       - tutorial/entangle/sym_bos_ext.ipynb
       - tutorial/entangle/pureb.ipynb
       - tutorial/entangle/entanglement-of-formation.ipynb
+    - unique-determine:
+      - tutorial/unique_determine/basic.ipynb
+      - tutorial/unique_determine/advanced00.ipynb
+      - tutorial/unique_determine/advanced01.ipynb
     - optimal-control:
       - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
     - tutorial/maxent.ipynb
