@@ -10,11 +10,6 @@ import numqi.random
 import numqi.optimize
 from ._internal import save_index_to_file, get_matrix_list_indexing
 
-# cannot be torch.linalg.norm()**2 nan when calculating the gradient when norm is almost zero
-# not using torch.dot because torch.dot(complex) might be wrong for see https://github.com/pytorch/pytorch/issues/99868
-# hf_torch_norm_square = lambda x: torch.dot(x.conj(), x).real
-hf_torch_norm_square = lambda x: torch.sum((x.conj() * x).real)
-
 class _UDAEigenvalueManifold(torch.nn.Module):
     def __init__(self, dim:int, dtype:torch.dtype=torch.float32):
         super().__init__()
@@ -49,19 +44,16 @@ class DetectUDModel(torch.nn.Module):
         self.mat_list_conj = None
 
     def set_mat_list(self, mat_list):
-        # <A,B>=tr(AB^H)=sum_ij (A_ij, conj(B_ij))
+        # assume mat_list is Hermitian
+        # <A,H>=tr(A^\dag H)=tr(AH)=sum_ij (A_ji, H_ij)=sum_ij (A_ij^*, H_ij)
         # mat_list: 3d-nparray, list of sparse
         assert self.dim==mat_list[0].shape[0]
         dim = self.dim
         N0 = len(mat_list)
         if scipy.sparse.issparse(mat_list[0]):
-            index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row, y.col]) for x,y in enumerate(mat_list)], axis=1)
-            value = np.concatenate([x.data for x in mat_list])
-            mat_list = torch.sparse_coo_tensor(index, value, (N0, dim, dim)).coalesce()
-            # TODO skip create mat_list
-            index = mat_list.indices()
-            tmp0 = torch.stack([index[0], index[1]*dim + index[2]])
-            mat_list_conj = torch.sparse_coo_tensor(tmp0, mat_list.values().conj().to(self.cdtype), (N0, dim*dim))
+            index = np.concatenate([np.stack([x*np.ones(len(y.row),dtype=np.int64), y.row*dim+y.col]) for x,y in enumerate(mat_list)], axis=1)
+            value = np.concatenate([x.data.conj() for x in mat_list])
+            mat_list_conj = torch.sparse_coo_tensor(index, value, (N0, dim*dim)).to(self.cdtype)
         else:
             mat_list = np.asarray(mat_list)
             assert mat_list.ndim==3
@@ -77,7 +69,8 @@ class DetectUDModel(torch.nn.Module):
             EVC0,EVC1 = self.manifold().T
             matH = EVC0.reshape(-1,1)*(EVC0.conj()*self._s12) - EVC1.reshape(-1,1)*(EVC1.conj()*self._s12)
         self.matH = matH.detach()
-        loss = hf_torch_norm_square(self.mat_list_conj @ matH.reshape(-1))
+        tmp0 = (self.mat_list_conj @ matH.reshape(-1)).real
+        loss = torch.dot(tmp0, tmp0)
         return loss
 
 def _is_mat_list_full_rank(mat_list, zero_eps=1e-7):
