@@ -73,6 +73,7 @@ model name
     * [ ] numerical range
     * [ ] jupyter notebook: numqi.optimize.minimize_adam
     * [ ] [arxiv-link](https://arxiv.org/abs/quant-ph/0301152) The Bloch Vector for N-Level Systems fig2
+    * [ ] manifold
 6. [ ] learn from QETLAB
 7. [ ] make a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 8. [x] go through cvxquad [github-link](https://github.com/hfawzi/cvxquad) and replace `numqi.entangle.qetlab` module [arxiv-link](https://arxiv.org/abs/1705.00812)
@@ -80,11 +81,11 @@ model name
 10. [ ] quantum optimal control
 11. [ ] qutip
 12. [ ] zenodo
-13. [ ] code from qetlab
-14. [ ] move `example/` to `docs`
-15. [ ] cupy/torch LBFGS
-16. [ ] GPU support
-17. [ ] multi-processing support [link0](https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork) [link1](https://github.com/numpy/numpy/issues/11826) [link2](https://github.com/joblib/threadpoolctl)
+13. [ ] move `example/` to `docs`
+14. [ ] cupy/torch LBFGS
+15. [ ] GPU support
+16. [ ] multi-processing support [link0](https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork) [link1](https://github.com/numpy/numpy/issues/11826) [link2](https://github.com/joblib/threadpoolctl)
+17. [ ] `REE`, projection to the support before take matrix logarithm
 
 ## license
 

@@ -78,50 +78,58 @@ project structure
 ```mermaid
 mindmap
    root((numqi))
-      entangle
-         Pure Bonsonic Extension
-         irrep symext
-         PPT
-      qec
-         VarQECC
-      maximum entropy
-      optimal control
-         GRAPE
-      unique determine
-         UDA
-         UDP
-      Query
-         VarQQA
-      sim
-         CPU/GPU simulator
-         Clifford simulator
-      misc
-         parameterization
+      core
+         manifold
          random
          optimize
+         state
+         gate
+            pauli
+         sim
+            QCircuit simulator
+            Clifford simulator
+         dicke
+         gellmann
+         channel
+         matrix_space
+            geometric measure
+            hierarchical method
          group
+      application
+         entangle
+            PureB-ext
+            irrep symext
+            PPT
+         qec
+            VarQEC
+         maximum entropy
+         unique determine
+            UDA
+            UDP
+         query
+            VarQQA
+         optimal_control
+            GRAPE
 ```
 
 ```mermaid
 flowchart TD
-   id1(density matrix rho)
+   id1(density matrix)
    id2(((SEP)))
    id3(((ENT)))
    id4(PPT?)
    id5(CHA?)
-   id6(bosonic extension SDP)
-   id7(pure bosonic extension)
+   id6(bosonic extension SDP?)
+   id7(larger k PureB-ext?)
    id8{{dotted line: not guaranteed, probably}}
-   id9(others)
    id1 --> id4
    id4 -->|no| id3
    id4 -->|yes| id5
    id5 -.->|large loss| id3
    id5 -->|large loss| id6
-   id6 -->|SDP infeasible| id3
-   id6 -->|SDP feasible, try larger k-ext| id7
-   id7 --> id9
-   id7 -.->|small loss| id2
+   id6 -->|no| id3
+   id6 -->|yes| id7
+   id7 -.->|zero loss| id2
    id7 -.->|large loss| id3
-   id5 -->|small loss| id2
+   id5 -->|zero loss| id2
 ```
