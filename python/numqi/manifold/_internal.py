@@ -30,6 +30,7 @@ class PositiveReal(torch.nn.Module):
         super().__init__()
         self.theta = _hf_para(dtype, requires_grad, 1 if (batch_size is None) else batch_size)
         self.method = method
+        self.batch_size = batch_size
 
     def forward(self):
         if self.method=='softplus':
@@ -148,6 +149,7 @@ class Trace1PSD(torch.nn.Module):
         self.rank = int(rank)
         self.dtype = dtype
         self.method = method
+        self.batch_size = batch_size
 
     def forward(self):
         if self.method=='cholesky':
@@ -281,6 +283,7 @@ class SymmetricMatrix(torch.nn.Module):
         self.dim = int(dim)
         self.dtype = dtype
         self.is_real = is_real
+        self.batch_size = batch_size
 
     def forward(self):
         ret = to_symmetric_matrix(self.theta, self.dim, self.is_trace0, self.is_norm1)
@@ -389,6 +392,7 @@ class Ball(torch.nn.Module):
         self.theta = _hf_para(tmp0, requires_grad, *tmp2)
         self.dim = int(dim)
         self.dtype = dtype
+        self.batch_size = batch_size
 
     def forward(self):
         ret = to_ball(self.theta, self.is_real)
@@ -449,6 +453,7 @@ class Sphere(torch.nn.Module):
         tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
         self.theta = _hf_para(tmp0, requires_grad, *tmp2)
         self.dim = int(dim)
+        self.batch_size = batch_size
         self.dtype = dtype
         self.method = method
 
@@ -555,6 +560,7 @@ class DiscreteProbability(torch.nn.Module):
         self.dim = int(dim)
         self.dtype = dtype
         self.method = method
+        self.batch_size = batch_size
 
     def forward(self):
         if self.method=='softmax':
@@ -598,6 +604,7 @@ class Stiefel(torch.nn.Module):
         self.rank = int(rank)
         self.dtype = dtype
         self.method = method
+        self.batch_size = batch_size
 
     def forward(self):
         if self.method=='choleskyL':
@@ -774,6 +781,7 @@ class SpecialOrthogonal(torch.nn.Module):
         self.method = method
         self.cayley_order = cayley_order
         self.dtype = dtype
+        self.batch_size = batch_size
 
     def forward(self):
         if self.method=='exp':

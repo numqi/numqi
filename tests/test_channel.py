@@ -54,3 +54,26 @@ def test_channel_fix_point():
 
     ret0 = numqi.channel.apply_choi_op(choi, rho_fix)
     assert np.abs(rho_fix - ret0).max() < 1e-10
+
+
+def test_ChannelCapacity1InfModel():
+    kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0)
+    model = numqi.channel.ChannelCapacity1InfModel(dim_in=2, num_state=2)
+
+    model.set_channel_kraus_op(numqi.channel.hf_dephasing_kraus_op(0.5))
+    ret0 = -numqi.optimize.minimize(model, **kwargs).fun
+    ret_ = np.log(2)
+    print(abs(ret0-ret_))
+    assert abs(ret0-ret_) < 1e-8
+
+    model.set_channel_kraus_op(numqi.channel.hf_amplitude_damping_kraus_op(0.5))
+    ret0 = -numqi.optimize.minimize(model, **kwargs).fun
+    ret_ = 0.32697789708053193
+    print(abs(ret0-ret_))
+    assert abs(ret0-ret_) < 1e-8
+
+    model.set_channel_kraus_op(numqi.channel.hf_depolarizing_kraus_op(0.5))
+    ret0 = -numqi.optimize.minimize(model, **kwargs).fun
+    ret_ = np.log(27/16)/4
+    print(abs(ret0-ret_))
+    assert abs(ret0-ret_) < 1e-8
