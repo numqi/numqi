@@ -5,6 +5,7 @@ from tqdm.auto import tqdm
 
 import numqi.param
 import numqi.gellmann
+import numqi.manifold
 
 from ._misc import get_density_matrix_boundary, get_density_matrix_plane, hf_interpolate_dm
 from .cha import CHABoundaryBagging
@@ -158,11 +159,13 @@ def plot_bloch_vector_cross_section(dm0, dm1, dim:tuple[int], num_point:int=201,
 class DensityMatrixLocalUnitaryEquivalentModel(torch.nn.Module):
     def __init__(self, dimA, dimB, num_term=1):
         super().__init__()
-        np_rng = np.random.default_rng()
-        self.theta0 = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=(num_term,dimA,dimA)), dtype=torch.float64))
-        self.theta1 = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=(num_term,dimB,dimB)), dtype=torch.float64))
-        tmp0 = np_rng.uniform(0, 1, size=num_term)
-        self.probability = torch.nn.Parameter(torch.tensor(tmp0/tmp0.sum(), dtype=torch.float64))
+        self.manifold_U0 = numqi.manifold.SpecialOrthogonal(dimA, batch_size=num_term, dtype=torch.complex128)
+        self.manifold_U1 = numqi.manifold.SpecialOrthogonal(dimB, batch_size=num_term, dtype=torch.complex128)
+        if num_term==1:
+            self.prob = torch.tensor([1], dtype=torch.float64)
+        else:
+            self.manifold_prob = numqi.manifold.DiscreteProbability(num_term, dtype=torch.float64)
+
         self.dimA = dimA
         self.dimB = dimB
         self.dm0 = None
@@ -177,16 +180,14 @@ class DensityMatrixLocalUnitaryEquivalentModel(torch.nn.Module):
             self.dm1 = torch.tensor(dm1, dtype=torch.complex128)
 
     def forward(self):
-        probability = torch.nn.functional.softmax(self.probability, dim=0)
-        u0 = numqi.param.real_matrix_to_special_unitary(self.theta0)
-        u0H = u0.conj()
-        u1 = numqi.param.real_matrix_to_special_unitary(self.theta1)
-        u1H = u1.conj()
+        prob = self.prob if hasattr(self, 'prob') else self.manifold_prob()
+        u0 = self.manifold_U0()
+        u1 = self.manifold_U1()
         dm0 = self.dm0.reshape(self.dimA,self.dimB,self.dimA,self.dimB)
-        ret = torch.einsum(dm0, [0,1,2,3], u0, [8,4,0], u0H, [8,5,2], u1, [8,6,1], u1H, [8,7,3], probability, [8], [4,6,5,7]).reshape(self.dm1.shape)
-        # loss = numqi.utils.get_relative_entropy(ret, self.dm1)
+        ret = torch.einsum(dm0, [0,1,2,3], u0, [8,4,0], u0.conj(), [8,5,2],
+                    u1, [8,6,1], u1.conj(), [8,7,3], prob, [8], [4,6,5,7]).reshape(self.dm1.shape)
         tmp0 = (ret - self.dm1).reshape(-1)
-        loss = torch.dot(tmp0, tmp0.conj()).real
+        loss = torch.vdot(tmp0, tmp0).real
         return loss
 
 

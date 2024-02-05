@@ -5,28 +5,29 @@ import numqi.gate
 import numqi.utils
 
 def hf_dephasing_kraus_op(noise_rate):
-    ret = [
+    ret = np.stack([
         np.sqrt(1-noise_rate)*np.eye(2),
         np.sqrt(noise_rate)*numqi.gate.Z,
-    ]
+    ], axis=0)
     return ret
 
 
 def hf_depolarizing_kraus_op(noise_rate):
-    ret = [
+    ret = np.stack([
         np.sqrt(1-3*noise_rate/4)*np.eye(2),
         np.sqrt(noise_rate/4)*numqi.gate.X,
         np.sqrt(noise_rate/4)*numqi.gate.Y,
         np.sqrt(noise_rate/4)*numqi.gate.Z,
-    ]
+    ], axis=0)
     return ret
 
 
 def hf_amplitude_damping_kraus_op(noise_rate):
-    ret = [
-        np.array([[1,0], [0,np.sqrt(1-noise_rate)]]),
-        np.array([[0,np.sqrt(noise_rate)], [0,0]]),
-    ]
+    assert 0<=noise_rate<=1
+    ret = np.array([
+        [[1,0], [0,np.sqrt(1-noise_rate)]],
+        [[0,np.sqrt(noise_rate)], [0,0]],
+    ])
     return ret
 
 
@@ -142,3 +143,15 @@ def hf_channel_to_choi_op(hf0, dim_in):
     dim_out = ret[0].shape[0]
     ret = np.stack(ret, axis=0).reshape(dim_in,dim_in,dim_out,dim_out).transpose(0,2,1,3)
     return ret
+
+
+def choi_op_to_bloch_map(op):
+    assert (op.ndim==4) #(in,out,in,out)
+    assert (op.shape[0]==op.shape[2]) and (op.shape[1]==op.shape[3])
+    din,dout = op.shape[:2]
+    tmp0 = op.transpose(1,3,2,0).reshape(dout*dout, din, din)
+    tmp1 = numqi.gellmann.matrix_to_gellmann_basis(tmp0)
+    op_gm = numqi.gellmann.matrix_to_gellmann_basis(tmp1.T.reshape(-1,dout,dout)).real.T
+    matA = op_gm[:-1,:-1] * 2
+    vecb = op_gm[:-1,-1] * np.sqrt(2/din)
+    return matA, vecb

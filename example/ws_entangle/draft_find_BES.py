@@ -14,7 +14,7 @@ def quick_beta_boundary(dm0, dimA, dimB, kext=16):
     dm_u = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u)
     dm_l = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l)
     beta_ppt_l,beta_ppt_u = numqi.entangle.get_ppt_boundary(dm0, (dimA, dimB))
-    model_svqc = numqi.pureb.PureBosonicExt(dimA, dimB, kext=kext)
+    model_svqc = numqi.entangle.PureBosonicExt(dimA, dimB, kext=kext)
     beta_svqc_u = model_svqc.get_boundary(dm_u, xtol=1e-4, threshold=1e-7, num_repeat=1, use_tqdm=True)
     beta_svqc_l = model_svqc.get_boundary(dm_l, xtol=1e-4, threshold=1e-7, num_repeat=1, use_tqdm=True)
     ret_u = [beta_u,beta_ppt_u,beta_svqc_u, f'PPT-SVQC={beta_ppt_u-beta_svqc_u:.4f},dm-PPT={beta_u-beta_ppt_u:.4f}']

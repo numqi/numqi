@@ -96,23 +96,6 @@ def get_eof_2qubit(rho):
     return ret
 
 
-def get_von_neumann_entropy(np0, eps=1e-10):
-    r'''get the von Neumann entropy of a density matrix
-    [wiki-link](https://en.wikipedia.org/wiki/Von_Neumann_entropy)
-
-    Parameters:
-        np0(np.ndarray): a density matrix, shape=(dim,dim)
-        eps(float): a small number to avoid log(0)
-
-    Returns:
-        ret(float): the von Neumann entropy of the density matrix
-    '''
-    assert np.abs(np0-np0.T.conj()).max() < eps
-    EVL = np.linalg.eigvalsh(np0)
-    ret = -np.dot(EVL, np.log(np.maximum(eps, EVL)))
-    return ret
-
-
 class EntanglementFormationModel(torch.nn.Module):
     def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None, zero_eps=1e-10):
         # https://doi.org/10.1103/PhysRevA.64.052304

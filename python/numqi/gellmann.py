@@ -190,3 +190,18 @@ def dm_to_gellmann_norm(dm):
     #     ret = np.linalg.norm(tmp1, axis=1)
     # ret = ret.item() if (len(shape)==1) else ret.reshape(*shape[:-1])
     return ret
+
+
+def get_density_matrix_distance2(rho, sigma):
+    # not support batch
+    tmp0 = (rho - sigma).reshape(-1)
+    if isinstance(rho, torch.Tensor):
+        ret = torch.vdot(tmp0, tmp0).real / 2
+        # factor 1/2 is due to the normalization of Gell-Mann basis
+    else:
+        ret = np.vdot(tmp0, tmp0).real / 2
+    ## equivalent to below
+    # tmp0 = dm_to_gellmann_basis(rho)
+    # tmp1 = dm_to_gellmann_basis(sigma)
+    # ret = np.linalg.norm(tmp0-tmp1)**2
+    return ret

@@ -12,8 +12,8 @@ def test_eof_A_B():
     q0 = numqi.random.rand_state(dimA*dimB).reshape(dimA, dimB)
     rhoA = np.einsum(q0.conj(), [0,1], q0, [0,2], [1,2], optimize=True)
     rhoB = np.einsum(q0.conj(), [0,1], q0, [2,1], [0,2], optimize=True)
-    ret0 = numqi.entangle.get_von_neumann_entropy(rhoA)
-    ret1 = numqi.entangle.get_von_neumann_entropy(rhoB)
+    ret0 = numqi.utils.get_von_neumann_entropy(rhoA)
+    ret1 = numqi.utils.get_von_neumann_entropy(rhoB)
     assert abs(ret0-ret1) < 1e-10
 
 

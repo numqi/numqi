@@ -114,31 +114,127 @@ def get_fidelity(rho0, rho1):
     return ret
 
 
+def get_von_neumann_entropy(rho:np.ndarray|torch.Tensor, _torch_logm='eigen'):
+    r'''get the von Neumann entropy of a density matrix
+    [wiki-link](https://en.wikipedia.org/wiki/Von_Neumann_entropy)
+
+    Parameters:
+        rho(np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
+        _torch_logm(str,tuple): 'eigen' or ('pade',num_sqrtm,pade_order), 'pade' is used only when requires_grad
+
+    Returns:
+        ret(float): the von Neumann entropy of the density matrix
+    '''
+    shape = rho.shape
+    assert (len(shape)>=2) and (shape[-1]==shape[-2])
+    dim = shape[-1]
+    rho = rho.reshape(-1, dim, dim)
+    if isinstance(rho, torch.Tensor):
+        if rho.requires_grad and (_torch_logm!='eigen'):
+            op_logm = numqi._torch_op.get_PSDMatrixLogm(int(_torch_logm[1]), int(_torch_logm[2]))
+            log_rho = op_logm(rho)
+            ret = -torch.einsum(rho.reshape(-1,dim*dim).conj(), [0,1], log_rho.reshape(-1,dim*dim), [0,1], [0]).real
+            # ret = -torch.vdot(rho.reshape(-1), log_rho.reshape(-1)).real
+        else:
+            eps = torch.tensor(torch.finfo(rho.dtype).eps)
+            EVL = torch.maximum(torch.linalg.eigvalsh(rho), eps)
+            ret = -torch.einsum(EVL, [0,1], torch.log(EVL), [0,1], [0])
+            # ret = -torch.dot(EVL, torch.log(EVL))
+    else:
+        EVL = np.maximum(np.linalg.eigvalsh(rho), np.finfo(rho.dtype).eps)
+        ret = - np.einsum(EVL, [0,1], np.log(EVL), [0,1], [0], optimize=True)
+        # ret = -np.dot(EVL, np.log(EVL))
+    if len(shape)==2:
+        ret = ret[0]
+    else:
+        ret = ret.reshape(shape[:-2])
+    return ret
+
+
+def get_Renyi_entropy(rho:np.ndarray|torch.Tensor, alpha:float):
+    assert alpha!=1
+    if isinstance(rho, torch.Tensor):
+        EVL = torch.linalg.eigvalsh(rho)
+        ret = torch.log((EVL**alpha).sum()) / (1-alpha)
+    else:
+        EVL = np.linalg.eigvalsh(rho)
+        ret = np.log((EVL**alpha).sum()) / (1-alpha)
+    return ret
+
+
+def get_purification(rho:np.ndarray, dimR:int|None=None, seed=None):
+    # all purification are connected by Stiefel manifold
+    assert (rho.ndim==2) and (np.abs(rho-rho.T.conj()).max()<1e-10)
+    assert abs(np.trace(rho)-1).max() < 1e-10
+    ret = np.linalg.cholesky(rho)
+    if dimR is not None:
+        dim = rho.shape[0]
+        assert dimR>=dim
+        np_rng = np.random.default_rng(seed)
+        tmp0 = np_rng.normal(size=(dimR*dim*2*dim))
+        tmp1 = numqi.manifold.to_stiefel_qr(tmp0, dim=dimR*dim, rank=dim)
+        ret = ret @ tmp1.T
+    return ret
+
+
+def get_trace_distance(rho:np.ndarray, sigma:np.ndarray):
+    tmp0 = rho - sigma
+    assert (tmp0.ndim==2) and (np.abs(tmp0-tmp0.T.conj()).max()<1e-10)
+    ret = np.abs(np.linalg.eigvalsh(tmp0)).sum() / 2
+    # abs is not a good choice for loss function, so no torch-version
+    return ret
+
+
 def get_purity(rho):
     # ret = np.trace(rho @ rho).real
     ret = np.dot(rho.reshape(-1), rho.reshape(-1).conj()).real
     return ret
 
+def _get_psd_logm(mat, method):
+    if isinstance(mat, torch.Tensor):
+        eps = torch.tensor(torch.finfo(mat.dtype).eps)
+        if method=='eigen':
+            EVL,EVC = torch.linalg.eigh(mat)
+            ret = (EVC * torch.log(torch.maximum(eps, EVL))) @ EVC.T.conj()
+        else:
+            assert (len(method)==3) and (method[0]=='pade')
+            logm_op = numqi._torch_op.get_PSDMatrixLogm(int(method[1]), int(method[2]))
+            ret = logm_op(mat)
+    else: #numpy
+        eps = np.finfo(mat.dtype).eps
+        EVL,EVC = np.linalg.eigh(mat)
+        ret = (EVC * np.log(np.maximum(eps, EVL))) @ EVC.T.conj()
+    return ret
 
-_ree_op_torch_logm = numqi._torch_op.PSDMatrixLogm(num_sqrtm=6, pade_order=8)
 
-def get_relative_entropy(rho0, rho1, kind='error', zero_tol=1e-5):
-    is_torch = isinstance(rho0, torch.Tensor)
+# S(rho,sigma) = tr(rho log(rho) - rho log(sigma))
+def get_relative_entropy(rho, sigma, tr_rho_log_rho:float=None, _torch_logm=('pade',6,8)):
+    is_torch = isinstance(rho, torch.Tensor)
     if is_torch:
-        tmp0 = _ree_op_torch_logm(rho0)
-        tmp1 = _ree_op_torch_logm(rho1)
-        ret = torch.trace(rho0 @ tmp0) - torch.trace(rho0 @ tmp1)
-    else:
-        tmp0 = scipy.linalg.logm(rho0)
-        tmp1 = scipy.linalg.logm(rho1)
-        ret = np.trace(rho0 @ tmp0) - np.trace(rho0 @ tmp1)
-    if abs(ret.imag.item())>zero_tol:
-        assert kind in {'error', 'infinity', 'ignore'}
-        if kind=='error':
-            raise ValueError('quantum-relative-entropy be infinty')
-        elif kind=='infinity':
-            ret = torch.inf if is_torch else np.inf
-    ret = ret.real
+        eps = torch.tensor(torch.finfo(rho.dtype).eps)
+        assert (_torch_logm=='eigen') or ((len(_torch_logm)==3) and (_torch_logm[0]=='pade'))
+        if (rho.requires_grad or sigma.requires_grad) and (_torch_logm!='eigen'):
+            tmp0 = numqi._torch_op.get_PSDMatrixLogm(int(_torch_logm[1]), int(_torch_logm[2]))
+            log_sigma = tmp0(sigma)
+        else:
+            EVL,EVC = torch.linalg.eigh(sigma)
+            log_sigma = (EVC * torch.log(torch.maximum(eps, EVL))) @ EVC.T.conj()
+        ret = - torch.vdot(rho.reshape(-1), log_sigma.reshape(-1)).real
+        if tr_rho_log_rho is None:
+            EVL = torch.maximum(eps, torch.linalg.eigvalsh(rho))
+            ret = ret + torch.dot(EVL, torch.log(EVL))
+        else:
+            ret = tr_rho_log_rho + ret
+    else: #numpy
+        eps = np.finfo(rho.dtype).eps
+        EVL,EVC = np.linalg.eigh(sigma)
+        log_sigma = (EVC * np.log(np.maximum(eps, EVL))) @ EVC.T.conj()
+        ret = - np.vdot(rho.reshape(-1), log_sigma.reshape(-1)).real
+        if tr_rho_log_rho is None:
+            EVL = np.maximum(eps, np.linalg.eigvalsh(rho))
+            ret = ret + np.dot(EVL, np.log(EVL))
+        else:
+            ret = tr_rho_log_rho + ret
     return ret
 
 def get_tetrahedron_POVM(num_qubit:int=1):

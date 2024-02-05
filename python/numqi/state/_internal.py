@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.special
 
-from ..utils import get_relative_entropy
+import numqi.utils
 
 def W(n:int):
     r'''get the W-state [wiki-link](https://en.wikipedia.org/wiki/W_state)
@@ -137,7 +137,7 @@ def get_Werner_ree(d:int, alpha:float):
     else:
         rho0 = Werner(d, alpha)
         rho1 = Werner(d, 1/d)
-        ret = get_relative_entropy(rho0, rho1, kind='infinity')
+        ret = numqi.utils.get_relative_entropy(rho0, rho1)
     return ret
 
 
@@ -209,7 +209,7 @@ def get_Isotropic_ree(d:int, alpha:float):
     else:
         rho0 = Isotropic(d, alpha)
         rho1 = Isotropic(d, 1/(d+1))
-        ret = get_relative_entropy(rho0, rho1, kind='infinity')
+        ret = numqi.utils.get_relative_entropy(rho0, rho1)
     return ret
 
 def get_Isotropic_eof(dim:int, alpha:np.ndarray|float):

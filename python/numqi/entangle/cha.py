@@ -158,31 +158,33 @@ class AutodiffCHAREE(torch.nn.Module):
         self.dim1 = dim1
         self.manifold = numqi.manifold.SeparableDensityMatrix(dim0, dim1, num_state, dtype=torch.complex128)
 
-        self.dm_sep_torch = None
+        self.dm_torch = None
         self.dm_target = None
+        self.tr_rho_log_rho = None
         self.expect_op_T_vec = None
+        self._torch_logm = ('pade',6,8) #set it by user
 
-    def set_dm_target(self, dm):
-        assert (dm.shape[0]==(self.dim0*self.dim1)) and (dm.shape[0]==dm.shape[1])
+    def set_dm_target(self, rho):
+        assert (rho.shape[0]==(self.dim0*self.dim1)) and (rho.shape[0]==rho.shape[1])
         self.expect_op_T_vec = None
-        self.dm_target = torch.tensor(dm, dtype=torch.complex128)
+        self.dm_target = torch.tensor(rho, dtype=torch.complex128)
+        self.tr_rho_log_rho = -numqi.utils.get_von_neumann_entropy(rho)
 
     def set_expectation_op(self, op):
         self.dm_target = None
+        self.tr_rho_log_rho = None
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
 
     def forward(self):
-        dm_sep_torch = self.manifold().reshape(self.dim0*self.dim1, -1)
-        self.dm_sep_torch = dm_sep_torch.detach()
+        dm_torch = self.manifold().reshape(self.dim0*self.dim1, -1)
+        self.dm_torch = dm_torch.detach()
         if self.dm_target is not None:
             if self.distance_kind=='gellmann':
-                tmp0 = (self.dm_target - dm_sep_torch).reshape(-1)
-                loss = 2 * torch.dot(tmp0, tmp0.conj()).real
-                # the 2 is because Tr[Mi*Mj] = 2 delta_ij
+                loss = numqi.gellmann.get_density_matrix_distance2(self.dm_target, dm_torch)
             else:
-                loss = numqi.utils.get_relative_entropy(self.dm_target, dm_sep_torch)
+                loss = numqi.utils.get_relative_entropy(self.dm_target, dm_torch, self.tr_rho_log_rho, self._torch_logm)
         else:
-            loss = torch.dot(dm_sep_torch.reshape(-1), self.expect_op_T_vec).real
+            loss = torch.dot(dm_torch.reshape(-1), self.expect_op_T_vec).real
         return loss
 
     def get_boundary(self, dm0, xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=1, use_tqdm=True, return_info=False, seed=None):
@@ -211,7 +213,7 @@ class AutodiffCHAREE(torch.nn.Module):
             # see numqi.entangle.ppt.get_ppt_numerical_range, we use the maximization there
             self.set_expectation_op(-np.cos(theta_i)*op0 - np.sin(theta_i)*op1)
             numqi.optimize.minimize(self, **kwargs)
-            rho = self.dm_sep_torch.numpy()
+            rho = self.dm_torch.numpy()
             ret.append([np.trace(x @ rho).real for x in [op0,op1]])
         ret = np.array(ret)
         return ret

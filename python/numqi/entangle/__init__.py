@@ -13,7 +13,7 @@ from .symext import (SymmetricExtABkIrrepModel, check_ABk_symmetric_extension,
                 get_ABk_symmetric_extension_ree, get_ABk_symmetric_extension_boundary,
                 get_ABk_extension_numerical_range)
 from .eof import (get_concurrence_2qubit, get_concurrence_pure, get_eof_pure, get_eof_2qubit,
-                get_von_neumann_entropy, EntanglementFormationModel, ConcurrenceModel)
+                EntanglementFormationModel, ConcurrenceModel)
 
 from . import upb
 from . import ppt

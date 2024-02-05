@@ -141,17 +141,18 @@ class QuantumPureBosonicExt(torch.nn.Module):
         self.Bij = [[torch.tensor(y0,dtype=y1) for y0,y1 in zip(x,tmp0)] for x in Bij]
         self.dm_torch = None
         self.dm_target = None
+        self.tr_rho_log_rho = None
         self.expect_op_T_vec = None
+        self._torch_logm = ('pade',6,8) #set it by user
 
-    def set_dm_target(self, target):
-        assert target.ndim in {1,2}
-        if target.ndim==1:
-            target = target[:,np.newaxis] * target.conj()
-        assert (target.shape[0]==target.shape[1])
-        self.dm_target = torch.tensor(target, dtype=torch.complex128)
+    def set_dm_target(self, rho):
+        assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1])
+        self.dm_target = torch.tensor(rho, dtype=torch.complex128)
+        self.tr_rho_log_rho = -numqi.utils.get_von_neumann_entropy(rho)
 
     def set_expectation_op(self, op):
         self.dm_target = None
+        self.tr_rho_log_rho = None
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
 
     def forward(self):
@@ -167,9 +168,10 @@ class QuantumPureBosonicExt(torch.nn.Module):
             dicke_p = mps_to_dicke(mps_p, mps_alpha, self.klist_torch, self.binom_term)
             dicke_p = mps_dicke_cnot(dicke_p, self.klist_permutation_index)
             mps_p,mps_alpha = dicke_to_mps(dicke_p, self.matB, self.mps_basis_alpha)
-        self.dm_torch = numqi.dicke.partial_trace_ABk_to_AB(dicke_p, self.Bij)
+        dm_torch = numqi.dicke.partial_trace_ABk_to_AB(dicke_p, self.Bij)
+        self.dm_torch = dm_torch.detach()
         if self.dm_target is not None:
-            loss = numqi.utils.get_relative_entropy(self.dm_target, self.dm_torch)
+            loss = numqi.utils.get_relative_entropy(self.dm_target, dm_torch, self.tr_rho_log_rho, self._torch_logm)
         else:
             loss = torch.dot(self.dm_torch.view(-1), self.expect_op_T_vec).real
         return loss

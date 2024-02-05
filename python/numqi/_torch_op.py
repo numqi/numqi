@@ -1,3 +1,4 @@
+import functools
 import torch
 import numpy as np
 # import scipy.linalg
@@ -105,3 +106,9 @@ class PSDMatrixLogm(torch.nn.Module):
         tmp1 = self.alpha*torch1 - self.alpha*eye0
         ret = torch.linalg.solve(tmp0, tmp1).sum(dim=0).reshape(*shape)
         return ret
+
+
+@functools.lru_cache
+def get_PSDMatrixLogm(num_sqrtm:int, pade_order:int, device:str='cpu'):
+    ret = PSDMatrixLogm(num_sqrtm, pade_order, device)
+    return ret

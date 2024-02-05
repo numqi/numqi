@@ -28,17 +28,19 @@ class PureBosonicExt(torch.nn.Module):
 
         self.dm_torch = None
         self.dm_target = None
+        self.tr_rho_log_rho = None
         self.expect_op_T_vec = None
+        self._torch_logm = ('pade',6,8) #set it by user
 
-    def set_dm_target(self, target):
-        assert target.ndim in {1,2}
-        if target.ndim==1:
-            target = target[:,np.newaxis] * target.conj()
-        assert (target.shape[0]==target.shape[1])
-        self.dm_target = torch.tensor(target, dtype=torch.complex128)
+    def set_dm_target(self, rho):
+        assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1]) #drop support for pure state
+        # rho = rho[:,np.newaxis] * rho.conj() #pure
+        self.dm_target = torch.tensor(rho, dtype=torch.complex128)
+        self.tr_rho_log_rho = -numqi.utils.get_von_neumann_entropy(rho)
 
     def set_expectation_op(self, op):
         self.dm_target = None
+        self.tr_rho_log_rho = None
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
 
     def forward(self):
@@ -47,11 +49,9 @@ class PureBosonicExt(torch.nn.Module):
         self.dm_torch = dm_torch.detach()
         if self.dm_target is not None:
             if self.distance_kind=='gellmann':
-                tmp0 = numqi.gellmann.dm_to_gellmann_basis(self.dm_target)
-                tmp1 = numqi.gellmann.dm_to_gellmann_basis(dm_torch)
-                loss = torch.sum((tmp0-tmp1)**2)
+                loss = numqi.gellmann.get_density_matrix_distance2(self.dm_target, dm_torch)
             else:
-                loss = numqi.utils.get_relative_entropy(self.dm_target, dm_torch, kind='error')
+                loss = numqi.utils.get_relative_entropy(self.dm_target, dm_torch, self.tr_rho_log_rho, self._torch_logm)
         else:
             loss = torch.dot(dm_torch.view(-1), self.expect_op_T_vec).real
         return loss

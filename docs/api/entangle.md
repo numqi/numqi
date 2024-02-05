@@ -57,8 +57,3 @@
 ::: numqi.entangle.get_eof_2qubit
     options:
       heading_level: 3
-
-::: numqi.entangle.get_von_neumann_entropy
-    options:
-      heading_level: 3
-
