@@ -23,8 +23,8 @@ Initially, this package is named `numpyqi`, later it's shortened to be `numqi` (
 This package is to support following papers
 
 1. detecting entanglement by pure bosonic extension [arxiv-link](https://arxiv.org/abs/2209.10934) `numqi.entangle`
-2. Quantum variational learning for quantum error-correcting codes [arxiv-link](https://arxiv.org/abs/2204.03560) ``
-3. Tapping into Permutation Symmetry for Improved Detection of k-Symmetric Extensions [arxiv-link](https://arxiv.org/abs/2309.04144) `numqi.entangle` `numqi.group.symext`
+2. Quantum variational learning for quantum error-correcting codes [doi-link](https://doi.org/10.22331/q-2022-10-06-828) `numqi.qec`
+3. Tapping into Permutation Symmetry for Improved Detection of k-Symmetric Extensions [doi-link](https://doi.org/10.3390/e25101425) `numqi.entangle` `numqi.group.symext`
 4. Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449) `numqi.query`
 5. A Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811) `numqi.unique_determine`
 6. Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645) `numqi.maximum_entropy`
@@ -85,7 +85,8 @@ model name
 14. [ ] cupy/torch LBFGS
 15. [ ] GPU support
 16. [ ] multi-processing support [link0](https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork) [link1](https://github.com/numpy/numpy/issues/11826) [link2](https://github.com/joblib/threadpoolctl)
-17. [ ] `REE`, projection to the support before take matrix logarithm
+17. [ ] gradient back-propagation for density matrix circuit
+18. [ ] Clifford circuit simulator is not in good states
 
 ## license
 

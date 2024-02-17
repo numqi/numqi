@@ -6,31 +6,49 @@
 
 **WARNING**: no backward compatiblity until version `1.0.0` (TODO roadmap). Right now, feel free to ask questions on GitHub issue page (TODO to be public).
 
-`numqi` (pronouce: num(-py)-q-i) a numpy-based quantum information toolbox. Currently, `numqi` provides these modules
+`numqi` (pronouce: num(-py)-q-i) a numpy-based quantum information package.
 
-1. specific quantum information tasks
-    * `numqi.sim`: a numpy based quantum circuit simulator, variational algorithm with gradient back-propagation supported [wiki/quantum-simulator](https://en.wikipedia.org/wiki/Quantum_simulator)
-        * `numqi.sim.Circuit`: construct a circuit
-        * `numqi.gate`: various gate, like Puali-XYZ
-        * `numqi.sim.state`: function for pure state simulation, wrapped in `numqi.sim.circuit` module
-        * `numqi.sim.dm`: function for density matrix simulation, wrapped in `numqi.sim.circuit` module
-    * `numqi.gate`: all kinds of quantum gate [wiki/quantum-logic-gate](https://en.wikipedia.org/wiki/Quantum_logic_gate)
-    * `numqi.channel`: utilities related to quantum channel, like conversion between different representations of a quantum channel (Kraus operator, super-operator, Choi state, etc.) [wiki/quantum-channel](https://en.wikipedia.org/wiki/Quantum_channel)
-    * `numqi.entangle`: detect entanglement, including convex hull approximation (CHA), symmetric extension, pure Bosonic extension, etc. [wiki/quantum-entanglement](https://en.wikipedia.org/wiki/Quantum_entanglement)
-    * `numqi.qec`: finding quantum error correcting code, including VarQECC model [wiki](https://en.wikipedia.org/wiki/Quantum_error_correction)
-    * `numqi.maximum_entropy`: the relation between Hamiltonian, groud state, and marginal problem
-    * `numqi.unique_determine`: UDA/UDP measurement scheme. Given part of measurement results, determine what state it should be with some prior knowledge (e.g. pure state assumption)
-    * `numqi.optimal_control`: optimal control for quantum system, e.g. finding the optimal control pulse to implement a quantum gate
-2. fundamental tools
-   * `numqi.random`: generate various random "stuff", like random pure state, untiary gate, quantum channel, density matrix, seprable density matrix, etc.
-   * `numqi.param`: parameterize various "stuff", like parameterized unitary matrices, hermitian matrices, quantum channel etc.
-   * `numqi.gellmann`: Gell-Mann matrix. E.g., converting density matrix into Gell-Mann matrix representation [wiki/gellmann](https://en.wikipedia.org/wiki/Gell-Mann_matrices) [wiki/generalized-gellmann](https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices)
-   * `numqi.dicke`: Dicke state (Bosonic pure symmetric state)
-   * `numqi.group`: utilities related to group [wiki/group](https://en.wikipedia.org/wiki/Group_(mathematics)) (like symmetric group, cyclic group)
-   * `numqi.optimize`: optimization related tools, like gradient descent
-   * `numqi.matrix_space`: the linear space of matrices, and determine its entanglement property
+![project-structure](data/project-structure.png)
 
-Generally, these specific quantum information tasks are implemented based on these fundamental tools. For example, the `numqi.entangle` module use quite a lots of the module `numqi.group` and `numqi.optimize`. For those who are more interested in quantum information problems, you may directly dive into these specific modules. For those who are more interested in the underlying algorithms or math concepts, you may start from the fundamental modules.
+core modules
+
+1. `numqi.sim`: numpy based quantum simulator [wiki/quantum-simulator](https://en.wikipedia.org/wiki/Quantum_simulator), support gradient back-propagation and variational quantum circuits, Clifford circuit simulator
+2. `numqi.dicke`: Dicke basis, bosonic states
+3. `numqi.random`: sample random quantum states, matrices, channels, etc.
+4. `numqi.state`: various quantum states, like Werner state, Bell state, etc. and their properties like entanglement measure, etc.
+5. `numqi.gate`: various quantum gate [wiki/quantum-logic-gate](https://en.wikipedia.org/wiki/Quantum_logic_gate), like Pauli gate (various representation), Clifford gate, etc.
+6. `numqi.gellmann`: convert matrix into gellmann basis and reversally [wiki/gellmann](https://en.wikipedia.org/wiki/Gell-Mann_matrices) [wiki/generalized-gellmann](https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices)
+7. `numqi.channel`: utilities related to quantum channel, like conversion between different representations of a quantum channel (Kraus operator, super-operator, Choi state, etc.) [wiki/quantum-channel](https://en.wikipedia.org/wiki/Quantum_channel)
+8. `numqi.manifold`: trivialzation of various smooth manifolds and quantum objects
+   * smooth manifold: sphere, positive semi-definite matrix, special orthogonal / unitary group, Stiefel manifold etc.
+   * quantum object: denotes quantum state, quantum gate, Hamiltonian, quantum channel etc.
+9. `numqi.group`: some basic utility for group theory [wiki/group](https://en.wikipedia.org/wiki/Group_(mathematics)), like irreducible representation, symmetric group, Symplectic group over finite field `Sp(2n, F2)`, etc.
+10. `numqi.optimize`: wrapper of `scipy.optimize` and `SGD/Adam` optimizers for manifold optimization
+11. `numqi.matrix_space`: Numerical range, linear space of matrices, geometric measure, hierarchical method, etc.
+    * Quantifying Subspace Entanglement with Geometric Measures [arxiv-link](https://arxiv.org/abs/2311.10353)
+12. `numqi.utils`: some utility functions, like, calculate fidelity, purity, entropy etc.
+
+application modules
+
+1. `numqi.entangle`: detect entanglement [wiki/quantum-entanglement](https://en.wikipedia.org/wiki/Quantum_entanglement)
+   * PPT (positive partial transpose)
+   * convex hull approximation
+   * Pure Bosonic extension [arxiv-link](https://arxiv.org/abs/2209.10934)
+   * irreducible representation of symmetric extension [doi-link](https://doi.org/10.3390/e25101425)
+   * unextendible product state, bound extangled state, etc.
+2. `numqi.maximum_entropy`: relation between Hamiltonian, groud state, and marginal problem
+   * Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645)
+3. `numqi.qec`: quantum error correction code (QECC) [wiki](https://en.wikipedia.org/wiki/Quantum_error_correction)
+   * Variational learning for quantum error-correcting codes [doi-link](https://doi.org/10.22331/q-2022-10-06-828)
+   * circuits to encode some well-known QECC, like `((5,2,3))`, `((8,8,3))`
+4. `numqi.unique_determine`: unique determinedness in quantum state tomography
+   * Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811)
+5. `numqi.query`: quantum query
+   * Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449)
+6. `numqi.optimal_control`: optimal control for quantum system, e.g. finding the optimal control pulse to implement a quantum gate
+   * Gradient ascent pulse engineering algorithm (GRAPE) (gradient ascent pulse engineering)
+
+Generally, the application modules are implemented based on the core modules. For example, the `numqi.entangle` module use quite a lots of the module `numqi.group` and `numqi.optimize`. For those who are more interested in quantum information problems, you may directly dive into these specific modules. For those who are more interested in the underlying algorithms or math concepts, you may start from the core modules.
 
 *PS*: Stay relaxing if none of these terminologies make sense, I will (try to) explain these words in the following pages.
 
@@ -94,10 +112,6 @@ initial_state = np.zeros(2**5, dtype=np.complex128)
 initial_state[0] = 1
 final_state = circ.apply_state(initial_state)
 ```
-
-## project structure
-
-![project-structure](data/project-structure.png)
 
 ## similar packages
 
