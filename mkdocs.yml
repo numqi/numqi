@@ -113,7 +113,6 @@ nav:
     - matrix space: api/matrix_space.md
     - random: api/random.md
     - dicke: api/dicke.md
-    - parameterization: api/param.md
     - quantum gate: api/gate.md
     - entanglement detection: api/entangle.md
     - quantum state: api/state.md
