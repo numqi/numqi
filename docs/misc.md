@@ -69,7 +69,7 @@ model name
 1. [ ] check `functools.lru_cache`, all type of input should be simple-typed, e.g. `int(1)` not `np.array([1])[0]`
 2. [ ] make it a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 3. [ ] github CI
-4. [ ] coverage
+4. [x] coverage
 5. [ ] documentation
     * [ ] numerical range
     * [ ] jupyter notebook: numqi.optimize.minimize_adam
@@ -79,14 +79,14 @@ model name
 7. [ ] make a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 8. [x] go through cvxquad [github-link](https://github.com/hfawzi/cvxquad) and replace `numqi.entangle.qetlab` module [arxiv-link](https://arxiv.org/abs/1705.00812)
 9. [ ] roadmap for packaging development
-10. [ ] quantum optimal control
-11. [ ] qutip
-12. [ ] zenodo
+10. [x] quantum optimal control
+11. [ ] learn from qutip
+12. [ ] add a zenodo record
 13. [ ] move `example/` to `docs`
 14. [ ] cupy/torch LBFGS
-15. [ ] GPU support
+15. [x] GPU support in `numqi.manifold`
 16. [ ] multi-processing support [link0](https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork) [link1](https://github.com/numpy/numpy/issues/11826) [link2](https://github.com/joblib/threadpoolctl)
-17. [ ] gradient back-propagation for density matrix circuit
+17. [ ] gradient back-propagation for density matrix circuit `numqi.circuit.dm`
 18. [ ] Clifford circuit simulator is not in good states
 
 ## license
