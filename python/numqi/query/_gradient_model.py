@@ -1,9 +1,9 @@
 import numpy as np
 import torch
 
-import numqi.param
 import numqi.sim
 import numqi.utils
+import numqi.manifold
 
 from .utils import get_measure_matrix, get_xbit
 
@@ -16,11 +16,9 @@ class QueryGroverModel(torch.nn.Module):
         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
         self.device = torch.device(device)
         self.num_qubit = num_qubit
-        np_rng = np.random.default_rng()
-        hf0 = lambda x: torch.nn.Parameter(torch.tensor(x, dtype=self.dtype, device=self.device))
-        self.theta = hf0(np_rng.uniform(-1, 1, size=(num_query+1,2**num_qubit,2**num_qubit)))
+        self.manifold_SU = numqi.manifold.SpecialOrthogonal(dim=2**num_qubit, batch_size=num_query+1, dtype=self.cdtype, device=self.device)
         if use_fractional:
-            self.alpha = hf0(np_rng.uniform(0, 1, size=num_query))
+            self.alpha = torch.nn.Parameter(torch.rand(num_query, dtype=self.dtype, device=self.device))
             self.mask = 1-torch.eye(2**num_qubit, dtype=self.dtype, device=self.device)
         else:
             self.alpha = None
@@ -31,9 +29,9 @@ class QueryGroverModel(torch.nn.Module):
     def forward(self):
         self.q0[:] = 0
         self.q0[:,0] = 1
-        unitary = [numqi.param.real_matrix_to_special_unitary(self.theta[x]) for x in range(self.theta.shape[0])]
+        unitary = self.manifold_SU()
         q0 = self.q0
-        for ind0 in range(len(self.theta)-1):
+        for ind0 in range(len(unitary)-1):
             q0 = q0 @ unitary[ind0]
             if self.alpha is None:
                 q0 = q0*self.mask
@@ -163,7 +161,7 @@ class HammingQueryQuditModel(torch.nn.Module):
             self.x_theta = hf0(num_query+1, num_XZ, x0=0, x1=2*np.pi)
             self.z_theta = hf0(num_query+1, num_XZ, x0=0, x1=2*np.pi)
         else:
-            self.theta = hf0(num_query+1, dim_total, dim_total, x0=-1, x1=1)
+            self.manifold = numqi.manifold.SpecialOrthogonal(dim=dim_total, batch_size=num_query+1, dtype=torch.complex128)
         self.measure_matrix_T = torch.tensor(get_measure_matrix(bitmap, partition).T.copy(), dtype=torch.float64)
         self.num_bit = num_bit
         self.dim_total = dim_total
@@ -183,7 +181,7 @@ class HammingQueryQuditModel(torch.nn.Module):
                     tmp1 = x @ tmp1
                 XZ.append(tmp1)
         else:
-            XZ = numqi.param.real_matrix_to_special_unitary(self.theta, tag_real=False)
+            XZ = self.manifold()
         alpha = self.alpha % 2 #TODO remove this
         oracle = [torch.exp((-1j*np.pi*x)*self.x_bit) for x in alpha]
         q0 = torch.zeros(self.dim_total, 2**self.num_bit, dtype=torch.complex128)

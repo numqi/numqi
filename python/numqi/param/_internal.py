@@ -7,26 +7,6 @@ import opt_einsum
 import numqi._torch_op
 
 
-def real_to_bounded(theta, lower:float, upper:float):
-    r'''map a real number into a bounded interval (lower,upper) using sigmoid function
-
-    Parameters:
-        theta (np.ndarray,torch.tensor): array of any shape.
-        lower (float): lower bound.
-        upper (float): upper bound.
-
-    Returns:
-        ret (np.ndarray,torch.tensor): array of the same shape as `theta`.
-    '''
-    assert lower < upper
-    if isinstance(theta, torch.Tensor):
-        tmp0 = torch.sigmoid(theta) #1/(1+exp(-theta))
-    else:
-        tmp0 = scipy.special.expit(theta)
-    ret = tmp0 * (upper - lower) + lower
-    return ret
-
-
 def _real_matrix_to_trace1_PSD_cholesky(matA, tag_real):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
@@ -103,6 +83,7 @@ def real_matrix_to_hermitian(matA, tag_real=False):
 _hf_trace1_np = lambda x: x/np.trace(x)
 _hf_trace1_torch = lambda x: x/torch.trace(x)
 
+# TODO put it to numqi.manifold.symmetric_to_trace1PSD
 def hermitian_matrix_to_trace1_PSD(matA):
     shape = matA.shape
     matA = matA.reshape(-1, shape[-1], shape[-1])
@@ -263,52 +244,3 @@ def real_matrix_to_special_unitary(matA, tag_real:bool=False):
             # ret = scipy.linalg.expm(1j*tmp2) #TODO scipy-v1.9
     ret = ret.reshape(shape)
     return ret
-
-
-# def PSD_to_choi_op(matA, dim_in, use_cholesky=False):
-#     assert matA.ndim==2 # TODO batch
-#     shape = matA.shape
-#     matA = matA.reshape(-1, shape[-1], shape[-1])
-#     N0 = matA.shape[0]
-#     assert shape[-1]%dim_in==0
-#     dim_out = shape[-1]//dim_in
-#     if isinstance(matA, torch.Tensor):
-#         tmp1 = torch.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3])
-#         if use_cholesky:
-#             tmp2 = torch.stack([torch.linalg.inv(torch.linalg.cholesky_ex(x, upper=True)[0]) for x in tmp1])
-#         else:
-#             tmp2 = torch.stack([torch.linalg.inv(numqi._torch_op.PSDMatrixSqrtm.apply(x)) for x in tmp1])
-#         ret = torch.einsum(matA.reshape(N0, dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
-#                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3]).reshape(N0, dim_in*dim_out,-1)
-#     else:
-#         tmp1 = np.einsum(matA.reshape(N0, dim_in, dim_out, dim_in, dim_out), [0,1,2,3,2], [0,1,3], optimize=True)
-#         if use_cholesky:
-#             tmp2 = np.stack([np.linalg.inv(scipy.linalg.cholesky(x)) for x in tmp1])
-#         else:
-#             tmp2 = np.stack([np.linalg.inv(scipy.linalg.sqrtm(x).astype(x.dtype)) for x in tmp1])
-#             # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
-#         ret = np.einsum(matA.reshape(N0,dim_in,dim_out,dim_in,dim_out), [6,0,1,2,3],
-#                 tmp2.conj(), [6,0,4], tmp2, [6,2,5], [6,4,1,5,3], optimize=True).reshape(N0, dim_in*dim_out, dim_in*dim_out)
-#     ret = ret.reshape(*shape)
-#     return ret
-
-
-def get_rational_orthogonal2_matrix(m, n):
-    # https://en.wikipedia.org/wiki/Pythagorean_triple
-    m = int(m)
-    n = int(n)
-    assert (m!=0) and (n!=0) and (abs(m)!=abs(n))
-    a = m*m - n*n
-    b = 2*m*n
-    c = m*m + n*n
-    # print(a,b,c)
-    st = a/c
-    ct = b/c
-    ret = np.array([[ct,st],[-st,ct]])
-    return ret
-
-
-# TODO see ws00
-
-# def real_to_povm():
-#     pass

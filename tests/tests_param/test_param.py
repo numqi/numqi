@@ -49,14 +49,6 @@ def test_real_matrix_to_special_unitary():
         assert np.abs(np.linalg.det(np1)-1).max() < 1e-10
 
 
-def test_get_rational_orthogonal2_matrix():
-    for m in range(-10, 10):
-        for n in range(-10,10):
-            if (m!=0) and (n!=0) and (abs(m)!=abs(n)):
-                tmp0 = numqi.param.get_rational_orthogonal2_matrix(m, n)
-                assert abs(tmp0 @ tmp0.T-np.eye(2)).max() < 1e-10
-
-
 def test_matrix_to_kraus_op():
     dim_in = 5
     dim_out = 3

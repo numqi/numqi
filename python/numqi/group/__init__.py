@@ -16,7 +16,7 @@ from ._internal import (
 )
 
 from ._lie import (angle_to_su2, angle_to_so3, rand_su2, rand_so3, so3_to_angle, su2_to_angle,
-        so3_to_su2, su2_to_so3, get_su2_irrep)
+        so3_to_su2, su2_to_so3, get_su2_irrep, get_rational_orthogonal2_matrix)
 
 from ._symmetric import (
     get_symmetric_group_cayley_table,

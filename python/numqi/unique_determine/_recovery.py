@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import cvxpy
 
-import numqi.param
 import numqi.random
 import numqi.optimize
 

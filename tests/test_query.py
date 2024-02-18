@@ -90,7 +90,7 @@ def test_HammingQueryQuditModel_hamming_modulo():
 
     bitmap = numqi.query.get_hamming_modulo_map(num_bit, num_modulo)
     model = numqi.query.HammingQueryQuditModel(num_query, dim_query, partition, bitmap, num_XZ, use_fractional=False, alpha_upper_bound=None)
-    theta_optim = numqi.optimize.minimize(model, ('uniform',-1,1), num_repeat=3, tol=1e-12, print_freq=0, early_stop_threshold=1e-6, seed=235)
+    theta_optim = numqi.optimize.minimize(model, 'uniform', num_repeat=1, tol=1e-12, print_freq=0, early_stop_threshold=1e-6, seed=236)
     # 5500 steps to converge
     assert model.error_rate < 1e-5
     # strange, `pytest -n auto` always give a large error_rate

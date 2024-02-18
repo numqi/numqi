@@ -4,6 +4,7 @@ import scipy.linalg
 import scipy.special
 
 
+# TODO: merge with numqi.random.get_numqi_rng
 def get_numpy_rng(np_rng_or_seed_or_none=None):
     if np_rng_or_seed_or_none is None:
         ret = np.random.default_rng()
@@ -250,4 +251,19 @@ def get_su2_irrep(j2, *mat_or_angle, return_matd=False):
         ret = (tmp1[:,:,np.newaxis] * matd * tmp2[:,np.newaxis,:]).reshape(shape+(j2+1,j2+1))
         if return_matd:
             ret = ret, matd.reshape(ret.shape)
+    return ret
+
+
+def get_rational_orthogonal2_matrix(m, n):
+    # https://en.wikipedia.org/wiki/Pythagorean_triple
+    m = int(m)
+    n = int(n)
+    assert (m!=0) and (n!=0) and (abs(m)!=abs(n))
+    a = m*m - n*n
+    b = 2*m*n
+    c = m*m + n*n
+    # print(a,b,c)
+    st = a/c
+    ct = b/c
+    ret = np.array([[ct,st],[-st,ct]])
     return ret

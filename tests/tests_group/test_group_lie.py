@@ -111,3 +111,11 @@ def test_get_su2_irrep_matd():
                 tmp1 = scipy.special.factorial(j2//2)/(scipy.special.factorial(r)*scipy.special.factorial(j2//2-r))
                 ret0 = ret0 + (1-2*(r%2)) * (tmp1 * cb**(j2//2-r) * sb**r)**2
             assert np.abs(np0[:,j2//2,j2//2] - ret0).max() < 1e-10
+
+
+def test_get_rational_orthogonal2_matrix():
+    for m in range(-10, 10):
+        for n in range(-10,10):
+            if (m!=0) and (n!=0) and (abs(m)!=abs(n)):
+                tmp0 = numqi.group.get_rational_orthogonal2_matrix(m, n)
+                assert abs(tmp0 @ tmp0.T-np.eye(2)).max() < 1e-10
