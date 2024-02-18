@@ -117,4 +117,5 @@ nav:
     - quantum gate: api/gate.md
     - entanglement detection: api/entangle.md
     - quantum state: api/state.md
+    - manifold: api/manifold.md
   - misc: misc.md
