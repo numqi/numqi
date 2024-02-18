@@ -18,7 +18,7 @@ Initially, this package is named `numpyqi`, later it's shortened to be `numqi` (
 
 `233` is a prime number! Internet slang that essentially means “LOL.”
 
-## publications
+## Publications
 
 This package is to support following papers
 
@@ -29,6 +29,7 @@ This package is to support following papers
 5. A Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811) `numqi.unique_determine`
 6. Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645) `numqi.maximum_entropy`
 7. Simulating Noisy Quantum Circuits with Matrix Product Density Operators [arxiv-link](https://arxiv.org/abs/2004.02388) `numqi.sim`
+8. Quantifying Subspace Entanglement with Geometric Measures [arxiv-link](https://arxiv.org/abs/2311.10353) `numqi.matrix_space`
 
 ## Acknowledgement
 

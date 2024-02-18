@@ -2,15 +2,13 @@
 
 **WARNING**: the package is still under development, the documentation page is for preview only.
 
-**WARNING**: the documentation is generated with the help of GitHub Copilot, so it may contain errors.
-
 **WARNING**: no backward compatiblity until version `1.0.0` (TODO roadmap). Right now, feel free to ask questions on GitHub issue page (TODO to be public).
 
 `numqi` (pronouce: num(-py)-q-i) a numpy-based quantum information package.
 
 ![project-structure](data/project-structure.png)
 
-core modules
+Core modules
 
 1. `numqi.sim`: numpy based quantum simulator [wiki/quantum-simulator](https://en.wikipedia.org/wiki/Quantum_simulator), support gradient back-propagation and variational quantum circuits, Clifford circuit simulator
 2. `numqi.dicke`: Dicke basis, bosonic states
@@ -20,39 +18,39 @@ core modules
 6. `numqi.gellmann`: convert matrix into gellmann basis and reversally [wiki/gellmann](https://en.wikipedia.org/wiki/Gell-Mann_matrices) [wiki/generalized-gellmann](https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices)
 7. `numqi.channel`: utilities related to quantum channel, like conversion between different representations of a quantum channel (Kraus operator, super-operator, Choi state, etc.) [wiki/quantum-channel](https://en.wikipedia.org/wiki/Quantum_channel)
 8. `numqi.manifold`: trivialzation of various smooth manifolds and quantum objects
-   * smooth manifold: sphere, positive semi-definite matrix, special orthogonal / unitary group, Stiefel manifold etc.
-   * quantum object: denotes quantum state, quantum gate, Hamiltonian, quantum channel etc.
+    * smooth manifold: sphere, positive semi-definite matrix, special orthogonal / unitary group, Stiefel manifold etc.
+    * quantum object: denotes quantum state, quantum gate, Hamiltonian, quantum channel etc.
 9. `numqi.group`: some basic utility for group theory [wiki/group](https://en.wikipedia.org/wiki/Group_(mathematics)), like irreducible representation, symmetric group, Symplectic group over finite field `Sp(2n, F2)`, etc.
 10. `numqi.optimize`: wrapper of `scipy.optimize` and `SGD/Adam` optimizers for manifold optimization
 11. `numqi.matrix_space`: Numerical range, linear space of matrices, geometric measure, hierarchical method, etc.
-    * Quantifying Subspace Entanglement with Geometric Measures [arxiv-link](https://arxiv.org/abs/2311.10353)
+     * Quantifying Subspace Entanglement with Geometric Measures [arxiv-link](https://arxiv.org/abs/2311.10353)
 12. `numqi.utils`: some utility functions, like, calculate fidelity, purity, entropy etc.
 
-application modules
+Application modules
 
 1. `numqi.entangle`: detect entanglement [wiki/quantum-entanglement](https://en.wikipedia.org/wiki/Quantum_entanglement)
-   * PPT (positive partial transpose)
-   * convex hull approximation
-   * Pure Bosonic extension [arxiv-link](https://arxiv.org/abs/2209.10934)
-   * irreducible representation of symmetric extension [doi-link](https://doi.org/10.3390/e25101425)
-   * unextendible product state, bound extangled state, etc.
+    * PPT (positive partial transpose)
+    * convex hull approximation
+    * Pure Bosonic extension [arxiv-link](https://arxiv.org/abs/2209.10934)
+    * irreducible representation of symmetric extension [doi-link](https://doi.org/10.3390/e25101425)
+    * unextendible product state, bound extangled state, etc.
 2. `numqi.maximum_entropy`: relation between Hamiltonian, groud state, and marginal problem
-   * Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645)
+    * Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645)
 3. `numqi.qec`: quantum error correction code (QECC) [wiki](https://en.wikipedia.org/wiki/Quantum_error_correction)
-   * Variational learning for quantum error-correcting codes [doi-link](https://doi.org/10.22331/q-2022-10-06-828)
-   * circuits to encode some well-known QECC, like `((5,2,3))`, `((8,8,3))`
+    * Variational learning for quantum error-correcting codes [doi-link](https://doi.org/10.22331/q-2022-10-06-828)
+    * circuits to encode some well-known QECC, like `((5,2,3))`, `((8,8,3))`
 4. `numqi.unique_determine`: unique determinedness in quantum state tomography
-   * Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811)
+    * Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811)
 5. `numqi.query`: quantum query
-   * Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449)
+    * Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449)
 6. `numqi.optimal_control`: optimal control for quantum system, e.g. finding the optimal control pulse to implement a quantum gate
-   * Gradient ascent pulse engineering algorithm (GRAPE) (gradient ascent pulse engineering)
+    * Gradient ascent pulse engineering algorithm (GRAPE) (gradient ascent pulse engineering)
 
 Generally, the application modules are implemented based on the core modules. For example, the `numqi.entangle` module use quite a lots of the module `numqi.group` and `numqi.optimize`. For those who are more interested in quantum information problems, you may directly dive into these specific modules. For those who are more interested in the underlying algorithms or math concepts, you may start from the core modules.
 
 *PS*: Stay relaxing if none of these terminologies make sense, I will (try to) explain these words in the following pages.
 
-## installation
+## Installation
 
 (TODO, when the repo `numqi` is public available) The following command should be okay for `win/mac/linux`.
 
@@ -113,7 +111,7 @@ initial_state[0] = 1
 final_state = circ.apply_state(initial_state)
 ```
 
-## similar packages
+## Similar packages
 
 1. QETLAB [documentation](https://qetlab.com/) [github](https://github.com/nathanieljohnston/QETLAB)
    * a matlab toolbox designed for quantum entanglement detection
