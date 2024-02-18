@@ -5,15 +5,16 @@ import torch
 import numqi.gellmann
 import numqi._torch_op
 
+_CPU = torch.device('cpu')
+
 def _hf_para(dtype, requires_grad, *size):
     # the value does not matter for that it's initialized in numqi.optimize.minimize
     ret = torch.nn.Parameter(torch.rand(*size, dtype=dtype)-0.5, requires_grad=requires_grad)
     return ret
 
-# TODO torch.device support
-
 class PositiveReal(torch.nn.Module):
-    def __init__(self, batch_size:(int|None)=None, method:str='softplus', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+    def __init__(self, batch_size:(int|None)=None, method:str='softplus',
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''positive real number
 
         Parameters:
@@ -23,12 +24,14 @@ class PositiveReal(torch.nn.Module):
                 'exp': exponential function.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            device (torch.device): device of the parameters.
         '''
         assert dtype in {torch.float32,torch.float64}
         assert (batch_size is None) or (batch_size>0)
         assert method in {'softplus','exp'}
+        assert isinstance(device, torch.device)
         super().__init__()
-        self.theta = _hf_para(dtype, requires_grad, 1 if (batch_size is None) else batch_size)
+        self.theta = _hf_para(dtype, requires_grad, 1 if (batch_size is None) else batch_size).to(device)
         self.method = method
         self.batch_size = batch_size
 
@@ -71,7 +74,8 @@ def to_positive_real_exp(theta):
     return ret
 
 class OpenInterval(torch.nn.Module):
-    def __init__(self, lower:float, upper:float, batch_size:(int|None)=None, requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+    def __init__(self, lower:float, upper:float, batch_size:(int|None)=None,
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''open interval manifold (lower,upper) using sigmoid function
 
         Parameters:
@@ -79,13 +83,15 @@ class OpenInterval(torch.nn.Module):
             upper (float): upper bound.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            device (torch.device): device of the parameters.
         '''
         assert dtype in (torch.float32, torch.float64)
         assert (batch_size is None) or (batch_size>0)
+        assert isinstance(device, torch.device)
         super().__init__()
-        self.lower = torch.tensor(lower, dtype=dtype)
-        self.upper = torch.tensor(upper, dtype=dtype)
-        self.theta = _hf_para(dtype, requires_grad, 1 if (batch_size is None) else batch_size)
+        self.lower = torch.tensor(lower, dtype=dtype, device=device)
+        self.upper = torch.tensor(upper, dtype=dtype, device=device)
+        self.theta = _hf_para(dtype, requires_grad, 1 if (batch_size is None) else batch_size).to(device)
         self.batch_size = batch_size
 
     def forward(self):
@@ -116,7 +122,7 @@ def to_open_interval(theta, lower:float, upper:float):
 
 class Trace1PSD(torch.nn.Module):
     def __init__(self, dim:int, rank:(int|None)=None, batch_size:(int|None)=None,
-                method:str='cholesky', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+                method:str='cholesky', requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''positive semi-definite (PSD) matrix with trace 1 of rank `rank` using Cholesky decomposition
 
         Parameters:
@@ -128,12 +134,14 @@ class Trace1PSD(torch.nn.Module):
                 'ensemble': ensemble decomposition.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
+            device (torch.device): device of the parameters.
         '''
         super().__init__()
         assert method in {'cholesky','ensemble'}
         assert dim>=2
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
+        assert isinstance(device, torch.device)
         is_real = dtype in {torch.float32,torch.float64}
         if rank is None:
             rank = dim
@@ -144,7 +152,7 @@ class Trace1PSD(torch.nn.Module):
         else: #ensemble
             tmp1 = (rank+dim*rank) if is_real else (rank+2*dim*rank)
         tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
-        self.theta = _hf_para(tmp0, requires_grad, *tmp2)
+        self.theta = _hf_para(tmp0, requires_grad, *tmp2).to(device)
         self.dim = int(dim)
         self.rank = int(rank)
         self.dtype = dtype
@@ -256,7 +264,7 @@ def to_trace1_psd_cholesky(theta, dim:int, rank:(int|None)=None):
 
 class SymmetricMatrix(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, is_trace0=False, is_norm1=False,
-                    requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+                    requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''symmetric matrix, hermitian, is_trace0, is_norm1
 
         Parameters:
@@ -266,18 +274,20 @@ class SymmetricMatrix(torch.nn.Module):
             is_norm1 (bool): whether the frobenius norm of the matrix is 1.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
+            device (torch.device): device of the parameters.
         '''
         super().__init__()
         assert dim>=2
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
+        assert isinstance(device, torch.device)
         is_real = dtype in {torch.float32,torch.float64}
         tmp0 = torch.float32 if (dtype in {torch.float32,torch.complex64}) else torch.float64
         N0 = (dim*(dim+1))//2 if is_real else dim*dim
         if is_trace0:
             N0 = N0 - 1
         tmp1 = (N0,) if (batch_size is None) else (batch_size, N0)
-        self.theta = _hf_para(tmp0, requires_grad, *tmp1)
+        self.theta = _hf_para(tmp0, requires_grad, *tmp1).to(device)
         self.is_trace0 = is_trace0
         self.is_norm1 = is_norm1
         self.dim = int(dim)
@@ -367,7 +377,8 @@ def to_symmetric_matrix(theta, dim:int, is_trace0=False, is_norm1=False):
 
 
 class Ball(torch.nn.Module):
-    def __init__(self, dim:int, batch_size:(int|None)=None, requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+    def __init__(self, dim:int, batch_size:(int|None)=None,
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''ball manifold
 
         Parameters:
@@ -375,11 +386,13 @@ class Ball(torch.nn.Module):
             batch_size (int,None): batch size.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            device (torch.device): device of the parameters.
         '''
         super().__init__()
         assert dim>=2
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
+        assert isinstance(device, torch.device)
         if dtype in {torch.float32,torch.float64}:
             self.is_real = True
             tmp0 = torch.float32 if (dtype==torch.float32) else torch.float64
@@ -389,7 +402,7 @@ class Ball(torch.nn.Module):
             tmp0 = torch.float32 if (dtype==torch.complex64) else torch.float64
             tmp1 = 2*dim
         tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
-        self.theta = _hf_para(tmp0, requires_grad, *tmp2)
+        self.theta = _hf_para(tmp0, requires_grad, *tmp2).to(device)
         self.dim = int(dim)
         self.dtype = dtype
         self.batch_size = batch_size
@@ -425,7 +438,8 @@ def to_ball(theta, is_real:bool=True):
 
 
 class Sphere(torch.nn.Module):
-    def __init__(self, dim:int, batch_size:(int|None)=None, method:str='quotient', requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+    def __init__(self, dim:int, batch_size:(int|None)=None, method:str='quotient',
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''sphere manifold
 
         Parameters:
@@ -436,12 +450,14 @@ class Sphere(torch.nn.Module):
                 'coordinate': cosine and sine functions.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            device (torch.device): device of the parameters.
         '''
         super().__init__()
         assert dim>=2
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
         assert method in {'quotient','coordinate'}
+        assert isinstance(device, torch.device)
         if dtype in {torch.float32,torch.float64}:
             self.is_real = True
             tmp0 = torch.float32 if (dtype==torch.float32) else torch.float64
@@ -451,7 +467,7 @@ class Sphere(torch.nn.Module):
             tmp0 = torch.float32 if (dtype==torch.complex64) else torch.float64
             tmp1 = 2*dim if (method=='quotient') else (2*dim-1)
         tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
-        self.theta = _hf_para(tmp0, requires_grad, *tmp2)
+        self.theta = _hf_para(tmp0, requires_grad, *tmp2).to(device)
         self.dim = int(dim)
         self.batch_size = batch_size
         self.dtype = dtype
@@ -532,7 +548,7 @@ def to_sphere_coordinate(theta, is_real:bool=True):
 
 class DiscreteProbability(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, method:str='softmax', weight=None,
-                requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''discrete probability distribution
 
         Parameters:
@@ -544,17 +560,19 @@ class DiscreteProbability(torch.nn.Module):
             weight (np.ndarray,torch.Tensor): weight of each dimension.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            device (torch.device): device of the parameters.
         '''
         super().__init__()
         assert dim>=2
         assert dtype in {torch.float32,torch.float64}
         assert (batch_size is None) or (batch_size>0)
         assert method in {'softmax','sphere'}
+        assert isinstance(device, torch.device)
         tmp0 = (dim,) if (batch_size is None) else (batch_size, dim)
-        self.theta = _hf_para(dtype, requires_grad, *tmp0)
+        self.theta = _hf_para(dtype, requires_grad, *tmp0).to(device)
         if weight is not None:
             assert (weight.min()>0) and weight.shape==(dim,)
-            self.weight_inv = torch.tensor(1/weight, dtype=dtype)
+            self.weight_inv = torch.tensor(1/weight, dtype=dtype, device=device)
         else:
             self.weight_inv = None
         self.dim = int(dim)
@@ -572,11 +590,29 @@ class DiscreteProbability(torch.nn.Module):
         return ret
 
 def to_discrete_probability_sphere(theta):
+    r'''map real vector to a point on the discrete probability via square of sphere
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the point
+                and the rest dimensions will be batch dimensions.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape`
+    '''
     tmp0 = to_sphere_quotient(theta, is_real=True)
     ret = tmp0*tmp0
     return ret
 
 def to_discrete_probability_softmax(theta):
+    r'''map real vector to a probability vector using softmax function
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the probability vector
+                and the rest dimensions will be batch dimensions.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape`
+    '''
     if isinstance(theta, torch.Tensor):
         ret = torch.nn.functional.softmax(theta, dim=-1)
     else:
@@ -584,11 +620,29 @@ def to_discrete_probability_softmax(theta):
     return ret
 
 class Stiefel(torch.nn.Module):
-    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method='qr', requires_grad:bool=True, dtype:torch.dtype=torch.float64) -> None:
+    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method:str='qr',
+                requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
+        r'''Stiefel manifold
+
+        Parameters:
+            dim (int): dimension of the matrix.
+            rank (int): rank of the matrix.
+            batch_size (int,None): batch size.
+            method (str): method to map real vector to a Stiefel matrix.
+                'choleskyL': Cholesky decomposition.
+                'qr': QR decomposition.
+                'sqrtm': square root of a matrix.
+                'so-exp': exponential map of special orthogonal group.
+                'so-cayley': Cayley transform of special orthogonal group.
+            requires_grad (bool): whether to track the gradients of the parameters.
+            dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
+            device (torch.device): device of the parameters.
+        '''
         super().__init__()
         assert (dim>=2) and (rank>=1) and (rank<=dim)
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert (batch_size is None) or (batch_size>0)
+        assert isinstance(device, torch.device)
         # choleskyL is really bad
         assert method in {'choleskyL','qr','so-exp','so-cayley','sqrtm'}
         if method in {'qr','sqrtm'}:
@@ -599,7 +653,7 @@ class Stiefel(torch.nn.Module):
             tmp0 = ((dim*(dim-1))//2) if (dtype in {torch.float32,torch.float64}) else (dim*dim-1)
         tmp1 = (tmp0,) if (batch_size is None) else (batch_size, tmp0)
         tmp2 = torch.float32 if (dtype in {torch.float32,torch.complex64}) else torch.float64
-        self.theta = _hf_para(tmp2, requires_grad, *tmp1)
+        self.theta = _hf_para(tmp2, requires_grad, *tmp1).to(device)
         self.dim = int(dim)
         self.rank = int(rank)
         self.dtype = dtype
@@ -683,11 +737,12 @@ def to_stiefel_choleskyL(theta, dim:int, rank:int):
     N1 = N0 - rank
     N2 = theta.shape[0]
     if isinstance(theta, torch.Tensor):
-        matL = torch.eye(rank, dtype=theta.dtype).reshape(1,rank,rank).repeat(N2,1,1)
+        device = theta.device
+        matL = torch.eye(rank, dtype=theta.dtype, device=device).reshape(1,rank,rank).repeat(N2,1,1)
         indexL = torch.tril_indices(rank,rank,-1)
         matL[:,indexL[0],indexL[1]] = theta[:,:N1]
         if not is_real:
-            tmp0 = torch.zeros(N2, rank, rank, dtype=theta.dtype)
+            tmp0 = torch.zeros(N2, rank, rank, dtype=theta.dtype, device=device)
             tmp0[:,indexL[0],indexL[1]] = theta[:,N1:(2*N1)]
             matL = torch.complex(matL, tmp0)
         if rank<dim:
@@ -754,7 +809,7 @@ def to_stiefel_qr(theta, dim:int, rank:int):
 
 class SpecialOrthogonal(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, method:str='exp', cayley_order:int=2,
-                    requires_grad:bool=True, dtype:torch.dtype=torch.float64):
+                    requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''orthogonal matrix
 
         Parameters:
@@ -765,18 +820,20 @@ class SpecialOrthogonal(torch.nn.Module):
                 'cayley': cayley transformation
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            device (torch.device): device of the parameters.
         '''
         super().__init__()
         assert method in {'exp', 'cayley'}
         assert dim>=2
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
         assert cayley_order>=1
+        assert isinstance(device, torch.device)
         is_real = dtype in {torch.float32,torch.float64}
         assert (batch_size is None) or (batch_size>0)
         tmp0 = torch.float32 if (dtype in {torch.float32,torch.complex64}) else torch.float64
         tmp1 = (dim*(dim-1)//2) if is_real else dim*dim-1
         tmp2 = (tmp1,) if (batch_size is None) else (batch_size, tmp1)
-        self.theta = _hf_para(tmp0, requires_grad, *tmp2)
+        self.theta = _hf_para(tmp0, requires_grad, *tmp2).to(device)
         self.dim = int(dim)
         self.method = method
         self.cayley_order = cayley_order
@@ -802,12 +859,13 @@ def to_special_orthogonal_exp(theta, dim:int):
     theta = theta.reshape(-1, shape[-1])
     N1 = theta.shape[0]
     if isinstance(theta, torch.Tensor):
+        device = theta.device
         if is_real:
-            tmp0 = torch.zeros(N1, N0, dtype=theta.dtype, device=theta.device)
-            tmp1 = torch.zeros(N1, dim, dtype=theta.dtype, device=theta.device)
+            tmp0 = torch.zeros(N1, N0, dtype=theta.dtype, device=device)
+            tmp1 = torch.zeros(N1, dim, dtype=theta.dtype, device=device)
             mat = numqi.gellmann.gellmann_basis_to_matrix(torch.concat([theta, tmp0, tmp1], axis=1)).imag
         else:
-            tmp0 = torch.zeros(N1, 1, dtype=theta.dtype, device=theta.device)
+            tmp0 = torch.zeros(N1, 1, dtype=theta.dtype, device=device)
             mat = 1j*numqi.gellmann.gellmann_basis_to_matrix(torch.concat([theta, tmp0], axis=1))
         # batch-version matrix-exp is memory-consuming in pytorch
         ret = torch.stack([torch.linalg.matrix_exp(mat[x]) for x in range(len(mat))])
@@ -838,14 +896,15 @@ def to_special_orthogonal_cayley(theta, dim:int, order:int=2):
     theta = theta.reshape(-1, shape[-1])
     N1 = theta.shape[0]
     if isinstance(theta, torch.Tensor):
+        device = theta.device
         if is_real:
-            tmp0 = torch.zeros(N1, N0, dtype=theta.dtype, device=theta.device)
-            tmp1 = torch.zeros(N1, dim, dtype=theta.dtype, device=theta.device)
+            tmp0 = torch.zeros(N1, N0, dtype=theta.dtype, device=device)
+            tmp1 = torch.zeros(N1, dim, dtype=theta.dtype, device=device)
             mat = numqi.gellmann.gellmann_basis_to_matrix(torch.concat([theta, tmp0, tmp1], axis=1)).imag
         else:
-            tmp0 = torch.zeros(N1, 1, dtype=theta.dtype, device=theta.device)
+            tmp0 = torch.zeros(N1, 1, dtype=theta.dtype, device=device)
             mat = 1j*numqi.gellmann.gellmann_basis_to_matrix(torch.concat([theta, tmp0], axis=1))
-        tmp0 = torch.eye(dim, dtype=theta.dtype, device=theta.device)
+        tmp0 = torch.eye(dim, dtype=theta.dtype, device=device)
         tmp1 = torch.linalg.inv(tmp0+mat) @ (tmp0-mat)
         ret = tmp1
         for _ in range(order-1):
