@@ -133,7 +133,9 @@ class Trace1PSD(torch.nn.Module):
                 'cholesky': Cholesky decomposition.
                 'ensemble': ensemble decomposition.
             requires_grad (bool): whether to track the gradients of the parameters.
-            dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
+            dtype (torch.dtype): data type of the parameters
+                torch.float32 / torch.float64: real PSD matrix
+                torch.complex64 / torch.complex128: complex PSD matrix
             device (torch.device): device of the parameters.
         '''
         super().__init__()
@@ -273,7 +275,9 @@ class SymmetricMatrix(torch.nn.Module):
             is_trace0 (bool): whether the trace of the matrix is 0.
             is_norm1 (bool): whether the frobenius norm of the matrix is 1.
             requires_grad (bool): whether to track the gradients of the parameters.
-            dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
+            dtype (torch.dtype): data type of the parameters
+                torch.float32 / torch.float64: real symmetric matrix
+                torch.complex64 / torch.complex128: complex hermitian matrix
             device (torch.device): device of the parameters.
         '''
         super().__init__()
@@ -635,7 +639,9 @@ class Stiefel(torch.nn.Module):
                 'so-exp': exponential map of special orthogonal group.
                 'so-cayley': Cayley transform of special orthogonal group.
             requires_grad (bool): whether to track the gradients of the parameters.
-            dtype (torch.dtype): data type of the parameters, either torch.float32, torch.float64, torch.complex64 or torch.complex128
+            dtype (torch.dtype): data type of the parameters
+                torch.float32 / torch.float64: real Stiefel matrix
+                torch.complex64 / torch.complex128: complex Stiefel matrix
             device (torch.device): device of the parameters.
         '''
         super().__init__()
@@ -674,6 +680,17 @@ class Stiefel(torch.nn.Module):
         return ret
 
 def to_stiefel_sqrtm(theta, dim:int, rank:int):
+    r'''map real vector to a Stiefel manifold via square root of a matrix
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the matrix
+                and the rest dimensions will be batch dimensions.
+        dim (int): dimension of the matrix.
+        rank (int): rank of the matrix.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,rank)`
+    '''
     assert rank<=dim
     shape = theta.shape
     if shape[-1]==dim*rank: #real
@@ -819,7 +836,9 @@ class SpecialOrthogonal(torch.nn.Module):
                 'exp': exponential map.
                 'cayley': cayley transformation
             requires_grad (bool): whether to track the gradients of the parameters.
-            dtype (torch.dtype): data type of the parameters, either torch.float32 or torch.float64
+            dtype (torch.dtype): data type of the parameters
+                torch.float32 / torch.float64: SO(d) manifold,
+                torch.complex64 / torch.complex128: SU(d) manifold
             device (torch.device): device of the parameters.
         '''
         super().__init__()
@@ -848,6 +867,18 @@ class SpecialOrthogonal(torch.nn.Module):
         return ret
 
 def to_special_orthogonal_exp(theta, dim:int):
+    r'''map real vector to a special orthogonal (unitary) manifold via exponential map
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the matrix
+                and the rest dimensions will be batch dimensions.
+                special orthogonal matrix: (dim*(dim-1))//2
+                special unitary matrix: dim*dim-1
+        dim (int): dimension of the matrix.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,dim)`
+    '''
     assert dim>=2
     N0 = dim*(dim-1)//2
     shape = theta.shape
@@ -883,7 +914,21 @@ def to_special_orthogonal_exp(theta, dim:int):
     return ret
 
 def to_special_orthogonal_cayley(theta, dim:int, order:int=2):
-    # https://en.wikipedia.org/wiki/Cayley_transform
+    r'''map real vector to a special orthogonal (unitary) manifold via Cayley transform
+
+    [wiki/Cayley-transform](https://en.wikipedia.org/wiki/Cayley_transform)
+
+    Parameters:
+        theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the matrix
+                and the rest dimensions will be batch dimensions.
+                special orthogonal matrix: (dim*(dim-1))//2
+                special unitary matrix: dim*dim-1
+        dim (int): dimension of the matrix.
+        order (int): order of the Cayley transformation.
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,dim)`
+    '''
     assert dim>=2
     assert order>=1
     N0 = dim*(dim-1)//2

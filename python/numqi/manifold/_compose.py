@@ -7,6 +7,19 @@ _CPU = torch.device('cpu')
 
 def quantum_state(dim, batch_size:(int|None)=None, method:str='quotient',
                     requires_grad:bool=True, dtype=torch.complex128, device:torch.device=_CPU):
+    r'''manifold of quantum state, wrapper of numqi.manifold.Sphere
+
+    Parameters:
+        dim (int): dimension of the quantum state
+        batch_size (int|None): batch size of quantum state
+        method (str): method to represent quantum state. 'quotient' or 'coordinates'
+        requires_grad (bool): whether to require gradient
+        dtype (torch.dtype): data type of quantum state
+        device (torch.device): device of quantum state
+
+    Returns:
+        ret (numqi.manifold.Sphere): manifold of quantum state.
+    '''
     assert dtype in {torch.complex64,torch.complex128}
     ret = Sphere(dim, batch_size, method, requires_grad, dtype, device)
     return ret
@@ -15,6 +28,20 @@ def quantum_state(dim, batch_size:(int|None)=None, method:str='quotient',
 
 def density_matrix(dim:int, rank:(int|None)=None, batch_size:(int|None)=None, method:str='cholesky',
             requires_grad:bool=True, dtype:torch.dtype=torch.complex128, device:torch.device=_CPU):
+    r'''manifold of density matrix, wrapper of numqi.manifold.Trace1PSD
+
+    Parameters:
+        dim (int): dimension of the density matrix
+        rank (int|None): rank of the density matrix
+        batch_size (int|None): batch size of density matrix
+        method (str): method to represent density matrix, 'cholesky' or 'ensemble'
+        requires_grad (bool): whether to require gradient
+        dtype (torch.dtype): data type of density matrix
+        device (torch.device): device of density matrix
+
+    Returns:
+        ret (numqi.manifold.Trace1PSD): manifold of density matrix.
+    '''
     assert dtype in {torch.complex64,torch.complex128}
     ret = Trace1PSD(dim, rank, batch_size, method, requires_grad, dtype, device)
     return ret
@@ -24,6 +51,17 @@ def density_matrix(dim:int, rank:(int|None)=None, batch_size:(int|None)=None, me
 class SeparableDensityMatrix(torch.nn.Module):
     def __init__(self, dimA:int, dimB:int, num_cha:(int|None)=None, batch_size:(int|None)=None,
                  requires_grad:bool=True, dtype:torch.dtype=torch.complex128, device:torch.device=_CPU):
+        r'''manifold of separable density matrix
+
+        Parameters:
+            dimA (int): dimension of the first subsystem
+            dimB (int): dimension of the second subsystem
+            num_cha (int|None): number of product states
+            batch_size (int|None): batch size of density matrix
+            requires_grad (bool): whether to require gradient
+            dtype (torch.dtype): data type of density matrix
+            device (torch.device): device of density matrix
+        '''
         super().__init__()
         if num_cha is None:
             num_cha = 2*dimA*dimB
@@ -56,6 +94,20 @@ class SeparableDensityMatrix(torch.nn.Module):
 
 def quantum_gate(dim:int, batch_size:(int|None)=None, method:str='exp', cayley_order:int=2,
                     requires_grad:bool=True, dtype:torch.dtype=torch.complex128, device:torch.device=_CPU):
+    r'''manifold of quantum gate, wrapper of numqi.manifold.SpecialOrthogonal
+
+    Parameters:
+        dim (int): dimension of the quantum gate
+        batch_size (int|None): batch size of quantum gate
+        method (str): method to represent quantum gate, 'exp' or 'cayley'
+        cayley_order (int): order of Cayley transform
+        requires_grad (bool): whether to require gradient
+        dtype (torch.dtype): data type of quantum gate
+        device (torch.device): device of quantum gate
+
+    Returns:
+        ret (numqi.manifold.SpecialOrthogonal): manifold of quantum gate.
+    '''
     assert dtype in {torch.complex64,torch.complex128}
     ret = SpecialOrthogonal(dim, batch_size, method, cayley_order, requires_grad, dtype, device)
     return ret
@@ -64,6 +116,19 @@ def quantum_gate(dim:int, batch_size:(int|None)=None, method:str='exp', cayley_o
 class QuantumChannel(torch.nn.Module):
     def __init__(self, dim_in:int, dim_out:int, choi_rank:(int|None)=None, batch_size:(int|None)=None, method:str='qr',
                 return_kind:str='kraus', requires_grad:bool=True, dtype:torch.dtype=torch.complex128, device:torch.device=_CPU):
+        r'''manifold of quantum channel, wrapper of numqi.manifold.Stiefel
+
+        Parameters:
+            dim_in (int): dimension of the input quantum state
+            dim_out (int): dimension of the output quantum state
+            choi_rank (int|None): rank of the Choi matrix
+            batch_size (int|None): batch size of quantum channel
+            method (str): method to represent quantum channel, choleskyL / qr / sqrtm / so-exp / so-cayley
+            return_kind (str): return kind of quantum channel, 'kraus' or 'choi'
+            requires_grad (bool): whether to require gradient
+            dtype (torch.dtype): data type of quantum channel
+            device (torch.device): device of quantum channel
+        '''
         super().__init__()
         # sqrtm seems to be better than qr TODO
         if choi_rank is None:

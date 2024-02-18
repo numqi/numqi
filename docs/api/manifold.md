@@ -76,7 +76,9 @@
     options:
       heading_level: 2
 
-`numqi.manifold.to_stiefel_sqrtm` (TODO)
+::: numqi.manifold.to_stiefel_sqrtm
+    options:
+      heading_level: 2
 
 ::: numqi.manifold.to_stiefel_choleskyL
     options:
@@ -90,6 +92,42 @@
     options:
       heading_level: 2
 
-`numqi.manifold.to_special_orthogonal_exp` (TODO)
+$$ \mathrm{SU}(d)=\left\{ A\in\mathbb{C}^{d\times d}:\mathrm{det}(A)=1,AA^{\dagger}=I_{d}\right\} $$
 
-`numqi.manifold.to_special_orthogonal_cayley` (TODO)
+$$ \mathrm{SO}(d)=\left\{ A\in\mathbb{R}^{d\times d}:\mathrm{det}(A)=1,AA^{T}=I_{d}\right\} $$
+
+::: numqi.manifold.to_special_orthogonal_exp
+    options:
+      heading_level: 2
+
+::: numqi.manifold.to_special_orthogonal_cayley
+    options:
+      heading_level: 2
+
+::: numqi.manifold.quantum_state
+    options:
+      heading_level: 2
+
+::: numqi.manifold.density_matrix
+    options:
+      heading_level: 2
+
+::: numqi.manifold.SeparableDensityMatrix
+    options:
+      heading_level: 2
+
+::: numqi.manifold.quantum_gate
+    options:
+      heading_level: 2
+
+::: numqi.manifold.QuantumChannel
+    options:
+      heading_level: 2
+
+`numqi.manifold.StiefelManifoldDistanceModel` (TODO)
+
+`numqi.manifold.GrassmannManifoldDistanceModel` (TODO)
+
+`numqi.manifold.TwoHermitianSumModel` (TODO)
+
+TAG-LIST-ALL
