@@ -5,6 +5,7 @@ from . import random
 from . import gate
 from . import gellmann
 from . import channel
+# TODO remove numqi.param
 from . import param
 from . import matrix_space
 from . import optimize

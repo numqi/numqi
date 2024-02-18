@@ -8,6 +8,8 @@ import scipy.linalg
 from numqi.gellmann import gellmann_basis_to_matrix
 from numqi.param import real_matrix_to_special_unitary
 
+# TODO batch_size
+# TODO refactor to use numqi.manifold
 
 def get_random_rng(rng_or_seed=None):
     r'''Get random.Random object
