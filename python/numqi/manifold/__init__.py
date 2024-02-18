@@ -9,7 +9,7 @@ from ._internal import Stiefel, to_stiefel_choleskyL, to_stiefel_qr, to_stiefel_
 from ._internal import SpecialOrthogonal, to_special_orthogonal_exp, to_special_orthogonal_cayley
 
 # composed
-from ._compose import quantum_state, density_matrix, SeparableDensityMatrix, QuantumChannel
+from ._compose import quantum_state, density_matrix, SeparableDensityMatrix, quantum_gate, QuantumChannel
 
 from ._misc import StiefelManifoldDistanceModel, GrassmannManifoldDistanceModel, TwoHermitianSumModel
 
