@@ -111,10 +111,9 @@ initial_state[0] = 1
 final_state = circ.apply_state(initial_state)
 ```
 
-## Similar packages
+## Related Packages
 
-1. QETLAB [documentation](https://qetlab.com/) [github](https://github.com/nathanieljohnston/QETLAB)
-   * a matlab toolbox designed for quantum entanglement detection
+1. QETLAB [documentation](https://qetlab.com/) [github](https://github.com/nathanieljohnston/QETLAB) a matlab toolbox designed for quantum entanglement detection
 2. GeoTorch [github](https://github.com/Lezcano/geotorch)
 3. geoopt [github](https://github.com/geoopt/geoopt)
 4. google/quantumlib [google/quantumAI](https://quantumai.google/software) [github](https://github.com/quantumlib) [openfermion](https://github.com/quantumlib/OpenFermion) [stim](https://github.com/quantumlib/Stim)
@@ -123,4 +122,6 @@ final_state = circ.apply_state(initial_state)
 7. [github/qutip](https://github.com/qutip)
 8. [github/pymanopt](https://github.com/pymanopt/pymanopt) Python toolbox for optimization on Riemannian manifolds with support for automatic differentiation
 9. [github/QGopt](https://github.com/LuchnikovI/QGOpt) Riemannian optimization for quantum technologies
-9. [qctrl](https://docs.q-ctrl.com/references/qctrl/index.html)
+10. [qctrl](https://docs.q-ctrl.com/references/qctrl/index.html)
+11. [github/cvxquad](https://github.com/hfawzi/cvxquad)
+12. qiskit
