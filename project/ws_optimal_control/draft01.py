@@ -40,10 +40,8 @@ class DummyControlModel(torch.nn.Module):
         assert np.abs(target_gate @ target_gate.T.conj() - np.eye(N0)).max() < 1e-10
         # TODO bound
         self.ham_model = torch.tensor(ham_model, dtype=torch.complex128)
-        np_rng = np.random.default_rng()
-        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-0.1, 0.1, size=x), dtype=torch.float64))
-        self.omega = hf0(num_segment) #MHz
-        self.para_ham_unknown = hf0(N0, N0)
+        self.omega = torch.nn.Parameter(torch.rand(num_segment, dtype=torch.float64)) #MHz
+        self.manifold_H = numqi.manifold.SymmetricMatrix(N0, dtype=torch.complex128, is_trace0=True)
         self.delta_t = time_duration / num_segment
         self.target_gate = torch.tensor(target_gate, dtype=torch.complex128)
 
@@ -55,7 +53,7 @@ class DummyControlModel(torch.nn.Module):
 
     def set_calibration(self, omega_data, infedility_data):
         self.is_calibration = True
-        self.para_ham_unknown.requires_grad_(True)
+        self.manifold_H.requires_grad_(True)
         self.omega.requires_grad_(False)
         assert (omega_data.ndim==2) and (omega_data.shape[1]==self.omega.shape[0])
         assert (infedility_data.ndim==1) and (omega_data.shape[0]==infedility_data.shape[0])
@@ -64,7 +62,7 @@ class DummyControlModel(torch.nn.Module):
 
     def get_optimal_control(self):
         self.is_calibration = False
-        self.para_ham_unknown.requires_grad_(False)
+        self.manifold_H.requires_grad_(False)
         self.omega.requires_grad_(True)
         theta_optim = numqi.optimize.minimize(self, theta0=('uniform',-0.1,0.1), num_repeat=3, tol=1e-7)
         return theta_optim
@@ -73,8 +71,7 @@ class DummyControlModel(torch.nn.Module):
         N1 = self.omega.shape[0]
         N2 = self.target_gate.shape[0]
         unitary = torch.eye(N2, dtype=torch.complex128)
-        tmp0 = numqi.param.real_matrix_to_hermitian(self.para_ham_unknown)
-        ham_unknown = tmp0 - torch.trace(tmp0)*torch.eye(N2, dtype=torch.complex128)/N2
+        ham_unknown = self.manifold_H()
         self.ham_unknown = ham_unknown.detach()
         if self.is_calibration:
             assert self.omega_data is not None

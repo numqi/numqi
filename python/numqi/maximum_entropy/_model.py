@@ -1,8 +1,8 @@
 import numpy as np
 import torch
 
-import numqi.param
 import numqi.optimize
+import numqi.manifold
 
 from ._internal import eigvalsh_largest_power_iteration#, NANGradientToNumber
 
@@ -12,18 +12,15 @@ class MaximumEntropyModel(torch.nn.Module):
         term_np = np.stack(term_list)
         assert (term_np.ndim==3) and (term_np.shape[1]==term_np.shape[2])
         assert np.abs(term_np.transpose(0,2,1).conj()-term_np).max() < 1e-10
-        # TODO device=cuda
         self.term = torch.tensor(term_np, dtype=torch.complex128)
         num_term,dim,_ = self.term.shape
-        np_rng = np.random.default_rng()
         if use_full:
-            self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=(dim,dim)), dtype=torch.float64))
+            self.manifold_PSD = numqi.manifold.Trace1PSD(dim, dtype=torch.complex128)
         else:
-            self.theta = torch.nn.Parameter(torch.tensor(np_rng.uniform(-1, 1, size=num_term), dtype=torch.float64))
+            self.theta = torch.nn.Parameter(torch.rand(num_term, dtype=torch.float64))
 
         self.term_value_target = None
         self.expect_op = None
-
         self.term_value = None
         self.dm_torch = None
 
@@ -39,11 +36,11 @@ class MaximumEntropyModel(torch.nn.Module):
 
     def forward(self):
         num_term,dim,_ = self.term.shape
-        if self.theta.ndim==1:
-            tmp0 = (self.theta.to(torch.complex128) @ self.term.reshape(num_term, dim*dim)).reshape(dim,dim)
-            dm_torch = numqi.param.hermitian_matrix_to_trace1_PSD(tmp0)
+        if hasattr(self, 'manifold_PSD'):
+            dm_torch = self.manifold_PSD()
         else:
-            dm_torch = numqi.param.real_matrix_to_trace1_PSD(self.theta)
+            tmp0 = (self.theta.to(torch.complex128) @ self.term.reshape(num_term, dim*dim)).reshape(dim,dim)
+            dm_torch = numqi.manifold.symmetric_matrix_to_trace1PSD(tmp0)
         self.dm_torch = dm_torch.detach()
         if self.term_value_target is not None:
             expectation = (self.term.reshape(num_term,dim*dim) @ dm_torch.conj().view(dim*dim)).real
@@ -126,7 +123,7 @@ class MaximumEntropyTangentModel(torch.nn.Module):
             EVC,num_step = eigvalsh_largest_power_iteration(matH, tag_force_full=True, vec0=None, tol=self.eigen_iteration_tol)
             vecA = ((self.op_list @ EVC) @ EVC.conj()).real
         else:
-            rho = numqi.param.hermitian_matrix_to_trace1_PSD(self.beta*matH)
+            rho = numqi.manifold.symmetric_matrix_to_trace1PSD(self.beta*matH)
             vecA = (self.op_list.conj().reshape(self.num_op,-1) @ rho.reshape(-1)).real
         self.vecA = vecA.detach()
         loss = self.factor*torch.dot(vecA, vecN) / (torch.dot(vecN, self.vecB)) # 0.5* for Gell-Mann matrix nomalization

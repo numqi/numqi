@@ -7,10 +7,9 @@ from tqdm.auto import tqdm
 import numqi.dicke
 import numqi.group
 import numqi.gellmann
-import numqi.param
 
 from .ppt import cvx_matrix_mlogx
-from ._misc import _sdp_ree_solve, _check_input_rho_SDP, get_density_matrix_boundary, hf_interpolate_dm
+from ._misc import _sdp_ree_solve, _check_input_rho_SDP
 
 
 @functools.lru_cache

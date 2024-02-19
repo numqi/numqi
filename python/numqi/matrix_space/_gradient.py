@@ -3,8 +3,6 @@ import opt_einsum
 import torch
 
 import numqi.utils
-import numqi.param
-import numqi.optimize
 import numqi.manifold
 from ._misc import find_closest_vector_in_space
 
@@ -34,10 +32,10 @@ class DetectRankModel(torch.nn.Module):
         assert space_char in set('R_T R_A C_T R C C_H R_cT R_c'.split(' '))
         self.dtype = torch.float32 if dtype=='float32' else torch.float64
         self.cdtype = torch.complex64 if dtype=='float32' else torch.complex128
-        self.device = device
+        self.device = torch.device(device)
         self.space_char = space_char
         self.basis_orth_conj = self._setup_basis_orth_conj(basis_orth)
-        self.theta = self._setup_parameter(basis_orth.shape[1], basis_orth.shape[2], space_char, rank, self.dtype, self.device)
+        self._setup_parameter(basis_orth.shape[1], basis_orth.shape[2], space_char, rank, self.dtype, self.cdtype, self.device)
 
         self.matH = None
 
@@ -46,7 +44,7 @@ class DetectRankModel(torch.nn.Module):
         dtype = self.dtype if (self.space_char in set('R_T R_A R R_cT R_c'.split(' '))) else self.cdtype
         if self.use_sparse:
             assert self.is_torch
-            assert self.device=='cpu', f'sparse tensor not support device "{self.device}"'
+            assert self.device==torch.device('cpu'), f'sparse tensor not support device "{self.device}"'
             index = basis_orth.indices()
             shape = basis_orth.shape
             tmp0 = torch.stack([index[0], index[1]*shape[2] + index[2]])
@@ -58,7 +56,7 @@ class DetectRankModel(torch.nn.Module):
                 basis_orth_conj = torch.tensor(basis_orth.conj().reshape(basis_orth.shape[0],-1), dtype=dtype, device=self.device)
         return basis_orth_conj
 
-    def _setup_parameter(self, dim0, dim1, space_char, rank, dtype, device):
+    def _setup_parameter(self, dim0, dim1, space_char, rank, dtype, cdtype, device):
         np_rng = np.random.default_rng()
         rank = numqi.utils.hf_tuple_of_int(rank)
         hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(-1,1,size=x), dtype=dtype, device=device))
@@ -66,92 +64,94 @@ class DetectRankModel(torch.nn.Module):
             assert (len(rank)==1) or (len(rank)==3)
             if len(rank)==1:
                 assert 1<=rank[0]<=dim0
-                theta = {'unitary0':hf0(dim0, dim0), 'EVL_free':hf0(rank[0]), 'EVL_positive':None, 'EVL_negative':None}
+                tmp0 = dtype if space_char=='R_T' else cdtype
+                self.manifold_U = numqi.manifold.Stiefel(dim0, rank=rank[0], dtype=tmp0, device=device)
+                self.EVL_free = hf0(rank[0])
+                self.EVL_positive = None
+                self.EVL_negative = None
             else:
                 assert all(x>=0 for x in rank) and (1<=sum(rank)) and (sum(rank)<=dim0)
-                theta = {
-                    'unitary0':hf0(dim0, dim0),
-                    'EVL_free':hf0(rank[0]) if (rank[0]>0) else None,
-                    'EVL_positive':hf0(rank[1]) if (rank[1]>0) else None,
-                    'EVL_negative':hf0(rank[2]) if (rank[2]>0) else None,
-                }
+                tmp0 = dtype if space_char=='R_T' else cdtype
+                tmp1 = sum((0 if (x is None) else x) for x in rank)
+                self.manifold_U = numqi.manifold.Stiefel(dim0, rank=tmp1, dtype=tmp0, device=device)
+                self.EVL_free = hf0(rank[0]) if (rank[0]>0) else None
+                self.EVL_positive = numqi.manifold.PositiveReal(rank[1], dtype=dtype, device=device) if (rank[1]>0) else None
+                self.EVL_negative = numqi.manifold.PositiveReal(rank[2], dtype=dtype, device=device) if (rank[2]>0) else None
         elif space_char=='R_A':
             assert (len(rank)==1) or (rank[0]%2==0)
-            theta = {'unitary0':hf0(dim0, dim0), 'EVL0':hf0(rank[0]//2)}
+            self.manifold_U = numqi.manifold.Stiefel(dim0, rank=rank[0], dtype=dtype, device=device)
+            self.manifold_EVL = numqi.manifold.Sphere(rank[0]//2, dtype=dtype, device=device) if (rank[0]>2) else None
         elif space_char=='C_T':
             assert (len(rank)==1) and 1<=rank[0]<=dim0
-            theta = {'unitary0':hf0(dim0, dim0), 'EVL0':hf0(rank[0]), 'EVL1':hf0(rank[0])}
+            self.manifold_U = numqi.manifold.Stiefel(dim0, rank=rank[0], dtype=cdtype, device=device)
+            self.manifold_EVL = numqi.manifold.Sphere(rank[0], dtype=cdtype, device=device) if (rank[0]>1) else None
         elif space_char in {'R','C'}:
             assert (len(rank)==1) and 1<=rank[0]<=min(dim0,dim1)
-            theta = {'unitary0':hf0(dim0, dim0), 'unitary1':hf0(dim1, dim1), 'EVL0':hf0(rank[0])}
+            tmp0 = dtype if space_char=='R' else cdtype
+            self.manifold_U0 = numqi.manifold.Stiefel(dim0, rank=rank[0], dtype=tmp0, device=device)
+            self.manifold_U1 = numqi.manifold.Stiefel(dim1, rank=rank[0], dtype=tmp0, device=device)
+            self.manifold_EVL = numqi.manifold.Sphere(rank[0], dtype=dtype, device=device) if (rank[0]>1) else None
         elif space_char=='R_cT':
             assert (dim0%2==0) and (len(rank)==1) and (1<=rank[0]<=(dim0//2))
-            theta = {'unitary0':hf0(dim0//2, dim0//2), 'EVL0':hf0(rank[0]), 'EVL1':hf0(rank[0])}
+            self.manifold_EVL = numqi.manifold.Sphere(rank[0], dtype=cdtype, device=device) if (rank[0]>1) else None
+            self.manifold_U = numqi.manifold.Stiefel(dim0//2, rank=rank[0], dtype=cdtype, device=device)
         elif space_char=='R_c':
             assert (dim0%2==0) and (dim1%2==0) and (len(rank)==1) and (1<=rank[0]<=(min(dim0,dim1)//2))
-            theta = {'unitary0':hf0(dim0//2, dim0//2), 'unitary1':hf0(dim1//2, dim1//2), 'EVL0':hf0(rank[0])}
-        ret = torch.nn.ParameterDict(theta)
-        return ret
+            self.manifold_EVL = numqi.manifold.Sphere(rank[0], dtype=dtype, device=device) if (rank[0]>1) else None
+            self.manifold_U0 = numqi.manifold.Stiefel(dim0//2, rank=rank[0], dtype=dtype, device=device)
+            self.manifold_U1 = numqi.manifold.Stiefel(dim1//2, rank=rank[0], dtype=dtype, device=device)
 
     def forward(self):
-        theta = self.theta
         space_char = self.space_char
         if space_char in {'R_T', 'C_H'}:
             tmp0 = [
-                theta['EVL_free'],
-                None if (theta['EVL_positive'] is None) else torch.nn.functional.softplus(theta['EVL_positive']),
-                None if (theta['EVL_negative'] is None) else (-torch.nn.functional.softplus(theta['EVL_negative'])),
+                self.EVL_free,
+                None if (self.EVL_positive is None) else self.EVL_positive(),
+                None if (self.EVL_negative is None) else (-self.EVL_negative()),
             ]
             tmp1 = torch.cat([x for x in tmp0 if x is not None])
             EVL = tmp1 / torch.linalg.norm(tmp1)
-            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=(space_char=='R_T'))[:len(EVL)]
-            matH = (unitary.T.conj()*EVL) @ unitary
+            unitary = self.manifold_U()
+            matH = (unitary.conj()*EVL) @ unitary.T
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='R_A':
-            tmp0 = theta['EVL0']
-            EVL = tmp0 / torch.linalg.norm(tmp0)
-            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=True)[:(2*len(EVL))]
-            tmp0 = unitary[::2]
-            tmp1 = unitary[1::2]
-            matH = (tmp0.T * EVL) @ tmp1 - (tmp1.T * EVL) @ tmp0
+            EVL = 1 if (self.manifold_EVL is None) else self.manifold_EVL()
+            unitary = self.manifold_U()
+            tmp0 = unitary[:,::2]
+            tmp1 = unitary[:,1::2]
+            matH = (tmp0 * EVL) @ tmp1.T - (tmp1 * EVL) @ tmp0.T
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='C_T':
-            tmp0 = theta['EVL0'] + 1j*theta['EVL1']
-            EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
-            matH = (unitary.T*EVL) @ unitary
+            EVL = 1 if (self.manifold_EVL is None) else self.manifold_EVL()
+            unitary = self.manifold_U()
+            matH = (unitary*EVL) @ unitary.T
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char in {'R','C'}:
-            tag_real = space_char=='R'
-            tmp0 = theta['EVL0']
-            EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary0 = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
-            unitary1 = numqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
-            matH = (unitary0.T.conj()*EVL) @ unitary1
+            EVL = 1 if (self.manifold_EVL is None) else self.manifold_EVL()
+            unitary0 = self.manifold_U0()
+            unitary1 = self.manifold_U1()
+            matH = (unitary0.conj()*EVL) @ unitary1.T
             loss = hf_torch_norm_square(self.basis_orth_conj @ matH.reshape(-1))
         elif space_char=='R_cT':
-            tmp0 = theta['EVL0'] + 1j*theta['EVL1']
-            EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=False)[:len(EVL)]
-            matH = (unitary.T*EVL) @ unitary
+            EVL = 1 if (self.manifold_EVL is None) else self.manifold_EVL()
+            unitary = self.manifold_U()
+            matH = (unitary*EVL) @ unitary.T
             tmp0 = numqi.utils.hf_complex_to_real(matH)
             loss = hf_torch_norm_square(self.basis_orth_conj @ tmp0.reshape(-1))
         elif space_char=='R_c':
-            tmp0 = theta['EVL0']
-            EVL = tmp0/torch.linalg.norm(tmp0)
-            unitary0 = numqi.param.real_matrix_to_special_unitary(theta['unitary0'], tag_real=tag_real)[:len(EVL)]
-            unitary1 = numqi.param.real_matrix_to_special_unitary(theta['unitary1'], tag_real=tag_real)[:len(EVL)]
-            matH = (unitary0.T.conj()*EVL) @ unitary1
+            EVL = 1 if (self.manifold_EVL is None) else self.manifold_EVL()
+            unitary0 = self.manifold_U0()
+            unitary1 = self.manifold_U1()
+            matH = (unitary0.conj()*EVL) @ unitary1.T
             tmp0 = numqi.utils.hf_complex_to_real(matH)
             loss = hf_torch_norm_square(self.basis_orth_conj @ tmp0.reshape(-1))
-        self.matH = matH
+        self.matH = matH.detach()
         return loss
 
-    def get_matrix(self, theta, matrix_subspace):
-        numqi.optimize.set_model_flat_parameter(self, theta)
+    def get_matrix(self, matrix_subspace):
         with torch.no_grad():
             self()
-        matH = self.matH.detach().cpu().numpy().copy()
+        matH = self.matH.cpu().numpy().copy()
         field = 'real' if (self.space_char in set('R_T R R_cT R_c C_H'.split(' '))) else 'complex'
         coeff, residual = find_closest_vector_in_space(matrix_subspace, matH, field)
         return matH,coeff,residual

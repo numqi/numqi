@@ -55,20 +55,19 @@ def demo00():
     print(z1[1])
 
 
-def hf_dummy_232(theta_U, kwargs_model, kwargs_optim):
+def hf_dummy_232(theta_u, kwargs_model, kwargs_optim):
     dimA,dimB = kwargs_model['dim']
-    matU = numqi.param.real_matrix_to_special_unitary(theta_U.reshape(dimA*dimB, dimA*dimB))
+    matU = numqi.manifold.to_special_orthogonal_exp(theta_u, dimA*dimB)
     model = DummyModel(matU, **kwargs_model)
     fval = -numqi.optimize.minimize(model, **kwargs_optim).fun
     return fval
 
-
-def hf_dummy_233(theta_U, tag_grad, kwargs_model, kwargs_optim, zero_eps=1e-9, num_worker=18):
-    ret = hf_dummy_232(theta_U, kwargs_model, kwargs_optim)
+def hf_dummy_233(theta_u, tag_grad, kwargs_model, kwargs_optim, zero_eps=1e-9, num_worker=18):
+    ret = hf_dummy_232(theta_u, kwargs_model, kwargs_optim)
     if tag_grad:
         arg_list = []
-        for ind0 in range(len(theta_U)):
-            x0,x1 = theta_U.copy(), theta_U.copy()
+        for ind0 in range(len(theta_u)):
+            x0,x1 = theta_u.copy(), theta_u.copy()
             x0[ind0] += zero_eps
             x1[ind0] -= zero_eps
             arg_list.append(x0)
@@ -92,7 +91,7 @@ if __name__=='__main__':
 
     # model = DummyModel(np.eye(dimA*dimB), (dimA,dimB), loss='purity')
     # for _ in range(100):
-    #     theta_u = np_rng.uniform(-1,1,size=dimA*dimB*dimA*dimB)
+    #     theta_u = np_rng.uniform(-1,1,size=dimA*dimB*dimA*dimB-1)
     #     tmp0 = hf_dummy_232(theta_u, kwargs_model, kwargs_optim)
     #     if tmp0 < -5e-7:
     #         print(tmp0)
@@ -118,7 +117,7 @@ if __name__=='__main__':
     to_pickle(loss_list=loss_list)
 
     # theta_optim_u = from_pickle('theta_optim_u')
-    # matU = numqi.param.real_matrix_to_special_unitary(theta_optim_u.reshape(dimA*dimB, dimA*dimB))
+    # matU = numqi.manifold.to_special_orthogonal_exp(theta_optim_u, dimA*dimB)
     # model = DummyModel(matU, **kwargs_model)
     # fval = -numqi.optimize.minimize(model, **kwargs_optim).fun
     # model.loss = 'eigen'

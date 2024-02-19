@@ -6,7 +6,8 @@ import scipy.linalg
 
 
 from numqi.gellmann import gellmann_basis_to_matrix
-from numqi.param import real_matrix_to_special_unitary
+from numqi.manifold import to_special_orthogonal_exp
+
 
 # TODO batch_size
 # TODO refactor to use numqi.manifold
@@ -443,8 +444,8 @@ def rand_orthonormal_matrix_basis(num_orthonormal, dim_qudit, num_qudit=1, num_s
     povm_basis[ind1,ind1,ind1] = 1
     ret = []
     for _ in range(num_sample):
-        tmp0 = np_rng.normal(size=(num_qudit*(num_orthonormal-1),dim_qudit,dim_qudit))
-        unitary = real_matrix_to_special_unitary(tmp0).reshape(num_qudit, num_orthonormal-1, dim_qudit, dim_qudit)
+        tmp0 = np_rng.normal(size=(num_qudit*(num_orthonormal-1),dim_qudit*dim_qudit-1))
+        unitary = to_special_orthogonal_exp(tmp0, dim_qudit).reshape(num_qudit, num_orthonormal-1, dim_qudit, dim_qudit)
         tmp1 = [[(y[:,:,np.newaxis]*y[:,np.newaxis].conj()) for y in x] for x in unitary]
         tmp1 = [np.stack([povm_basis]+x, axis=0) for x in tmp1]
         tmp2 = tmp1[0]

@@ -10,7 +10,7 @@ def test_matrix_subspace_XZ_R_XZ_C():
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,1))
     theta_optim011 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim011.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     assert theta_optim011.fun < 1e-7
     assert residual < 1e-7
 
@@ -19,7 +19,7 @@ def test_matrix_subspace_XZ_R_XZ_C():
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field=field)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
     theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim1.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     assert theta_optim1.fun < 1e-7
     assert residual < 1e-7
 
@@ -32,7 +32,7 @@ def test_matrix_subspace_real_complex_field_2qubit():
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,2))
     theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     assert theta_optim022.fun < 1e-7
     assert residual < 1e-7
 
@@ -40,7 +40,7 @@ def test_matrix_subspace_real_complex_field_2qubit():
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='complex')
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=2)
     theta_optim2 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim2.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     assert theta_optim2.fun < 1e-7
     assert residual < 1e-7
 
@@ -57,7 +57,7 @@ def test_matrix_subspace_misc():
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(1,0,0))
     theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=20, tol=1e-12, early_stop_threshold=1e-10)
-    matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     assert theta_optim022.fun < 1e-7
     assert residual < 1e-7
     EVL = np.linalg.eigvalsh(matH)
@@ -75,7 +75,7 @@ def test_matrix_subspace_sparse():
 
     model = numqi.matrix_space.DetectRankModel(torch.tensor(matrix_subspace_orth).to_sparse(), space_char='C_H', rank=(0,2,2))
     theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=10, tol=1e-10, early_stop_threshold=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     assert theta_optim022.fun < 1e-7
     assert residual < 1e-7
 

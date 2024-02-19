@@ -2,7 +2,7 @@ import numpy as np
 import torch
 
 import numqi.utils
-import numqi.param
+import numqi.manifold
 import numqi.sim
 
 from ._internal import knill_laflamme_inner_product
@@ -33,17 +33,15 @@ class QECCEqualModel(torch.nn.Module):
     def __init__(self, code0, code1, device='cpu'):
         super().__init__()
         assert code0.shape==code1.shape
-        self.device = device
+        device = torch.device(device)
         self.num_qubit = numqi.utils.hf_num_state_to_num_qubit(code0.shape[1], kind='exact')
-        np_rng = np.random.default_rng()
-        tmp0 = np_rng.uniform(-1, 1, (self.num_qubit, 2, 2))
-        self.theta = torch.nn.Parameter(torch.tensor(tmp0, dtype=torch.float64, device=self.device))
-        self.code0 = torch.tensor(code0, dtype=torch.complex128, device=self.device)
-        self.code1 = torch.tensor(code1, dtype=torch.complex128, device=self.device)
+        self.manifold = numqi.manifold.SpecialOrthogonal(2, batch_size=self.num_qubit, dtype=torch.complex128, device=device)
+        self.code0 = torch.tensor(code0, dtype=torch.complex128, device=device)
+        self.code1 = torch.tensor(code1, dtype=torch.complex128, device=device)
 
     def forward(self):
         N0 = len(self.code0)
-        unitary = numqi.param.real_matrix_to_special_unitary(self.theta)
+        unitary = self.manifold()
         code0 = self.code0
         for ind0 in range(self.num_qubit):
             tmp0 = code0.reshape(N0*(2**ind0), 2, 2**(self.num_qubit-ind0-1))
@@ -52,33 +50,30 @@ class QECCEqualModel(torch.nn.Module):
         return loss
 
 class VarQECUnitary(torch.nn.Module):
-    def __init__(self, num_qubit, num_logical_dim, error_list, device='cpu', loss_type='L2'):
+    def __init__(self, num_qubit, num_logical_dim, error_list, loss_type='L2'):
         super().__init__()
-        assert device=='cpu'
         self.num_logical_dim = num_logical_dim
         self.num_logical_dim_ceil = 2**numqi.utils.hf_num_state_to_num_qubit(num_logical_dim, kind='ceil')
         self.num_qubit = num_qubit
-        self.device = device
         self.error_list = error_list
-        # self.error_list_torch = [[(y0,torch.tensor(y1,dtype=torch.complex128,device=device)) for y0,y1 in x] for x in error_list]
+        # self.error_list_torch = [[(y0,torch.tensor(y1,dtype=torch.complex128)) for y0,y1 in x] for x in error_list]
         assert loss_type in {'L1','L2'}
         self.loss_type = loss_type
-
-        np_rng = np.random.default_rng()
-        tmp0 = np_rng.normal(size=(2**num_qubit,2**num_qubit))
-        self.theta = torch.nn.Parameter(torch.tensor(tmp0, dtype=torch.float64, device=device))
+        self.manifold = numqi.manifold.Stiefel(2**num_qubit, rank=self.num_logical_dim_ceil, dtype=torch.complex128)
         self.q0_torch = None
 
     def forward(self):
-        self.q0_torch = numqi.param.real_matrix_to_special_unitary(self.theta)[:self.num_logical_dim_ceil]
-        tmp0 = knill_laflamme_inner_product(self.q0_torch, self.error_list)
+        q0_torch = self.manifold().T
+        self.q0_torch = q0_torch.detach()
+        tmp0 = knill_laflamme_inner_product(q0_torch, self.error_list)
         inner_product = tmp0[:,:self.num_logical_dim,:self.num_logical_dim]
         loss = knill_laflamme_loss(inner_product, self.loss_type)
         return loss
 
     def get_code(self):
-        self()
-        ret = self.q0_torch.detach().cpu()[:self.num_logical_dim].numpy().reshape(-1, 2**self.num_qubit).copy()
+        with torch.no_grad():
+            self()
+        ret = self.q0_torch.cpu()[:self.num_logical_dim].numpy().reshape(-1, 2**self.num_qubit).copy()
         return ret
 
 class VarQEC(torch.nn.Module):

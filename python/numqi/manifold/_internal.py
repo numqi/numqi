@@ -682,6 +682,13 @@ class Stiefel(torch.nn.Module):
 def to_stiefel_sqrtm(theta, dim:int, rank:int):
     r'''map real vector to a Stiefel manifold via square root of a matrix
 
+    [wiki-link](https://en.wikipedia.org/wiki/Stiefel_manifold)
+
+    $$ \left\{ x\in\mathbb{K}^{m\times n}:x^\dagger x=I_n \right\}$$
+
+    where $\mathbb{K}=\mathbb{R}$ or $\mathbb{C}$. Matrix square root is used so the backward might be
+    several times slower than the forward. QR decomposition
+
     Parameters:
         theta (np.ndarray,torch.Tensor): if `ndim>1`, then the last dimension will be expanded to the matrix
                 and the rest dimensions will be batch dimensions.
@@ -802,6 +809,9 @@ def to_stiefel_qr(theta, dim:int, rank:int):
     Returns:
         ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,rank)`
     '''
+    # TODO poor efficiency in L-BFGS-B optimization
+    # the forward and backward time is still okay compared with matrix-square-root,
+    # but the time for L-BFGS-B optimization is much longer (strange)
     assert dim>=rank
     is_torch = isinstance(theta, torch.Tensor)
     shape = theta.shape
@@ -968,4 +978,40 @@ def to_special_orthogonal_cayley(theta, dim:int, order:int=2):
         for _ in range(order-1):
             ret = ret @ tmp1
     ret = ret.reshape(*shape[:-1], dim, dim)
+    return ret
+
+
+_hf_trace1_np = lambda x: x/np.trace(x)
+_hf_trace1_torch = lambda x: x/torch.trace(x)
+
+def symmetric_matrix_to_trace1PSD(matA):
+    r'''map symmetric matrix to a trace-1 positive semi-definite matrix
+
+    Parameters:
+        matA (np.ndarray,torch.Tensor): symmetric / Hermitian matrix, support batch dimensions
+
+    Returns:
+        ret (np.ndarray,torch.Tensor): real / complex trace-1 positive semi-definite matrix
+    '''
+    shape = matA.shape
+    assert shape[-1]==shape[-2]
+    matA = matA.reshape(-1, shape[-1], shape[-1])
+    is_torch = isinstance(matA, torch.Tensor)
+    N0,N1,_ = matA.shape
+    assert N1>=1
+    if N1==1:
+        ret = torch.ones_like(matA) if is_torch else np.ones_like(matA)
+    else:
+        tmp3 = matA.detach().cpu().numpy() if is_torch else matA
+        if N1<=5: #5 is chosen intuitively
+            EVL = np.linalg.eigvalsh(tmp3)[:,-1]
+        else:
+            EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
+        if is_torch:
+            matI = torch.eye(matA.shape[1], dtype=matA.dtype, device=matA.device)
+            ret = torch.stack([_hf_trace1_torch(torch.linalg.matrix_exp(matA[x]-EVL[x]*matI)) for x in range(N0)])
+        else:
+            matI = np.eye(matA.shape[1])
+            ret = np.stack([_hf_trace1_np(scipy.linalg.expm(matA[x]-EVL[x]*matI)) for x in range(N0)])
+    ret = ret.reshape(*shape)
     return ret

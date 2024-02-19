@@ -17,7 +17,7 @@ def demo_matrix_subspace_real_complex_field_1qubit():
     theta_optim020 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,1,1))
     theta_optim011 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim011.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(010): {theta_optim010.fun}') #1.0
     print(f'loss(020): {theta_optim020.fun}') #1.0
@@ -31,7 +31,7 @@ def demo_matrix_subspace_real_complex_field_1qubit():
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='complex')
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=1)
     theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim1.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}, residual={residual}') #1e-9
     # space=C_T basis.shape=(2, 2, 2) basis_orth.shape=(1, 2, 2)
@@ -51,7 +51,7 @@ def demo_matrix_space_real_complex_field_2qubit():
     theta_optim040 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=(0,2,2))
     theta_optim022 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim022.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(031): {theta_optim031.fun}') #0.5
     print(f'loss(040): {theta_optim040.fun}') #1.0
@@ -64,7 +64,7 @@ def demo_matrix_space_real_complex_field_2qubit():
     theta_optim1 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
     model = numqi.matrix_space.DetectRankModel(basis_orth, space_char, rank=2)
     theta_optim2 = numqi.optimize.minimize(model, 'normal', num_repeat=3, tol=1e-7)
-    matH,coeff,residual = model.get_matrix(theta_optim2.x, matrix_subspace)
+    matH,coeff,residual = model.get_matrix(matrix_subspace)
     print(f'space={space_char} basis.shape={basis.shape} basis_orth.shape={basis_orth.shape}')
     print(f'loss(1): {theta_optim1.fun}') #0.5
     print(f'loss(2): {theta_optim2.fun}, residual={residual}') #0
