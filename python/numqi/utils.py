@@ -1,7 +1,6 @@
 import functools
 import collections
 import numpy as np
-import scipy.linalg
 import torch
 
 import numqi._torch_op

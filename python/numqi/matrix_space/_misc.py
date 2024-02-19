@@ -1,5 +1,4 @@
 import itertools
-import functools
 import numpy as np
 import scipy.linalg
 

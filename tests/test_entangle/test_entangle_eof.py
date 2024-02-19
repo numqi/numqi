@@ -1,6 +1,4 @@
 import numpy as np
-import scipy.linalg
-import torch
 
 import numqi
 

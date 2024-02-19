@@ -3,12 +3,10 @@ import numpy as np
 import scipy.special
 import torch
 
-import numqi.utils
-
 def get_dicke_basis(num_qudit:int, dim:int):
-    '''return Dicke basis for n qudits
+    r'''return Dicke basis for n qudits
 
-    see http://arxiv.org/abs/1904.07358 for more information
+    see [arxiv-link](http://arxiv.org/abs/1904.07358) for more information
 
     Parameters:
         num_qudit (int): number of qudits
