@@ -162,32 +162,52 @@ def _basis_partial_trace(basis, dim):
 
 
 @functools.lru_cache
-def get_symmetric_extension_irrep_coeff(dimB, kext):
-    dimB = int(dimB)
+def _get_symmetric_extension_irrep_coeff_internal(dim, kext):
+    dim = int(dim)
     kext = int(kext)
-    if dimB==2:
+    if dim==2:
         tmp0 = numqi.dicke.get_partial_trace_ABk_to_AB_index(kext, dim=2, return_tensor=True).transpose(2,3,0,1).copy()
         # a00,a01,a10,a11 = numqi.dicke.dicke_state_partial_trace(kext)
         # tmp0 = np.stack([np.diag(a00), np.diag(a01,1), np.diag(a10,-1), np.diag(a11)], axis=2).reshape(kext+1,kext+1,2,2)
-        coeffB_list = [tmp0]
+        coeff_list = [tmp0]
         multiplicity_list = 1, #all sym-ext are bosonic-ext, so we only use Dicke state
     else:
-        basis_part = get_sud_symmetric_irrep_basis(dimB, kext)
+        basis_part = get_sud_symmetric_irrep_basis(dim, kext)
         multiplicity_list = tuple(len(x) for x in basis_part)
-        coeffB_list = [sum(_basis_partial_trace(y,dimB) for y in x) for x in basis_part]
-    for x in coeffB_list:
+        coeff_list = [sum(_basis_partial_trace(y,dim) for y in x) for x in basis_part]
+    for x in coeff_list:
         x.flags.writeable = False
-    return coeffB_list,multiplicity_list
+    return coeff_list,multiplicity_list
 
 
-def print_symmetric_extension_irrep_coeffB(coeffB):
-    index = np.stack(np.nonzero(coeffB), axis=1)
+def get_symmetric_extension_irrep_coeff(dim:int, kext:int):
+    r'''Get the coefficients of the symmetric extension irrep.
+
+    Parameters:
+        dim (int): dimension of the Hilbert space
+        kext (int): the number of extension
+
+    Returns:
+        coeff_list (list[np.ndarray]): list of 4-dimensional arrray (dk, dk, dim, dim), where dk is the dimension of the k-th irrep
+        multiplicity_list (tuple[int]): tuple of the multiplicity of each irrep
+    '''
+    dim = int(dim)
+    kext = int(kext)
+    assert (dim>=2) and (kext>=1)
+    ret = _get_symmetric_extension_irrep_coeff_internal(dim, kext)
+    return ret
+
+def print_symmetric_extension_irrep_coeff(coeff, zero_eps:float=1e-10):
+    coeff = coeff.copy()
+    coeff[np.abs(coeff)<zero_eps] = 0
+    index = np.stack(np.nonzero(coeff), axis=1)
     index = np.array(sorted({((a,b,c,d) if a<b else (b,a,d,c)) for a,b,c,d in index}))
-    tmp0 = np.stack(tuple(index.T) + (coeffB[tuple(index.T)],), axis=1)
+    tmp0 = np.stack(tuple(index.T) + (coeff[tuple(index.T)],), axis=1)
     hf0 = lambda x: (-abs(x[1][4]),x[1][0],x[1][1],x[1][2],x[1][3])
     ind0 = [x[0] for x in sorted(enumerate(tmp0), key=hf0)]
     for x in tmp0[ind0]:
-        print([int(y) for y in x[:4]]+[float(x[4])])
+        print(f'B({x[0]},{x[1]},{x[2]},{x[3]})={x[4]}')
+        # print([int(y) for y in x[:4]]+[float(x[4])])
 
 
 def print_young_tableaux(N0):

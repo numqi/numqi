@@ -11,9 +11,6 @@ case_dict = {
 
 dim = 2
 kext_list = case_dict[dim]
-alpha_irrep_list = []
-alpha_analytic_list = []
-alpha_list = []
 ret_list = []
 dm_werner = numqi.state.Werner(dim, alpha=1)
 dm_norm = numqi.gellmann.dm_to_gellmann_norm(dm_werner)
@@ -45,8 +42,8 @@ for kext in kext_list:
 dim = 3
 kext_list = [3,4,5,6]
 for kext in kext_list:
-    coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
-    dim_list = [x.shape[0] for x in coeffB_list]
+    coeff_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
+    dim_list = [x.shape[0] for x in coeff_list]
     assert sum(x*y for x,y in zip(dim_list,multiplicity_list))==dim**kext
     tmp0 = ' + '.join([f'{x}x{y}' for x,y in zip(dim_list,multiplicity_list)])
     # tmp0 = ' + '.join([rf'{x}\times {y}' for x,y in zip(dim_list,multiplicity_list)])
@@ -64,8 +61,8 @@ for kext in kext_list:
 dim = 4
 kext_list = [3,4,5]
 for kext in kext_list:
-    coeffB_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
-    dim_list = [x.shape[0] for x in coeffB_list]
+    coeff_list,multiplicity_list = numqi.group.symext.get_symmetric_extension_irrep_coeff(dim, kext) #build cache
+    dim_list = [x.shape[0] for x in coeff_list]
     assert sum(x*y for x,y in zip(dim_list,multiplicity_list))==dim**kext
     tmp0 = ' + '.join([f'{x}x{y}' for x,y in zip(dim_list,multiplicity_list)])
     tmp0 = ' + '.join([rf'{x}\times {y}' for x,y in zip(dim_list,multiplicity_list)])

@@ -72,9 +72,10 @@ nav:
       - tutorial/matrix_space/space_schmidt_rank.ipynb
       - tutorial/matrix_space/space_schmidt_rank_real.ipynb
     - group:
-      - basic: tutorial/group/basic.md
-      - Clifford: tutorial/group//spf2.md
-      - symmetric extension: tutorial/group/symext.md
+      - tutorial/group/basic.ipynb
+      - tutorial/group/young-tableaux.ipynb
+      - tutorial/group/symext.ipynb
+      - Clifford: tutorial/group/spf2.md
       - tutorial/group/pauli.ipynb
     - quantum error correction:
       - tutorial/qecc/basic.md

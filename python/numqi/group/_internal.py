@@ -4,6 +4,8 @@ import functools
 import numpy as np
 import scipy.linalg
 
+# TODO documentation
+
 def cayley_table_to_left_regular_form(index_tuple):
     N0 = len(index_tuple)
     ret = np.zeros((N0,N0,N0), dtype=np.int64)
@@ -265,3 +267,15 @@ def group_algebra_product(vec0, vec1, cayley_table, use_index=False):
     vec0,vec1 = [np.broadcast_to(x, shape).reshape(-1, dim) for x in (vec0,vec1)]
     ret = (vec0[:,:,np.newaxis] * vec1[:,np.newaxis,:]).reshape(-1, dim*dim)[:, index].reshape(-1, dim, dim).sum(axis=2).reshape(shape)
     return ret
+
+
+def pretty_print_character_table(character_table, class_list):
+    tmp0 = np.round(character_table.real).astype(np.int64)
+    character_table_str = [[(str(y0) if abs(y0-y1)<1e-10 else 'xxx') for y0,y1 in zip(x0,x1)] for x0,x1 in zip(tmp0,character_table)]
+    print('| $\chi$ | {} |'.format(' | '.join(str(len(x)) for x in class_list)))
+    print('| {} |'.format(' | '.join([':-:']*(len(class_list)+1))))
+    # assert np.abs(tmp0-character_table).max() < 1e-10
+    for ind0 in range(len(character_table_str)):
+        tmp1 = ' | '.join(character_table_str[ind0])
+        tmp2 = '{' + str(ind0) + '}'
+        print(f'| $A_{tmp2}$ | {tmp1} |')

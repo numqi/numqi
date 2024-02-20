@@ -1,5 +1,7 @@
 # symext irrep
 
+*PS*: already move to docs/tutorial, this folder is kept for record.
+
 Werner state boundary $\frac{k+d^2-d}{kd^2+d-1}$, the absolute error is within $10^{-8}$
 
 | $(d,k)$| QETLAB time (s)| hermitian basis (s)  | irrep time (s) | $\alpha$ |
