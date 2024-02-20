@@ -3,6 +3,7 @@ site_url: https://husisy.github.io/numqi/
 theme:
   name: material
   features:
+    - toc.integrate
     - navigation.tabs
     - search.highlight
     - search.share
