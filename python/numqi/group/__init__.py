@@ -30,7 +30,11 @@ from ._symmetric import (
     get_all_young_tableaux,
     young_tableau_to_young_symmetrizer,
     permutation_to_cycle_notation,
+    print_all_young_tableaux,
 )
 
 from . import symext
 from . import spf2
+from . import _internal
+from . import _lie
+from . import _symmetric

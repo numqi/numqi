@@ -343,7 +343,7 @@ def pretty_print_character_table(character_table:np.ndarray, class_list:list):
     '''
     tmp0 = np.round(character_table.real).astype(np.int64)
     character_table_str = [[(str(y0) if abs(y0-y1)<1e-10 else 'xxx') for y0,y1 in zip(x0,x1)] for x0,x1 in zip(tmp0,character_table)]
-    print('| $\chi$ | {} |'.format(' | '.join(str(len(x)) for x in class_list)))
+    print(r'| $\chi$ | {} |'.format(' | '.join(str(len(x)) for x in class_list)))
     print('| {} |'.format(' | '.join([':-:']*(len(class_list)+1))))
     # assert np.abs(tmp0-character_table).max() < 1e-10
     for ind0 in range(len(character_table_str)):

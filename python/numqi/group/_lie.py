@@ -85,8 +85,18 @@ def _so3_to_angle_hf0(x00, x02, x12, x20, x21, x22, zero_eps):
     return alpha,beta,gamma
 
 
-def so3_to_angle(np0, zero_eps=1e-7):
-    # alpha(0,2*pi) beta(0,pi) gamma(0,2*pi)
+def so3_to_angle(np0:np.ndarray, zero_eps:float=1e-7):
+    r'''Convert SO(3) matrix to Euler angles
+
+    Parameters:
+        np0 (np.ndarray): SO(3) matrix, shape (...,3,3)
+        zero_eps (float): zero threshold
+
+    Returns:
+        alpha (np.ndarray): angle alpha, shape (...), (0,2*pi)
+        beta (np.ndarray): angle beta, shape (...), (0,pi)
+        gamma (np.ndarray): angle gamma, shape (...), (0,2*pi)
+    '''
     assert (np0.ndim>=2) and (np0.shape[-2:]==(3,3))
     shape = np0.shape[:-2]
     np0 = np0.real.reshape(-1, 3, 3) #drop imag if complex
@@ -94,11 +104,22 @@ def so3_to_angle(np0, zero_eps=1e-7):
     if len(shape)==0:
         ret = alpha[0],beta[0],gamma[0]
     else:
-        ret = [x.reshape(shape) for x in [alpha,beta,gamma]]
+        ret = tuple(x.reshape(shape) for x in [alpha,beta,gamma])
     return ret
 
 
-def su2_to_angle(np0, zero_eps=1e-7):
+def su2_to_angle(np0:np.ndarray, zero_eps:float=1e-7):
+    r'''Convert SU(2) matrix to Euler angles
+
+    Parameters:
+        np0 (np.ndarray): SU(2) matrix, shape (...,2,2)
+        zero_eps (float): zero threshold
+
+    Returns:
+        alpha (np.ndarray): angle alpha, shape (...), (0,2*pi)
+        beta (np.ndarray): angle beta, shape (...), (0,pi)
+        gamma (np.ndarray): angle gamma, shape (...), (0,4*pi)
+    '''
     # alpha(0,2*pi) beta(0,pi) gamma(0,4*pi)
     assert (np0.ndim>=2) and (np0.shape[-2:]==(2,2))
     shape = np0.shape[:-2]
@@ -128,18 +149,36 @@ def su2_to_angle(np0, zero_eps=1e-7):
     if len(shape)==0:
         ret = alpha[0],beta[0],gamma[0]
     else:
-        ret = [x.reshape(shape) for x in [alpha,beta,gamma]]
+        ret = tuple(x.reshape(shape) for x in [alpha,beta,gamma])
     return ret
 
 
-def so3_to_su2(np0, zero_eps=1e-7):
+def so3_to_su2(np0:np.ndarray, zero_eps:float=1e-7):
+    r'''Convert SO(3) matrix to SU(2) matrix
+
+    Parameters:
+        np0 (np.ndarray): SO(3) matrix, shape (...,3,3)
+        zero_eps (float): zero threshold
+
+    Returns:
+        ret (np.ndarray): SU(2) matrix, shape (...,2,2)
+    '''
     alpha,beta,gamma = so3_to_angle(np0, zero_eps)
     ret = angle_to_su2(alpha, beta, gamma)
     # ret, -ret
     return ret
 
 
-def su2_to_so3(np0, zero_eps=1e-7):
+def su2_to_so3(np0:np.ndarray, zero_eps:float=1e-7):
+    r'''Convert SU(2) matrix to SO(3) matrix
+
+    Parameters:
+        np0 (np.ndarray): SU(2) matrix, shape (...,2,2)
+        zero_eps (float): zero threshold
+
+    Returns:
+        ret (np.ndarray): SO(3) matrix, shape (...,3,3)
+    '''
     assert (np0.ndim>=2) and (np0.shape[-2:]==(2,2))
     shape = np0.shape[:-2] + (3,3)
     np0 = np0.reshape(-1, 2, 2)
@@ -189,10 +228,19 @@ def _get_su2_irrep_get_coeff(j2:int):
     return ret
 
 
-def get_su2_irrep(j2, *mat_or_angle, return_matd=False):
+def get_su2_irrep(j2:int, *mat_or_angle:tuple, return_matd:bool=False):
+    r'''Get irrep of SU(2)
+
+    Parameters:
+        j2 (int): `j =0, 0.5, 1, 1.5, ...`, `j2=0, 1, 2, 3, ...`
+        mat_or_angle (tuple): SU(2) matrix (tuple of length 1) or Euler angles (tuple of length 3)
+        return_matd (bool): return matd
+
+    Returns:
+        ret (np.ndarray): irrep of SU(2), shape (...,j2+1,j2+1)
+        matd (np.ndarray): matd, shape (...,j2+1,j2+1)
+    '''
     j2 = int(j2)
-    # j =0, 0.5, 1, 1.5, ...
-    # j2=0, 1, 2, 3, ...
     assert j2>=0
     assert len(mat_or_angle) in {1,3}
     if len(mat_or_angle)==1:
@@ -225,8 +273,17 @@ def get_su2_irrep(j2, *mat_or_angle, return_matd=False):
     return ret
 
 
-def get_rational_orthogonal2_matrix(m, n):
-    # https://en.wikipedia.org/wiki/Pythagorean_triple
+def get_rational_orthogonal2_matrix(m:int, n:int):
+    r'''Get rational orthogonal 2x2 matrix
+    [wiki-link](https://en.wikipedia.org/wiki/Pythagorean_triple)
+
+    Parameters:
+        m (int): m
+        n (int): n
+
+    Returns:
+        ret (np.ndarray): rational orthogonal 2x2 matrix
+    '''
     m = int(m)
     n = int(n)
     assert (m!=0) and (n!=0) and (abs(m)!=abs(n))

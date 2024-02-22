@@ -1,11 +1,6 @@
-# `numqi.random`
+# Random
 
-Import necessary modules
-
-```Python
-import numpy as np
-import numqi
-```
+`numqi.random`
 
 This module use random seed widely, most likely you will get different results. Most functions accept `seed` as an argument, you can set it to a fixed value to get reproducible results.
 
