@@ -13,7 +13,7 @@ def cayley_table_to_left_regular_form(index_tuple:tuple):
         index_tuple (tuple): 2-dimensional tuple, np.ndarray shape=(N0,N0)
 
     Returns:
-        ret(np.ndarray): shape=(N0,N0,N0), np.int64
+        ret (np.ndarray): shape=(N0,N0,N0), np.int64
     '''
     N0 = len(index_tuple)
     ret = np.zeros((N0,N0,N0), dtype=np.int64)
@@ -27,7 +27,7 @@ def get_klein_four_group_cayley_table():
     r'''Klein four group Cayley table
 
     Returns:
-        ret(np.ndarray): shape=(4,4), np.int64
+        ret (np.ndarray): shape=(4,4), np.int64
     '''
     ret = np.array((
         (0,1,2,3),
@@ -58,10 +58,10 @@ def get_dihedral_group_cayley_table(n:int):
     [stackexchange-link](https://math.stackexchange.com/a/1576762)
 
     Parameters:
-        n(int): n>=3, number of vertices
+        n (int): n>=3, number of vertices
 
     Returns:
-        ret(np.ndarray): shape=(2*n,2*n), np.int64
+        ret (np.ndarray): shape=(2*n,2*n), np.int64
     '''
     assert n>2
     tmp0 = scipy.linalg.circulant(np.arange(n, dtype=np.int64)).T
@@ -72,9 +72,18 @@ def get_dihedral_group_cayley_table(n:int):
     return ret
 
 
-# cyclic group irrep on C-field is just complex number
-# cyclic group irrep on R-field are 2-by-2 matrix
-def get_cyclic_group_cayley_table(n):
+def get_cyclic_group_cayley_table(n:int):
+    r'''Cyclic group Cayley table
+
+    cyclic group irrep on C-field is just complex number, on R-field are 2-by-2 matrix
+
+
+    Parameters:
+        n (int): n>=2, order of the group
+
+    Returns:
+        ret (np.ndarray): shape=(n,n), np.int64
+    '''
     assert n>=2
     tmp0 = np.arange(n, dtype=np.int64)
     ret = np.array(tuple(tuple(x) for x in np.remainder(tmp0[:,np.newaxis] + tmp0, n).tolist()), dtype=np.int64)
@@ -130,16 +139,16 @@ def _reduce_group_representation_get_matH(np0, zero_eps=1e-4):
     return ret
 
 
-def reduce_group_representation(np0, zero_eps=1e-7):
+def reduce_group_representation(np0:np.ndarray, zero_eps:float=1e-7):
     r'''Reduce group representation to irreducible representations
     [sheaves-blog](https://sheaves.github.io/Representation-Theory-Decomposing-Representations/)
 
     Parameters:
-        np0(np.ndarray): shape=(N0,dim,dim)
-        zero_eps(float): zero threshold
+        np0 (np.ndarray): shape=(N0,dim,dim)
+        zero_eps (float): zero threshold
 
     Returns:
-        ret(list): list of np.ndarray, shape=(N0,dim_irrep,dim_irrep)
+        ret (list): list of np.ndarray, shape=(N0,dim_irrep,dim_irrep)
     '''
     assert (np0.ndim==3) and (np0.shape[1]==np0.shape[1])
     dim = np0.shape[1]
@@ -174,16 +183,16 @@ def reduce_group_representation(np0, zero_eps=1e-7):
     return ret
 
 
-def to_unitary_representation(np0, return_matP=False):
+def to_unitary_representation(np0:np.ndarray, return_matP:bool=False):
     r'''To unitary representation
 
     Parameters:
-        np0(np.ndarray): shape=(N0,dim,dim)
-        return_matP(bool): return matP
+        np0 (np.ndarray): shape=(N0,dim,dim)
+        return_matP (bool): return matP
 
     Returns:
-        ret(np.ndarray): shape=(N0,dim,dim), unitary representation
-        matP(np.ndarray): when `return_matP=True`, shape=(dim,dim)
+        ret (np.ndarray): shape=(N0,dim,dim), unitary representation
+        matP (np.ndarray): when `return_matP=True`, shape=(dim,dim)
     '''
     assert np0.ndim==3
     tmp0 = np0.reshape(-1,np0.shape[2])
@@ -205,10 +214,10 @@ def matrix_block_diagonal(*np_list):
     r'''Matrix block diagonal, matrix direct sum
 
     Parameters:
-        np_list(list): list of np.ndarray, shape=(N0,...,dim0,dim1)
+        np_list (list): list of np.ndarray, shape=(N0,...,dim0,dim1)
 
     Returns:
-        ret(np.ndarray): shape=(N0,...,sum(dim0),sum(dim1))
+        ret (np.ndarray): shape=(N0,...,sum(dim0),sum(dim1))
     '''
     if len(np_list)==1:
         ret = np_list[0]
@@ -229,13 +238,13 @@ def get_character_and_class(irrep_list, zero_eps=1e-7):
     r'''get character table and conjugacy class from irredicible representation
 
     Parameters:
-        irrep_list(list): list of np.ndarray, shape=(N0,dim_irrep,dim_irrep)
-        zero_eps(float): zero threshold
+        irrep_list (list): list of np.ndarray, shape=(N0,dim_irrep,dim_irrep)
+        zero_eps (float): zero threshold
 
     Returns:
-        character(np.ndarray): shape=(N0,N0), np.complex128
-        class_list(list): list of tuple, tuple of int
-        character_table(np.ndarray): shape=(len(irrep),len(irrep)), np.complex128
+        character (np.ndarray): shape=(N0,N0), np.complex128
+        class_list (list): list of tuple, tuple of int
+        character_table (np.ndarray): shape=(len(irrep),len(irrep)), np.complex128
     '''
     character = np.stack([np.trace(x, axis1=1, axis2=2) for x in irrep_list])
     N0 = character.shape[1]
@@ -252,10 +261,10 @@ def hf_Euler_totient(n:int):
     TODO sympy.totient()
 
     Parameters:
-        n(int): n>=1
+        n (int): n>=1
 
     Returns:
-        ret(int): number of positive integers less than n that are coprime to n
+        ret (int): number of positive integers less than n that are coprime to n
     '''
     ret = sum(math.gcd(n,x)==1 for x in range(1, n+1))
     return ret
@@ -271,10 +280,10 @@ def hf_is_prime(n:int):
     TODO sympy.isprime()
 
     Parameters:
-        n(int): n>=2
+        n (int): n>=2
 
     Returns:
-        ret(bool): True if n is prime number
+        ret (bool): True if n is prime number
     '''
     ret = (n>=2) and ((n==2) or ((n%2==1) and all(n%x>0 for x in range(3, int(math.sqrt(n))+1, 2))))
     return ret
@@ -285,10 +294,10 @@ def get_multiplicative_group_cayley_table(n:int):
     [wiki-link](https://en.wikipedia.org/wiki/Multiplicative_group_of_integers_modulo_n)
 
     Parameters:
-        n(int): n>=3
+        n (int): n>=3
 
     Returns:
-        ret(np.ndarray): shape=(n,n), np.int64
+        ret (np.ndarray): shape=(n,n), np.int64
     '''
     assert n>=3 #TODO
     element = [x for x in range(1, n) if math.gcd(n,x)==1]
@@ -301,7 +310,7 @@ def get_quaternion_cayley_table():
     r'''Quaternion group Cayley table
 
     Returns:
-        ret(np.ndarray): shape=(8,8), np.int64
+        ret (np.ndarray): shape=(8,8), np.int64
     '''
     tmp0 = ['1 i j k', 'i -1 k -j', 'j -k -1 i', 'k j -i -1']
     tmp0 = [x.split( ) for x in tmp0]
@@ -338,8 +347,8 @@ def pretty_print_character_table(character_table:np.ndarray, class_list:list):
     r'''Pretty print character table
 
     Parameters:
-        character_table(np.ndarray): shape=(len(irrep),len(irrep)), np.complex128
-        class_list(list): list of tuple, tuple of int
+        character_table (np.ndarray): shape=(len(irrep),len(irrep)), np.complex128
+        class_list (list): list of tuple, tuple of int
     '''
     tmp0 = np.round(character_table.real).astype(np.int64)
     character_table_str = [[(str(y0) if abs(y0-y1)<1e-10 else 'xxx') for y0,y1 in zip(x0,x1)] for x0,x1 in zip(tmp0,character_table)]

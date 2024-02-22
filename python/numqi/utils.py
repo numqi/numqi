@@ -21,8 +21,8 @@ def hf_num_state_to_num_qubit(num_state:int, kind:str='exact'):
     r'''convert the number of states to the number of qubits
 
     Parameters:
-        num_state(int): number of states
-        kind(str): 'exact', 'ceil', 'floor'
+        num_state (int): number of states
+        kind (str): 'exact', 'ceil', 'floor'
 
     Returns:
         ret(int): number of qubits
@@ -51,18 +51,15 @@ hf_tuple_of_int = lambda x: hf_tuple_of_any(x, type_=int)
 def hf_complex_to_real(x):
     r'''convert a complex matrix to a real matrix
 
-    complex -> [[real,-imag], [imag,real]]
+    `complex -> [[real,-imag], [imag,real]]`
 
-    $$ A\in\mathbb{C}^{m\times n}\mapsto\begin{bmatrix}
-\Re[A] & -\Im[A]\\
-\Im[A] & \Re[A]
-\end{bmatrix}\in\mathbb{R}^{2m\times2n} $$
+    $$ A\in\mathbb{C}^{m\times n}\mapsto\begin{bmatrix} \Re[A] & -\Im[A]\\ \Im[A] & \Re[A] \end{bmatrix}\in\mathbb{R}^{2m\times2n} $$
 
     Parameters:
-        x(np.ndarray,torch.Tensor): a complex matrix, shape=(...,dim0,dim1), support batch
+        x (np.ndarray,torch.Tensor): a complex matrix, shape=(...,dim0,dim1), support batch
 
     Returns:
-        ret(np.ndarray,torch.Tensor): a real matrix, shape=(...,2*dim0,2*dim1)
+        ret (np.ndarray,torch.Tensor): a real matrix, shape=(...,2*dim0,2*dim1)
     '''
     dim0,dim1 = x.shape[-2:]
     shape = x.shape[:-2]
@@ -81,13 +78,13 @@ def hf_complex_to_real(x):
 def hf_real_to_complex(x):
     r'''convert a real matrix to a complex matrix
 
-    [[real,-imag], [imag,real]] -> complex
+    `[[real,-imag], [imag,real]] -> complex`
 
     Parameters:
-        x(np.ndarray,torch.Tensor): a real matrix, shape=(...,2*dim0,2*dim1), support batch
+        x (np.ndarray,torch.Tensor): a real matrix, shape=(...,2*dim0,2*dim1), support batch
 
     Returns:
-        ret(np.ndarray,torch.Tensor): a complex matrix, shape=(...,dim0,dim1)
+        ret (np.ndarray,torch.Tensor): a complex matrix, shape=(...,dim0,dim1)
     '''
     assert (x.shape[-2]%2==0) and (x.shape[-1]%2==0)
     dim0 = x.shape[-2]//2
@@ -105,12 +102,12 @@ def partial_trace(rho:np.ndarray, dim:tuple[int], keep_index:set[int]):
     r'''partial trace of a density matrix
 
     Parameters:
-        rho(np.ndarray): a density matrix, shape=(*dim,*dim)
-        dim(tuple[int]): shape of the density matrix
-        keep_index(set[int]): the indices to keep
+        rho (np.ndarray): a density matrix, shape=(*dim,*dim)
+        dim (tuple[int]): shape of the density matrix
+        keep_index (set[int]): the indices to keep
 
     Returns:
-        ret(np.ndarray): the partial trace of the density matrix, shape=(*dim[keep_index], *dim[keep_index])
+        ret (np.ndarray): the partial trace of the density matrix, shape=(*dim[keep_index], *dim[keep_index])
     '''
     if not isinstance(keep_index, collections.abc.Iterable):
         keep_index = [keep_index]
@@ -133,11 +130,11 @@ def get_fidelity(rho0:np.ndarray|torch.Tensor, rho1:np.ndarray|torch.Tensor):
     r'''get the fidelity of two density matrices or pure states
 
     Parameters:
-        rho0(np.ndarray,torch.Tensor): pure state (ndim=1) or density matrix (ndim=2)
-        rho1(np.ndarray,torch.Tensor): pure state or density matrix
+        rho0 (np.ndarray,torch.Tensor): pure state (ndim=1) or density matrix (ndim=2)
+        rho1 (np.ndarray,torch.Tensor): pure state or density matrix
 
     Returns:
-        ret(float,torch.Tensor): the fidelity of the two states
+        ret (float,torch.Tensor): the fidelity of the two states
     '''
     ndim0 = rho0.ndim
     ndim1 = rho1.ndim
@@ -177,11 +174,11 @@ def get_von_neumann_entropy(rho:np.ndarray|torch.Tensor, _torch_logm:str|tuple='
     [wiki-link](https://en.wikipedia.org/wiki/Von_Neumann_entropy)
 
     Parameters:
-        rho(np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
-        _torch_logm(str,tuple): 'eigen' or ('pade',num_sqrtm,pade_order), 'pade' is used only when requires_grad
+        rho (np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
+        _torch_logm (str,tuple): 'eigen' or ('pade',num_sqrtm,pade_order), 'pade' is used only when requires_grad
 
     Returns:
-        ret(float): the von Neumann entropy of the density matrix
+        ret (float): the von Neumann entropy of the density matrix
     '''
     shape = rho.shape
     assert (len(shape)>=2) and (shape[-1]==shape[-2])
@@ -213,11 +210,11 @@ def get_Renyi_entropy(rho:np.ndarray|torch.Tensor, alpha:float):
     r'''get the Renyi entropy of a density matrix
 
     Parameters:
-        rho(np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
-        alpha(float): the order of the Renyi entropy
+        rho (np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
+        alpha (float): the order of the Renyi entropy
 
     Returns:
-        ret(float): the Renyi entropy of the density matrix
+        ret (float): the Renyi entropy of the density matrix
     '''
     assert (alpha!=1) and (alpha>0)
     if isinstance(rho, torch.Tensor):
@@ -234,12 +231,12 @@ def get_purification(rho:np.ndarray, dimR:int|None=None, seed=None):
     all purification are connected by Stiefel manifold
 
     Parameters:
-        rho(np.ndarray): a density matrix, shape=(dim,dim)
-        dimR(int,None): the dimension of the purification, dimR>=dim, if None, dimR=dim
-        seed(int,None): random seed
+        rho (np.ndarray): a density matrix, shape=(dim,dim)
+        dimR (int,None): the dimension of the purification, dimR>=dim, if None, dimR=dim
+        seed (int,None): random seed
 
     Returns:
-        ret(np.ndarray): a purification of the density matrix, shape=(dim,dimR)
+        ret (np.ndarray): a purification of the density matrix, shape=(dim,dimR)
     '''
     assert (rho.ndim==2) and (np.abs(rho-rho.T.conj()).max()<1e-10)
     assert abs(np.trace(rho)-1).max() < 1e-10
@@ -259,11 +256,11 @@ def get_trace_distance(rho:np.ndarray, sigma:np.ndarray):
     abs is not a good choice for loss function, so no torch-version
 
     Parameters:
-        rho(np.ndarray): a density matrix, shape=(dim,dim)
-        sigma(np.ndarray): a density matrix, shape=(dim,dim)
+        rho (np.ndarray): a density matrix, shape=(dim,dim)
+        sigma (np.ndarray): a density matrix, shape=(dim,dim)
 
     Returns:
-        ret(float): the trace distance of the density matrices
+        ret (float): the trace distance of the density matrices
     '''
     tmp0 = rho - sigma
     assert (tmp0.ndim==2) and (np.abs(tmp0-tmp0.T.conj()).max()<1e-10)
@@ -275,10 +272,10 @@ def get_purity(rho):
     r'''get the purity of a density matrix
 
     Parameters:
-        rho(np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
+        rho (np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
 
     Returns:
-        ret(float): the purity of the density matrix
+        ret (float): the purity of the density matrix
     '''
     assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1])
     # ret = np.trace(rho @ rho).real
@@ -315,13 +312,13 @@ def get_relative_entropy(rho, sigma, tr_rho_log_rho:float=None, _torch_logm=('pa
     $$ S(\rho,\sigma) = \mathrm{Tr}(\rho \log\rho - \rho \log\sigma) $$
 
     Parameters:
-        rho(np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
-        sigma(np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
-        tr_rho_log_rho(float,None): tr(rho log(rho)), if None, calculate it
-        _torch_logm(str,tuple): 'eigen' or ('pade',num_sqrtm,pade_order), 'pade' is used only when requires_grad
+        rho (np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
+        sigma (np.ndarray,torch.Tensor): a density matrix, shape=(dim,dim)
+        tr_rho_log_rho (float,None): tr(rho log(rho)), if None, calculate it
+        _torch_logm (str,tuple): 'eigen' or ('pade',num_sqrtm,pade_order), 'pade' is used only when requires_grad
 
     Returns:
-        ret(float,torch.Tensor): the relative entropy of the density matrices
+        ret (float,torch.Tensor): the relative entropy of the density matrices
     '''
     is_torch = isinstance(rho, torch.Tensor)
     if is_torch:
@@ -357,10 +354,10 @@ def get_tetrahedron_POVM(num_qubit:int=1):
     [wiki-link](https://en.wikipedia.org/wiki/SIC-POVM)
 
     Parameters:
-        num_qubit(int): number of qubits
+        num_qubit (int): number of qubits
 
     Returns:
-        ret(np.ndarray): shape=(N, m, m) where `N=4**num_qubit`, `m=2**num_qubit`
+        ret (np.ndarray): shape=(N, m, m) where `N=4**num_qubit`, `m=2**num_qubit`
     '''
     a = np.sqrt(2)/3
     b = np.sqrt(2/3)

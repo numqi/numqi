@@ -5,15 +5,15 @@ import torch
 import numqi._torch_op
 import numqi.manifold
 
-def get_concurrence_2qubit(rho):
+def get_concurrence_2qubit(rho:np.ndarray):
     r'''get the concurrence of a 2-qubit density matrix
     [wiki-link](https://en.wikipedia.org/wiki/Concurrence_(quantum_computing))
 
     Parameters:
-        rho(np.ndarray): a 2-qubit density matrix, shape=(4,4)
+        rho (np.ndarray): a 2-qubit density matrix, shape=(4,4)
 
     Returns:
-        ret(float): the concurrence of the 2-qubit density matrix
+        ret (float): the concurrence of the 2-qubit density matrix
     '''
     assert (rho.shape==(4,4)) and (np.abs(rho-rho.T.conj()).max()<1e-10)
     tmp0 = np.array([-1,1,1,-1])
@@ -30,14 +30,14 @@ def get_concurrence_2qubit(rho):
     return ret
 
 
-def get_concurrence_pure(psi):
+def get_concurrence_pure(psi:np.ndarray):
     r'''get the concurrence of a bipartite pure state
 
     Parameters:
-        psi(np.ndarray): a pure state, shape=(dimA,dimB)
+        psi (np.ndarray): a pure state, shape=(dimA,dimB)
 
     Returns:
-        ret(float): the concurrence of the bipartite pure state
+        ret (float): the concurrence of the bipartite pure state
     '''
     assert (psi.ndim==2)
     if (psi.shape[0]==1) or (psi.shape[1]==1):
@@ -53,15 +53,15 @@ def get_concurrence_pure(psi):
     return ret
 
 
-def get_eof_pure(psi, eps=1e-10):
+def get_eof_pure(psi:np.ndarray, eps:float=1e-10):
     r'''get the entanglement of formation (EOF) of a bipartite pure state
 
     Parameters:
-        psi(np.ndarray): a pure state, shape=(dimA,dimB)
-        eps(float): a small number to avoid log(0)
+        psi (np.ndarray): a pure state, shape=(dimA,dimB)
+        eps (float): a small number to avoid log(0)
 
     Returns:
-        ret(float): the EOF of the bipartite pure state
+        ret (float): the EOF of the bipartite pure state
     '''
     assert (psi.ndim==2)
     if (psi.shape[0]==1) or (psi.shape[1]==1):
@@ -77,15 +77,15 @@ def get_eof_pure(psi, eps=1e-10):
     return ret
 
 
-def get_eof_2qubit(rho):
+def get_eof_2qubit(rho:np.ndarray):
     r'''get the entanglement of formation (EOF) of a 2-qubit density matrix
     [wiki-link](https://en.wikipedia.org/wiki/Entanglement_of_formation)
 
     Parameters:
-        rho(np.ndarray): a 2-qubit density matrix, shape=(4,4)
+        rho (np.ndarray): a 2-qubit density matrix, shape=(4,4)
 
     Returns:
-        ret(float): the EOF of the 2-qubit density matrix
+        ret (float): the EOF of the 2-qubit density matrix
     '''
     tmp0 = get_concurrence_2qubit(rho)
     if tmp0==0:

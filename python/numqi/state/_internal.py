@@ -9,26 +9,26 @@ def W(n:int):
     $$ |W\rangle=\frac{1}{\sqrt{n}}\left( |100\cdots 0\rangle + |010\cdots 0\rangle + |000\cdots 1\rangle \right) $$
 
     Parameters:
-        n(int): the number of qubits
+        n (int): the number of qubits
 
     Returns:
-        ret(np.ndarray): the W-state, `ret.ndim=1`
+        ret (np.ndarray): the W-state, `ret.ndim=1`
     '''
     ret = np.zeros(2**n, dtype=np.float64)
     ret[2**np.arange(n,dtype=np.int64)] = np.sqrt(1/n)
     return ret
 
 
-def Wtype(coeff):
+def Wtype(coeff:np.ndarray):
     r'''get the W-type state
 
     $$ |W\rangle=\sum_{wt(x)=1} c_i|x\rangle $$
 
     Parameters:
-        coeff(np.ndarray): the coefficients of the W-type state, `coeff.ndim=1`
+        coeff (np.ndarray): the coefficients of the W-type state, `coeff.ndim=1`
 
     Returns:
-        ret(np.ndarray): the W-type state, `ret.ndim=1`
+        ret (np.ndarray): the W-type state, `ret.ndim=1`
     '''
     coeff = coeff / np.linalg.norm(coeff)
     N0 = coeff.shape[0]
@@ -44,12 +44,12 @@ def get_Wtype_state_GME(a:float, b:float, c:float):
     Analytic Expressions for Geometric Measure of Three Qubit States
 
     Parameters:
-        a(float): the coefficient of |100>
-        b(float): the coefficient of |010>
-        c(float): the coefficient of |001>
+        a (float): the coefficient of |100>
+        b (float): the coefficient of |010>
+        c (float): the coefficient of |001>
 
     Returns:
-        ret(float): the geometric measure of the W-type state
+        ret (float): the geometric measure of the W-type state
     '''
     # TODO broadcast
     assert abs(a*a+b*b+c*c-1) < 1e-10
@@ -70,10 +70,10 @@ def GHZ(n:int=2):
     [wiki-link](https://en.wikipedia.org/wiki/Greenberger%E2%80%93Horne%E2%80%93Zeilinger_state)
 
     Parameters:
-        n(int): the number of qubits
+        n (int): the number of qubits
 
     Returns:
-        ret(np.ndarray): the GHZ state, `ret.ndim=1`
+        ret (np.ndarray): the GHZ state, `ret.ndim=1`
     '''
     assert n>=1
     ret = np.zeros(2**n, dtype=np.float64)
@@ -85,10 +85,10 @@ def Bell(i:int=0):
     r'''get the Bell state
 
     Parameters:
-        i(int): the index of the Bell state, $i\in[0,3]$
+        i (int): the index of the Bell state, $i\in[0,3]$
 
     Returns:
-        ret(np.ndarray): the Bell state, `ret.ndim=1`
+        ret (np.ndarray): the Bell state, `ret.ndim=1`
     '''
     i = int(i)
     assert i in [0,1,2,3]
@@ -108,8 +108,8 @@ def get_qubit_dicke_state_GME(n:int, k:int):
     Matrix permanent and quantum entanglement of permutation invariant states [doi-link](https://doi.org/10.1063/1.3464263)
 
     Parameters:
-        n(int): the number of qubits
-        k(int): the number of excitations
+        n (int): the number of qubits
+        k (int): the number of excitations
     '''
     ret = 1 - scipy.special.binom(n, k) * ((k/n)**k) * (((n-k)/n)**(n-k))
     return ret
@@ -130,11 +130,11 @@ def Werner(d:int, alpha:float):
     [doi-link](https://doi.org/10.1103/PhysRevA.88.032323)
 
     Parameters:
-        d(int): the dimension of the Hilbert space
-        alpha(float): the parameter of the Werner state
+        d (int): the dimension of the Hilbert space
+        alpha (float): the parameter of the Werner state
 
     Returns:
-        ret(np.ndarray): the density matrix of the Werner state
+        ret (np.ndarray): the density matrix of the Werner state
     '''
     assert d>1
     assert (-1<=alpha) and (alpha<=1)
@@ -147,11 +147,11 @@ def get_Werner_ree(d:int, alpha:float):
     r'''get the relative entropy of entanglement (REE) of the Werner state
 
     Parameters:
-        d(int): the dimension of the Hilbert space
-        alpha(float): the parameter of the Werner state
+        d (int): the dimension of the Hilbert space
+        alpha (float): the parameter of the Werner state
 
     Returns:
-        ret(float): the relative entropy of entanglement of the Werner state
+        ret (float): the relative entropy of entanglement of the Werner state
     '''
     if alpha<=1/d:
         ret = 0
@@ -162,18 +162,18 @@ def get_Werner_ree(d:int, alpha:float):
     return ret
 
 
-def get_Werner_eof(dim, alpha):
+def get_Werner_eof(dim:int, alpha:np.ndarray|float):
     r'''get the entanglement of formation (EOF) of the Werner state
 
     reference: Entanglement of formation and concurrence for mixed states
     [doi-link](https://doi.org/10.1007/s11704-008-0017-8)
 
     Parameters:
-        dim(int): the dimension of the Hilbert space
-        alpha(np.ndarray,float): the parameter of the Werner state
+        dim (int): the dimension of the Hilbert space
+        alpha (np.ndarray,float): the parameter of the Werner state
 
     Returns:
-        ret(np.ndarray,float): the entanglement of formation of the Werner state
+        ret (np.ndarray,float): the entanglement of formation of the Werner state
     '''
     alpha = np.asarray(alpha)
     shape = alpha.shape
@@ -202,11 +202,11 @@ def Isotropic(d:int, alpha:float):
     [doi-link](https://doi.org/10.1103/PhysRevA.88.032323)
 
     Parameters:
-        d(int): the dimension of the Hilbert space
-        alpha(float): the parameter of the isotropic state
+        d (int): the dimension of the Hilbert space
+        alpha (float): the parameter of the isotropic state
 
     Returns:
-        ret(np.ndarray): the density matrix of the isotropic state
+        ret (np.ndarray): the density matrix of the isotropic state
     '''
     assert d>1
     assert ((-1/(d**2-1))<=alpha) and (alpha<=1) #beyond this range, the density matrix is not PSD
@@ -219,11 +219,11 @@ def get_Isotropic_ree(d:int, alpha:float):
     r'''get the relative entropy of entanglement (REE) of the isotropic state
 
     Parameters:
-        d(int): the dimension of the Hilbert space
-        alpha(float): the parameter of the isotropic state
+        d (int): the dimension of the Hilbert space
+        alpha (float): the parameter of the isotropic state
 
     Returns:
-        ret(float): the relative entropy of entanglement of the isotropic state
+        ret (float): the relative entropy of entanglement of the isotropic state
     '''
     if alpha<=1/(d+1):
         ret = 0
@@ -240,8 +240,8 @@ def get_Isotropic_eof(dim:int, alpha:np.ndarray|float):
     [doi-link](https://doi.org/10.1007/s11704-008-0017-8)
 
     Parameters:
-        dim(int): the dimension of the Hilbert space
-        alpha(np.ndarray,float): the parameter of the isotropic state
+        dim (int): the dimension of the Hilbert space
+        alpha (np.ndarray,float): the parameter of the isotropic state
 
     Returns:
         ret(np.ndarray,float): the entanglement of formation of the isotropic state
@@ -269,10 +269,10 @@ def maximally_entangled_state(d:int):
     [quantiki-link](https://www.quantiki.org/wiki/maximally-entangled-state)
 
     Parameters:
-        d(int): the dimension of the Hilbert space
+        d (int): the dimension of the Hilbert space
 
     Returns:
-        ret(np.ndarray): the maximally entangled state, `ret.ndim=1`
+        ret (np.ndarray): the maximally entangled state, `ret.ndim=1`
     '''
     assert d>1
     ret = np.diag(np.ones(d)*np.sqrt(1/d)).reshape(-1)
@@ -283,10 +283,10 @@ def maximally_mixed_state(d:int):
     r'''get the maximally mixed state
 
     Parameters:
-        d(int): the dimension of the Hilbert space
+        d (int): the dimension of the Hilbert space
 
     Returns:
-        ret(np.ndarray): the maximally mixed state, `ret.ndim=2` of shape $(d^2,d^2)$
+        ret (np.ndarray): the maximally mixed state, `ret.ndim=2` of shape $(d^2,d^2)$
     '''
     assert d>=1
     ret = np.eye(d*d) / d*d
@@ -306,10 +306,10 @@ def get_2qutrit_Antoine2022(q:float) -> np.ndarray:
     (1.5,2.5]: NPT
 
     Parameters:
-        q(float): q in [-2.5,2.5]
+        q (float): q in [-2.5,2.5]
 
     Returns:
-        rho(np.ndarray): 9x9 density matrix
+        rho (np.ndarray): 9x9 density matrix
     '''
     q = float(q)
     assert -2.5<=q<=2.5
@@ -336,10 +336,10 @@ def get_bes2x4_Horodecki1997(b:float):
     SEP: b=0 or b=1
 
     Parameters:
-        b(float): the parameter of the state
+        b (float): the parameter of the state
 
     Returns:
-        ret(np.ndarray): the density matrix of the state, shape=(8,8)
+        ret (np.ndarray): the density matrix of the state, shape=(8,8)
     '''
     assert (b >= 0) and (b <= 1)
     ret = np.eye(8, dtype=np.float64)*(b/(7*b+1))
@@ -365,10 +365,10 @@ def get_bes3x3_Horodecki1997(a:float):
     SEP: a=0 or a=1
 
     Parameters:
-        b0(float): the parameter of the state
+        a (float): the parameter of the state
 
     Returns:
-        ret(np.ndarray): the density matrix of the state, shape=(9,9)
+        ret (np.ndarray): the density matrix of the state, shape=(9,9)
     '''
     assert (a >= 0) and (a <= 1)
     ret = np.eye(9, dtype=np.float64)*(a/(8*a+1))
