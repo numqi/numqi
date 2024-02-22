@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numqi
 
 
-def demo_check_ABk_symmetric_extension_irrep():
+def demo_ABk_symmetric_extension_irrep():
     # SDP dA,dB=2,bosonic extension
     # k=8: 0.2s
     # k=16: 1.7s
@@ -21,7 +21,7 @@ def demo_check_ABk_symmetric_extension_irrep():
         # else:
         #     rho_AB = numqi.random.rand_separable_dm(dimA, dimB)
         rho_AB = numqi.random.rand_separable_dm(dimA, dimB)
-        has_kext = numqi.entangle.check_ABk_symmetric_extension(rho_AB, (dimA,dimB), kext)
+        has_kext = numqi.entangle.is_ABk_symmetric_ext(rho_AB, (dimA,dimB), kext)
         assert has_kext
 
 

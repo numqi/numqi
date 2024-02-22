@@ -9,7 +9,7 @@ from .bes import (plot_bloch_vector_cross_section,
             DensityMatrixLocalUnitaryEquivalentModel, BESNumEigenModel, BESNumEigen3qubitModel)
 from .pureb import PureBosonicExt
 from .pureb_quantum import QuantumPureBosonicExt
-from .symext import (SymmetricExtABkIrrepModel, check_ABk_symmetric_extension,
+from .symext import (SymmetricExtABkIrrepModel, is_ABk_symmetric_ext, is_ABk_symmetric_ext_naive,
                 get_ABk_symmetric_extension_ree, get_ABk_symmetric_extension_boundary,
                 get_ABk_extension_numerical_range)
 from .eof import (get_concurrence_2qubit, get_concurrence_pure, get_eof_pure, get_eof_2qubit,
@@ -23,3 +23,4 @@ from . import pureb
 from . import pureb_quantum
 from . import symext
 from . import eof
+from . import _misc

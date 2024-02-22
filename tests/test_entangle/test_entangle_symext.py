@@ -28,14 +28,14 @@ def test_get_symmetric_extension_index_list():
 
 # TODO test sep in 2ext
 # TODO test dB=2 sym-ext is always bosonic-ext
-def test_check_ABk_symmetric_extension():
+def test_is_ABk_symmetric_ext_naive():
     dimA = 2
     dimB = 3
     kext = 3
 
     np0 = numqi.random.rand_ABk_density_matrix(dimA, dimB, kext)
     np1 = np.trace(np0.reshape(dimA*dimB,dimB**(kext-1),dimA*dimB,dimB**(kext-1)), axis1=1, axis2=3)
-    has_kext,np2 = numqi.entangle.symext.check_ABk_symmetric_extension_naive(np1, (dimA,dimB), kext)
+    has_kext,np2 = numqi.entangle.symext.is_ABk_symmetric_ext_naive(np1, (dimA,dimB), kext)
     assert has_kext
     tmp0 = np.trace(np2.reshape(dimA*dimB,dimB**(kext-1), dimA*dimB,dimB**(kext-1)), axis1=1, axis2=3)
     assert np.abs(tmp0-np1).max() < 1e-7
@@ -64,7 +64,7 @@ def test_werner_state_kext():
 
     alpha_yes_list = np.linspace(-1, boundary, 5)
     dm_list = [numqi.state.Werner(dim,x) for x in alpha_yes_list]
-    ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=False)
+    ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dim,dim), kext, use_ppt=False)
     assert all(ret0)
 
     # if use mosek, the alpha_no_list can be np.linspace(boundary+1e-4, 1, 5)
@@ -72,7 +72,7 @@ def test_werner_state_kext():
     tmp0 = 1e-4 if USE_MOSEK else 5e-2
     alpha_no_list = np.linspace(boundary+tmp0, 1, 5)
     dm_list = [numqi.state.Werner(dim,x) for x in alpha_no_list]
-    ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=False)
+    ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dim,dim), kext, use_ppt=False)
     assert all((not x) for x in ret0)
 
     rho = numqi.state.Werner(dim, boundary)
@@ -90,7 +90,7 @@ def test_werner_state_kext_ppt():
 
     alpha_yes_list = np.linspace(-1, boundary, 5)
     dm_list = [numqi.state.Werner(dim,x) for x in alpha_yes_list]
-    ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=True)
+    ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dim,dim), kext, use_ppt=True)
     assert all(ret0)
 
     # if use mosek, the alpha_no_list can be np.linspace(boundary+1e-4, 1, 5)
@@ -98,7 +98,7 @@ def test_werner_state_kext_ppt():
     tmp0 = 1e-4 if USE_MOSEK else 5e-2
     alpha_no_list = np.linspace(boundary+tmp0, 1, 5)
     dm_list = [numqi.state.Werner(dim,x) for x in alpha_no_list]
-    ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=True)
+    ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dim,dim), kext, use_ppt=True)
     assert all((not x) for x in ret0)
 
     rho = numqi.state.Werner(dim, boundary)
@@ -114,13 +114,13 @@ def test_isotropic_state_kext():
 
         alpha_yes_list = np.linspace(-1/(dim*dim-1), boundary, 5)
         dm_list = [numqi.state.Isotropic(dim,x) for x in alpha_yes_list]
-        ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=False)
+        ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dim,dim), kext, use_ppt=False)
         assert all(ret0)
 
         tmp0 = 1e-4 if USE_MOSEK else 5e-2
         alpha_no_list = np.linspace(boundary+tmp0, 1, 5)
         dm_list = [numqi.state.Isotropic(dim,x) for x in alpha_no_list]
-        ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dim,dim), kext, use_ppt=True)
+        ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dim,dim), kext, use_ppt=True)
         assert all((not x) for x in ret0)
 
         rho = numqi.state.Isotropic(dim, boundary)
@@ -135,7 +135,7 @@ def test_isotropic_state_kext():
 # dimA=4 dimB=3 kext=3: time=4.8s 2GB
 # dimA=5 dimB=3 kext=3: time=11s 3GB
 # dimA=6 dimB=3 kext=3: time=23s 7GB
-def test_check_ABk_symmetric_extension_irrep():
+def test_ABk_symmetric_extension_irrep():
     dimA = 2
     dimB = 3
     kext = 3
@@ -145,7 +145,7 @@ def test_check_ABk_symmetric_extension_irrep():
         tmp0 = np.trace(rho_ABk.reshape(dimA*dimB,dimB**(kext-1),dimA*dimB,dimB**(kext-1)), axis1=1, axis2=3)
         # tmp0 = numqi.random.rand_separable_dm(dimA, dimB)
         dm_list.append(tmp0)
-    ret0 = numqi.entangle.check_ABk_symmetric_extension(dm_list, (dimA,dimB), kext)
+    ret0 = numqi.entangle.is_ABk_symmetric_ext(dm_list, (dimA,dimB), kext)
     assert all(ret0)
 
 

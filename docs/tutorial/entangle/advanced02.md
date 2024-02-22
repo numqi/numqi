@@ -45,7 +45,7 @@ else:
     if tag_cha:
         print(f'[separable] dm0 has seperable decomposition, loss={loss_cha}')
     else:
-        tag_kext = numqi.entangle.check_ABk_symmetric_extension(dm0, (dimA,dimB), kext=4, use_ppt=True, use_boson=True)
+        tag_kext = numqi.entangle.is_ABk_symmetric_ext(dm0, (dimA,dimB), kext=4, use_ppt=True, use_boson=True)
         if not tag_kext:
             print('[entangled] dm0 is not bosonic extendable')
         else:

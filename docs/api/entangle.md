@@ -28,7 +28,7 @@
     options:
       heading_level: 3
 
-::: numqi.entangle.check_ABk_symmetric_extension
+::: numqi.entangle.is_ABk_symmetric_ext
     options:
       heading_level: 3
 
