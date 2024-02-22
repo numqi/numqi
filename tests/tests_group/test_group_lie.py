@@ -7,20 +7,8 @@ np_rng = np.random.default_rng()
 hf_randc = lambda *size: np_rng.normal(size=size) + 1j*np_rng.normal(size=size)
 
 
-def test_rand_su2():
-    np0 = numqi.group.rand_su2(23)
-    tmp0 = np0 @ np0.transpose(0,2,1).conj()
-    assert np.abs(tmp0-np.eye(2)).max() < 1e-7
-
-
-def test_rand_so3():
-    np0 = numqi.group.rand_so3(23)
-    tmp0 = np0 @ np0.transpose(0,2,1)
-    assert np.abs(tmp0-np.eye(3)).max() < 1e-7
-
-
 def test_su2_to_so3():
-    np0 = numqi.group.rand_su2(23)
+    np0 = numqi.random.rand_special_orthogonal_matrix(dim=2, batch_size=23, tag_complex=True)
     np1 = numqi.group.su2_to_so3(np0)
     tmp0 = np1 @ np1.transpose(0,2,1)
     assert np.abs(tmp0-np.eye(3)).max() < 1e-7
@@ -30,7 +18,7 @@ def test_su2_to_so3():
 
 
 def test_so3_to_su2():
-    np0 = numqi.group.rand_so3(23)
+    np0 = numqi.random.rand_special_orthogonal_matrix(dim=3, batch_size=23, tag_complex=False)
     np1 = numqi.group.so3_to_su2(np0)
     tmp0 = np1 @ np1.transpose(0,2,1).conj()
     assert np.abs(tmp0-np.eye(2)).max() < 1e-7
@@ -57,16 +45,15 @@ def test_su2_so3():
 
 
 def test_angle_to_su2():
-    N0 = 233
-    np0 = numqi.group.rand_su2(N0)
+    np0 = numqi.random.rand_special_orthogonal_matrix(dim=2, batch_size=23, tag_complex=True)
     z0 = numqi.group.angle_to_su2(*numqi.group.su2_to_angle(np0))
     assert np.abs(np0-z0).max() < 1e-10
 
 
 def test_get_su2_irrep():
-    N0 = 233
-    np0 = numqi.group.rand_su2(N0)
-    np1 = numqi.group.rand_su2(N0)
+    N0 = 23
+    np0 = numqi.random.rand_special_orthogonal_matrix(dim=2, batch_size=N0, tag_complex=True)
+    np1 = numqi.random.rand_special_orthogonal_matrix(dim=2, batch_size=N0, tag_complex=True)
 
     assert np.abs(numqi.group.get_su2_irrep(1, np0)-np0).max() < 1e-10
 

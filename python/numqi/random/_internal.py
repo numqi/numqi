@@ -8,46 +8,10 @@ import scipy.linalg
 from numqi.gellmann import gellmann_basis_to_matrix
 from numqi.manifold import to_special_orthogonal_exp
 
+from ._public import get_random_rng, get_numpy_rng
 
 # TODO batch_size
 # TODO refactor to use numqi.manifold
-
-def get_random_rng(rng_or_seed=None):
-    r'''Get random.Random object
-
-    Parameters:
-        rng_or_seed ([None], int, random.Random): If int or Random, use it for RNG. If None, use default RNG.
-
-    Returns:
-        ret (random.Random): random.Random object
-    '''
-    if rng_or_seed is None:
-        ret = random.Random()
-    elif isinstance(rng_or_seed, random.Random):
-        ret = rng_or_seed
-    else:
-        ret = random.Random(int(rng_or_seed))
-    return ret
-
-
-def get_numpy_rng(rng_or_seed=None):
-    r'''Get numpy.random.Generator object
-
-    Parameters:
-        rng_or_seed ([None], int, numpy.random.Generator): If int or Generator, use it for RNG. If None, use default RNG.
-
-    Returns:
-        ret (numpy.random.Generator): numpy.random.Generator object
-    '''
-    if rng_or_seed is None:
-        ret = np.random.default_rng()
-    elif isinstance(rng_or_seed, np.random.Generator):
-        ret = rng_or_seed
-    else:
-        seed = int(rng_or_seed)
-        ret = np.random.default_rng(seed)
-    return ret
-
 
 def _random_complex(*size, seed=None):
     np_rng = get_numpy_rng(seed)
@@ -79,7 +43,7 @@ def rand_haar_state(dim, tag_complex=True, seed=None):
     return ret
 
 
-def rand_haar_unitary(dim, seed=None):
+def rand_haar_unitary(dim:int, seed:None|int|np.random.RandomState=None):
     r'''Return a random unitary matrix from the Haar measure on the unitary group $U(N)$.
 
     also see
@@ -101,29 +65,29 @@ def rand_haar_unitary(dim, seed=None):
     return ret
 
 
-def rand_unitary_matrix(dim, tag_complex=True, seed=None):
-    r'''generate random unitary matrix
-
-    TODO special=True/False, special unitary (orthogonal) matrix
+def rand_special_orthogonal_matrix(dim:int, batch_size:None|int=None,
+        tag_complex:bool=False, seed:None|int|np.random.RandomState=None):
+    r'''generate random special orthogonal matrix
 
     Parameters:
         dim (int): the column (row) of matrix
-        tag_complex (bool): If True, `ret` is a complex unitary matrix. If False, `ret` is a real orthogonal matrix.
+        batch_size (int,None): If None, return a single matrix. If int, return a batch of matrices.
+        tag_complex (bool): If True, `ret` is a special unitary matrix. If False, `ret` is a special orthogonal matrix.
         seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
 
     Returns:
-        ret (numpy.ndarray): shape=(`dim`,`dim`), dtype=np.complex128 if `tag_complex=True` else np.float64
+        ret (numpy.ndarray): shape=(`batch_size`,`dim`,`dim`), dtype=np.complex128 if `tag_complex=True` else np.float64
     '''
+    assert dim>=2
     np_rng = get_numpy_rng(seed)
-    if tag_complex:
-        tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
-        tmp0 = tmp0 + np.conjugate(tmp0.T)
-    else:
-        tmp0 = np_rng.normal(size=(dim,dim))
-        tmp0 = tmp0 + tmp0.T
-    ret = np.linalg.eigh(tmp0)[1]
+    is_single = (batch_size is None)
+    if is_single:
+        batch_size = 1
+    tmp0 = (dim*dim-1) if tag_complex else ((dim*dim-dim)//2)
+    ret = to_special_orthogonal_exp(np_rng.normal(size=(batch_size,tmp0)), dim)
+    if is_single:
+        ret = ret[0]
     return ret
-
 
 def rand_density_matrix(dim, k=None, kind='haar', seed=None):
     r'''Generate random density matrix
@@ -328,7 +292,7 @@ def rand_hermitian_matrix(d:int, eig=None, tag_complex:bool=True, seed=None):
     else:
         min_eig,max_eig = eig
         EVL = np_rng.uniform(min_eig, max_eig, size=(d,))
-        EVC = rand_unitary_matrix(d, tag_complex, seed=np_rng)
+        EVC = rand_special_orthogonal_matrix(d, tag_complex=tag_complex, seed=np_rng)
         tmp0 = EVC.T.conj() if tag_complex else EVC.T
         ret = (EVC * EVL) @ tmp0
     return ret
@@ -359,19 +323,19 @@ def rand_quantum_channel_matrix_subspace(dim_in, num_hermite, seed=None):
         N1 = (N0*(N0-1)) // 2
         assert (1<=num_sym) and (num_sym<=(N0*N0-N1))
         if num_sym>1: #aS,aA,aD,aI
-            tmp0 = rand_unitary_matrix(N1+N0-1, tag_complex=False, seed=np_rng)[:(num_sym-1)]
+            tmp0 = rand_special_orthogonal_matrix(N1+N0-1, tag_complex=False, seed=np_rng)[:(num_sym-1)]
             tmp1 = np.zeros((num_sym-1, N0*N0), dtype=np.float64)
             tmp1[:,:N1] = tmp0[:,:N1]
             tmp1[:,(2*N1):-1] = tmp0[:,N1:]
             ret.append(gellmann_basis_to_matrix(tmp1).real)
         if num_antisym>0:
             tmp0 = np.zeros((num_antisym, N0*N0), dtype=np.float64)
-            tmp0[:,N1:(2*N1)] = rand_unitary_matrix(N1, tag_complex=False, seed=np_rng)[:num_antisym]
+            tmp0[:,N1:(2*N1)] = rand_special_orthogonal_matrix(N1, tag_complex=False, seed=np_rng)[:num_antisym]
             ret.append(gellmann_basis_to_matrix(tmp0).imag)
     else:
         assert num_hermite>=1
         if num_hermite>1:
-            tmp0 = rand_unitary_matrix(N0*N0-1, tag_complex=False, seed=np_rng)[:(num_hermite-1)]
+            tmp0 = rand_special_orthogonal_matrix(N0*N0-1, tag_complex=False, seed=np_rng)[:(num_hermite-1)]
             tmp1 = gellmann_basis_to_matrix(np.concatenate([tmp0,np.zeros([num_hermite-1,1])], axis=1))
             ret.append(tmp1)
     ret = np.concatenate(ret, axis=0)
@@ -400,7 +364,7 @@ def rand_reducible_matrix_subspace(num_matrix, partition, return_unitary=False, 
     partition = [int(x) for x in partition]
     assert len(partition)>1 and all(x>0 for x in partition)
     N0 = sum(partition)
-    unitary = rand_unitary_matrix(N0, tag_complex=False, seed=np_rng)
+    unitary = rand_special_orthogonal_matrix(N0, tag_complex=False, seed=np_rng)
     tmp0 = np.cumsum(np.array([0]+partition))
     unitary_part_list = [unitary[x:y] for x,y in zip(tmp0[:-1],tmp0[1:])]
     matrix_subspace = 0

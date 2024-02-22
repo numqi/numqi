@@ -33,8 +33,8 @@ def get_hamiltonian(num_qubit):
 def test_GrapeModel():
     num_qubit = 5
     tspan = np.linspace(0, 10, 101)
-    q0 = numqi.random.rand_state(2**num_qubit)
-    q1 = numqi.random.rand_state(2**num_qubit)
+    q0 = numqi.random.rand_haar_state(2**num_qubit)
+    q1 = numqi.random.rand_haar_state(2**num_qubit)
     ham_drift, ham_control = get_hamiltonian(num_qubit)
 
     # smooth_weight=0 converge in 60 steps

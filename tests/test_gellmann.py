@@ -28,7 +28,7 @@ def test_all_gellmann_matrix():
 def test_trace0_orthongal_matrix():
     dim = 4
     N0 = 5
-    tmp0 = numqi.random.rand_unitary_matrix(dim*dim-1, tag_complex=False)[:N0] / np.sqrt(2)
+    tmp0 = numqi.random.rand_special_orthogonal_matrix(dim*dim-1, tag_complex=False)[:N0] / np.sqrt(2)
     z0 = numqi.gellmann.gellmann_basis_to_matrix(np.concatenate([tmp0[:N0], np.zeros((N0,1))], axis=1))
     assert np.abs(np.trace(z0, axis1=1, axis2=2)).max() < 1e-7
     assert np.abs(z0-z0.transpose(0,2,1).conj()).max() < 1e-7

@@ -237,13 +237,13 @@ def test_StiefelManifoldDistanceModel():
     rank = 3
     bound = 0.1
 
-    space0 = numqi.random.rand_unitary_matrix(dim, seed=np_rng)[:,:rank]
+    space0 = numqi.random.rand_special_orthogonal_matrix(dim, tag_complex=True, seed=np_rng)[:,:rank]
     tmp0 = np_rng.normal(size=(dim,dim)) + 1j*np_rng.normal(size=(dim,dim))
     tmp0 = tmp0 + tmp0.T.conj()
     tmp0 = tmp0 - (np.trace(tmp0)/dim)*np.eye(dim)
     matH = tmp0 * (bound/np.linalg.norm(tmp0, ord='fro'))
     space1 = scipy.linalg.expm(1j*matH) @ space0
-    # space1 = numqi.random.rand_unitary_matrix(rank) @ space1
+    # space1 = numqi.random.rand_special_orthogonal_matrix(rank, tag_complex=True) @ space1
 
     model = numqi.manifold.StiefelManifoldDistanceModel(dim, rank, dtype=torch.complex128)
     model.set_space(space0, space1)
@@ -262,8 +262,8 @@ def test_TwoHermitianSumModel():
         model = numqi.manifold.TwoHermitianSumModel(dim, dtype=torch.complex128)
         matA = numqi.random.rand_hermitian_matrix(dim, seed=np_rng)
         matB = numqi.random.rand_hermitian_matrix(dim, seed=np_rng)
-        matU0 = numqi.random.rand_unitary_matrix(dim, seed=np_rng)
-        matU1 = numqi.random.rand_unitary_matrix(dim, seed=np_rng)
+        matU0 = numqi.random.rand_special_orthogonal_matrix(dim, tag_complex=True, seed=np_rng)
+        matU1 = numqi.random.rand_special_orthogonal_matrix(dim, tag_complex=True, seed=np_rng)
         matC = matU0 @ matA @ matU0.T.conj() + matU1 @ matB @ matU1.T.conj()
         # matC = numqi.random.rand_hermitian_matrix(dim, seed=np_rng)
         # eigA = np.linalg.eigvalsh(matA)

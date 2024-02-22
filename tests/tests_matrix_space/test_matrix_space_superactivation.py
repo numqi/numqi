@@ -13,8 +13,8 @@ def test_superactivation_matrix_subspace():
     assert np.abs((npAB @ npR) @ npL).max() < 1e-12
     assert np.abs((npAB @ npL) @ npR).max() < 1e-12
 
-    unitary0 = numqi.random.rand_unitary_matrix(4, tag_complex=False)
-    unitary1 = numqi.random.rand_unitary_matrix(4, tag_complex=False)
+    unitary0 = numqi.random.rand_special_orthogonal_matrix(4, tag_complex=False)
+    unitary1 = numqi.random.rand_special_orthogonal_matrix(4, tag_complex=False)
     npA1 = unitary0 @ npA @ unitary0.T
     npB1 = unitary1 @ npB @ unitary1.T
     npAB1 = np.stack([np.kron(x,y) for x in npA1 for y in npB1])

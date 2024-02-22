@@ -41,7 +41,7 @@ This module use random seed widely, most likely you will get different results. 
     options:
       heading_level: 3
 
-::: numqi.random.rand_unitary_matrix
+::: numqi.random.rand_special_orthogonal_matrix
     options:
       heading_level: 3
 

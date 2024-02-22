@@ -51,7 +51,7 @@ def test_matrix_subspace_misc():
 
     tmp0 = numqi.random.rand_haar_state(dim) #make it definite contains one rank-1 state
     tmp1 = [numqi.random.rand_hermitian_matrix(dim) for _ in range(num_op-1)] + [tmp0.reshape(-1,1)*tmp0.conj()]
-    tmp2 = numqi.random.rand_unitary_matrix(num_op, tag_complex=False)
+    tmp2 = numqi.random.rand_special_orthogonal_matrix(num_op, tag_complex=False)
     matrix_subspace = (tmp2 @ np.stack(tmp1).reshape(num_op,-1)).reshape(-1, dim, dim)
 
     basis,basis_orth,space_char = numqi.matrix_space.get_matrix_orthogonal_basis(matrix_subspace, field='real')

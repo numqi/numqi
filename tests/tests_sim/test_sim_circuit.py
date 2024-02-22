@@ -38,9 +38,9 @@ def build_dummy_circuit(num_depth, num_qubit, seed=None):
             circ.rz(ind1+1, hf0(1))
             circ.rzz((ind1, ind1+1), hf0(1))
             circ.cnot(ind1, ind1+1)
-            tmp0 = numqi.random.rand_unitary_matrix(2, seed=np_rng)
+            tmp0 = numqi.random.rand_special_orthogonal_matrix(2, tag_complex=True, seed=np_rng)
             circ.controlled_single_qubit_gate(tmp0, (ind1+1,(ind1-1)%num_qubit), ind1)
-            circ.double_qubit_gate(numqi.random.rand_unitary_matrix(4, seed=np_rng), ind1, ind1+1)
+            circ.double_qubit_gate(numqi.random.rand_special_orthogonal_matrix(4, tag_complex=True, seed=np_rng), ind1, ind1+1)
     return circ
 
 
@@ -215,7 +215,7 @@ def test_teleportation():
     circ.classical_control_gate(gate_M0, numqi.gate.X, 2)
     circ.classical_control_gate(gate_M1, numqi.gate.Z, 2)
 
-    q0 = numqi.random.rand_state(2)
+    q0 = numqi.random.rand_haar_state(2)
     tmp0 = np.zeros(4, dtype=np.complex128)
     tmp0[0] = 1
     tmp1 = (q0[:,np.newaxis] * tmp0).reshape(-1)

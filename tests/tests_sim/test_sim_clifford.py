@@ -60,7 +60,7 @@ def test_CliffordCircuit():
 
     for _ in range(10):
         pauli_F2 = numqi.random.rand_pauli(num_qubit, is_hermitian=True).F2
-        q0 = numqi.random.rand_state(2**num_qubit)
+        q0 = numqi.random.rand_haar_state(2**num_qubit)
 
         q1 = circ.to_universal_circuit().apply_state(q0)
         tmp0 = numqi.gate.PauliOperator.from_F2(pauli_F2).op_list

@@ -12,14 +12,14 @@ def test_is_vector_linear_independent():
     N1 = 7
     for tag_complex in [True,False]:
         field = 'complex' if tag_complex else 'real'
-        np0 = numqi.random.rand_unitary_matrix(N1, tag_complex=tag_complex)[:N0]
+        np0 = numqi.random.rand_special_orthogonal_matrix(N1, tag_complex=tag_complex)[:N0]
         assert numqi.matrix_space.is_vector_linear_independent(np0, field)
 
         np1 = (hf_randc if tag_complex else hf_rand)(N0+1,N0) @ np0
         assert not numqi.matrix_space.is_vector_linear_independent(np1, field)
 
     N0 = 4
-    tmp0 = numqi.random.rand_unitary_matrix(2*N0, tag_complex=False)[:(N0+1)]
+    tmp0 = numqi.random.rand_special_orthogonal_matrix(2*N0, tag_complex=False)[:(N0+1)]
     np0 = tmp0[:,:N0] + 1j*tmp0[:,N0:]
     assert numqi.matrix_space.is_vector_linear_independent(np0, field='real')
     assert not numqi.matrix_space.is_vector_linear_independent(np0, field='complex')

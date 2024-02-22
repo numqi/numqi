@@ -54,7 +54,7 @@ def check_UD_is_UD(matB, kind='uda', num_round=100, num_repeat_sgd=10, zero_eps=
     else:
         model = FindStateWithOpModel(matB, use_dm=(kind=='uda'))
         for _ in range(num_round):
-            state = numqi.random.rand_state(dim, tag_complex=True, seed=np_rng)
+            state = numqi.random.rand_haar_state(dim, tag_complex=True, seed=np_rng)
             matB_exp = ((matB @ state) @ state.conj()).real
             model.set_expectation(matB_exp)
             theta_optim0 = numqi.optimize.minimize(model, theta0='uniform', num_repeat=num_repeat_sgd,
