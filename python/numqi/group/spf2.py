@@ -1,6 +1,5 @@
 # symplectic group over GF(2)
 import functools
-# import warnings
 import numpy as np
 
 # canonical ordering of symplectic group elements
@@ -22,6 +21,18 @@ def _get_number_internal(n:int, kind:str):
     return ret
 
 def get_number(n:int, kind:str='base'):
+    r'''Get the number of elements in the symplectic group over GF(2) of order 2n.
+
+    Parameters:
+        n (int): The order of the symplectic group.
+        kind (str): 'base', 'order', or 'coset'. Default is 'base'.
+
+    Returns:
+        ret (int,tuple[int]): for `kind` being
+            'base': The number of elements in the symplectic group (a1,b1,a2,b2,...,an,bn)
+            'order': The order of the symplectic group. a1*b1*a2*b2*...*an*bn
+            'coset': The number of cosets in the symplectic group. (a1*b1,a2*b2,...,an*bn)
+    '''
     assert n>=1
     n = int(n)
     kind = str(kind).lower()
@@ -30,7 +41,16 @@ def get_number(n:int, kind:str='base'):
     return ret
 
 
-def get_inner_product(v0, v1):
+def get_inner_product(v0:np.ndarray, v1:np.ndarray):
+    r'''Get symplectic inner product of two vectors GF(2).
+
+    Parameters:
+        v0 (np.ndarray): The first vector. `dtype=np.uint8`, `ndim>=1`, and `shape[-1]` is even.
+        v1 (np.ndarray): The second vector. `dtype=np.uint8`, `ndim=1`
+
+    Returns:
+        ret (np.ndarray): The symplectic inner product of two vectors. `dtype=np.uint8` and `ndim=ndim(v0)-1`
+    '''
     assert (v1.ndim==1) and (v0.shape[-1]==v1.size) and (v1.size%2==0)
     # assert v0.dtype.type in {np.uint8,np.uint16,np.uint32,np.uint64}
     N0 = v1.size//2
@@ -41,7 +61,16 @@ def get_inner_product(v0, v1):
     return ret
 
 
-def transvection(x, *h_list):
+def transvection(x:np.ndarray, *h_list:tuple[np.ndarray]):
+    r'''Apply a transvection to a vector. see [doi-link](https://doi.org/10.1063%2F1.4903507)
+
+    Parameters:
+        x (np.ndarray): The vector. `dtype=np.uint8`, `ndim>=1`, and `shape[-1]` is even.
+        h_list (tuple[np.ndarray]): The transvection. `dtype=np.uint8`, `ndim=1`, and `size` is even.
+
+    Returns:
+        ret (np.ndarray): of same shape as `x`. The result of applying the transvection.
+    '''
     for h in h_list:
         tmp0 = get_inner_product(x,h)
         if x.ndim>1:
@@ -51,18 +80,47 @@ def transvection(x, *h_list):
 
 
 def int_to_bitarray(i:int, n:int):
+    r'''Convert an integer to a bit array.
+
+    `int_to_bitarray(3, 4)==[1,1,0,0]`
+
+    Parameters:
+        i (int): The integer to be converted.
+        n (int): The length of the bit array.
+
+    Returns:
+        ret (np.ndarray): The bit array. `dtype=np.uint8` and `shape=(n,)`
+    '''
     tmp0 = int(i).to_bytes((n + 7) // 8, 'little')
     tmp1 = np.frombuffer(tmp0, dtype=np.uint8)
     ret = np.unpackbits(tmp1, axis=0, bitorder='little')[:n]
     return ret
 
 
-def bitarray_to_int(b):
+def bitarray_to_int(b:np.ndarray):
+    r'''Convert a bit array to an integer.
+
+    `bitarray_to_int([1,1,0,0])==3`
+
+    Parameters:
+        b (np.ndarray): The bit array. `dtype=np.uint8` and `ndim=1`
+
+    Returns:
+        ret (int): The integer.
+    '''
     ret = int.from_bytes(np.packbits(b, axis=0, bitorder='little').tobytes(), byteorder='little', signed=False)
     return ret
 
 
-def schmidt_orthogonalization(vec_list):
+def schmidt_orthogonalization(vec_list:list[np.ndarray]):
+    r'''Schmidt orthogonalization of a list of vectors using the symplectic inner product.
+
+    Parameters:
+        vec_list (list[np.ndarray]): A list of vectors. `dtype=np.uint8`, `ndim=1`, and `size` is even.
+
+    Returns:
+        ret (list[np.ndarray]): A list of orthogonal vectors.
+    '''
     assert (len(vec_list)>=2) and all(x.ndim==1 for x in vec_list) and (vec_list[0].size%2==0)
     assert all([x.size==vec_list[0].size for x in vec_list])
     assert all(x.dtype.type==np.uint8 for x in vec_list)
@@ -84,10 +142,20 @@ def schmidt_orthogonalization(vec_list):
     return ret
 
 
-def find_transvection(v0, v1):
-    # h0,h1 = find_Sp2nF2_transvection(v0, v1)
-    # v1 = transvection(transvection(v0, h0), h1) = transvection(v0, h0, h1)
-    # Lemma 2
+def find_transvection(v0:np.ndarray, v1:np.ndarray):
+    r'''find a transvection that maps v0 to v1. see [doi-link](https://doi.org/10.1063%2F1.4903507) Lemma 2
+
+    h0,h1 = find_transvection(v0, v1)
+
+    v1 = transvection(transvection(v0, h0), h1) = transvection(v0, h0, h1)
+
+    Parameters:
+        v0 (np.ndarray): The first vector. `dtype=np.uint8`, `ndim=1`, and `size` is even.
+        v1 (np.ndarray): The second vector. `dtype=np.uint8`, `ndim=1`, and `size` is even.
+
+    Returns:
+        ret (np.ndarray): The transvections. `dtype=np.uint8`, `ndim=2`, and `shape=(2,size)`
+    '''
     assert (v0.ndim==1) and (v0.shape==v1.shape) and (v0.size%2==0)
     N0 = v0.size//2
     tmp0 = np.zeros(2*N0, dtype=np.uint8)
@@ -137,6 +205,14 @@ def find_transvection(v0, v1):
 
 
 def from_int_tuple(int_tuple):
+    r'''Convert an integer tuple to a symplectic matrix over GF(2).
+
+    Parameters:
+        int_tuple (tuple[int]): The integer tuple. `len(int_tuple)=2*N0`
+
+    Returns:
+        ret (np.ndarray): The symplectic matrix. `dtype=np.uint8`, `ndim=2`, and `shape=(2*N0,2*N0)`
+    '''
     assert len(int_tuple)%2==0
     N0 = len(int_tuple)//2
     ai = int_tuple[-2] #4^n-1
@@ -160,7 +236,15 @@ def from_int_tuple(int_tuple):
     return ret
 
 
-def to_int_tuple(mat):
+def to_int_tuple(mat:np.ndarray):
+    r'''Convert a symplectic matrix over GF(2) to an integer tuple.
+
+    Parameters:
+        mat (np.ndarray): The symplectic matrix. `dtype=np.uint8`, `ndim=2`, and `shape=(2*N0,2*N0)`
+
+    Returns:
+        ret (tuple[int]): The integer tuple. `len(ret)=2*N0`
+    '''
     assert (mat.dtype.type==np.uint8) and (mat.ndim==2) and (mat.shape[0]==mat.shape[1]) and (mat.shape[0]%2==0)
     N0 = mat.shape[0]//2
     e1 = np.array([1]+[0]*(2*N0-1), dtype=np.uint8)
@@ -179,7 +263,15 @@ def to_int_tuple(mat):
     return ret
 
 
-def inverse(mat):
+def inverse(mat:np.ndarray):
+    r'''Get the inverse of a symplectic matrix over GF(2).
+
+    Parameters:
+        mat (np.ndarray): The symplectic matrix. `dtype=np.uint8`, `ndim=2`, and `shape=(2*N0,2*N0)`
+
+    Returns:
+        ret (np.ndarray): The inverse of the symplectic matrix. `dtype=np.uint8`, `ndim=2`, and `shape=(2*N0,2*N0)`
+    '''
     N0 = mat.shape[0]//2
     ret = np.roll(mat.T, N0, axis=(0,1))
     return ret

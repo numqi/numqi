@@ -22,7 +22,7 @@ plugins:
   search:
   mkdocs-jupyter:
     include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
-    execute: true
+    execute: false
   mkdocstrings:
     default_handler: python
     handlers:
@@ -113,7 +113,6 @@ nav:
       - tutorial/misc/optimal_povm.ipynb
   - API:
     - state: api/state.md
-    - matrix space: api/matrix_space.md
     - random: api/random.md
     - dicke: api/dicke.md
     - gate: api/gate.md
@@ -121,6 +120,8 @@ nav:
     - group / Lie: api/group_lie.md
     - group / Symmetric: api/group_sym.md
     - group / Symmetric-Extension: api/group_symext.md
+    - group / GF2 Symplectic Group: api/group_spf2.md
+    - matrix space: api/matrix_space.md
     - entangle: api/entangle.md
     - manifold: api/manifold.md
     - utils: api/utils.md

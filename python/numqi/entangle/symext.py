@@ -32,7 +32,7 @@ def get_symmetric_extension_index_list(dimA, dimB, kext, kind='2d'):
 
 # dimA=2 dimB=3 kext=3 MOSEK: 8GB 10second
 # dimA=3 dimB=3 kext=3 MOSEK: 12GB 50s
-def check_ABk_symmetric_extension_naive(rho, dim, kext, index_kind='2d'):
+def is_ABk_symmetric_ext_naive(rho, dim, kext, index_kind='2d'):
     assert len(dim)==2
     assert index_kind in {'1d', '2d'} #2d is a little bit more faster
     dimA = int(dim[0])
@@ -162,7 +162,7 @@ def _ABk_symmetric_extension_setup(dimA, dimB, kext, use_boson, use_ppt, cvx_rho
     return ret
 
 
-def check_ABk_symmetric_extension(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
+def is_ABk_symmetric_ext(rho, dim, kext, use_ppt=False, use_boson=False, use_tqdm=False, return_info=False):
     '''check if rho has symmetric extension of kext copies on B-party
 
     Parameters:
