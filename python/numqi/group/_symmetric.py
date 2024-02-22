@@ -437,3 +437,22 @@ def young_tableau_to_young_symmetrizer(young:tuple[int], tableau:np.ndarray):
         # op_young = np.array([x[0] for x in index_group], dtype=np.int64)
         ret = op_young,op_sign
     return ret
+
+
+def print_all_young_tableaux(N0:int):
+    r'''Print all Young tableaux
+
+    Parameters:
+        N0 (int): the order of symmetric group
+    '''
+    assert N0>=1
+    tmp0 = [tuple(y for y in x if y>0) for x in get_sym_group_young_diagram(N0).tolist()]
+    young_tableaux = {x:get_all_young_tableaux(x) for x in tmp0}
+    for key,value in young_tableaux.items():
+        tmp0 = '[' + ','.join(str(x) for x in key) + ']:'
+        print(tmp0, f'#tableaux: {len(value)}')
+        mask = get_young_diagram_mask(key)
+        for ind0 in range(len(value)):
+            for x,y in zip(value[ind0],mask):
+                print(x[:y.sum()].tolist())
+            print(('=' if ind0==(len(value)-1) else '-')*30)

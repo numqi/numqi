@@ -5,8 +5,8 @@ import numqi
 
 np_rng = np.random.default_rng()
 
-def test_get_B1B2_basis():
-    basis_B_part = numqi.group.symext.get_B1B2_basis()
+def test_get_2qutrit_irrep_basis():
+    basis_B_part = numqi.group.symext.get_2qutrit_irrep_basis()
     basis_B = np.concatenate(basis_B_part, axis=0)
     assert np.abs(basis_B @ basis_B.T.conj() - np.eye(len(basis_B))).max() < 1e-7
     for dimA in [2,3,4,5]:
@@ -18,9 +18,9 @@ def test_get_B1B2_basis():
         assert np.abs(scipy.linalg.block_diag(*tmp0) - dm1).max() < 1e-10
 
 
-def test_get_B1B2B3_basis():
+def test_get_3qutrit_irrep_basis():
     # 10 8 8 1
-    basis_B_part = numqi.group.symext.get_B1B2B3_basis()
+    basis_B_part = numqi.group.symext.get_3qutrit_irrep_basis()
     basis_B = np.concatenate(basis_B_part, axis=0)
     assert np.abs(basis_B @ basis_B.T.conj() - np.eye(len(basis_B))).max() < 1e-7
     for dimA in [2,3,4,5]:

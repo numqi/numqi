@@ -19,7 +19,20 @@ def _ABk_permutate(mat, ind0, ind1, dimA, dimB, kext, kind):
     return ret
 
 
-def get_ABk_symmetry_index(dimA, dimB, kext, use_boson=False):
+def get_ABk_symmetry_index(dimA:int, dimB:int, kext:int, use_boson:bool=False):
+    r'''Get the symmetry index of the (AB1B2...Bk) system.
+
+    Parameters:
+        dimA (int): dimension of the A system
+        dimB (int): dimension of the B system
+        kext (int): the number of extension
+        use_boson (bool): whether to use boson symmetry, default is False
+
+    Returns:
+        index_sym (np.ndarray): the index of the symmetry term, shape=(dimA*dimB**kext, dimA*dimB**kext)
+        index_skew (np.ndarray): the index of the skew-symmetric term, shape=(dimA*dimB**kext, dimA*dimB**kext)
+        factor_skew (np.ndarray): the factor of the skew-symmetric term, shape=(dimA*dimB**kext, dimA*dimB**kext)
+    '''
     index_to_set = np.arange((dimA*dimB**kext)**2, dtype=np.int64).reshape(dimA*dimB**kext, -1)
     tmp0 = [(x,y) for x in range(kext) for y in range(x+1,kext)]
     for ind0,ind1 in tmp0:
@@ -47,7 +60,19 @@ def get_ABk_symmetry_index(dimA, dimB, kext, use_boson=False):
     index_skew = tmp2[tmp0]
     return index_sym,index_skew,factor_skew
 
-def get_ABk_symmetrize(np0, dimA, dimB, kext, use_boson=False):
+def get_ABk_symmetrize(np0:np.ndarray, dimA:int, dimB:int, kext:int, use_boson:bool=False):
+    r'''Symmetrize the (AB1B2...Bk) system (mostly for the density matrix).
+
+    Parameters:
+        np0 (np.ndarray): the input matrix, shape=(dimA*dimB**kext, dimA*dimB**kext)
+        dimA (int): dimension of the A system
+        dimB (int): dimension of the B system
+        kext (int): the number of extension
+        use_boson (bool): whether to use boson symmetry, default is False
+
+    Returns:
+        np1 (np.ndarray): the symmetrized matrix, shape=(dimA*dimB**kext, dimA*dimB**kext)
+    '''
     assert kext>=1
     assert (np0.ndim==2) and (np0.shape[0]==np0.shape[1]) and (np0.shape[0]==dimA*dimB**kext)
     if kext==1:
@@ -70,7 +95,13 @@ def get_ABk_symmetrize(np0, dimA, dimB, kext, use_boson=False):
     return ret
 
 
-def get_B1B2_basis():
+def get_2qutrit_irrep_basis():
+    r'''Get the basis of the 2-qutrit irrep (irreducible representation).
+
+    Returns:
+        basis_b (np.ndarray): the basis of the bosonic part, shape=(6,9)
+        basis_f (np.ndarray): the basis of the fermionic part, shape=(3,9)
+    '''
     basis_b = np.zeros((6,9), dtype=np.float64)
     basis_b[[0,1,2], [0,4,8]] = 1
     basis_b[[3,3,4,4,5,5], [1,3,2,6,5,7]] = 1/np.sqrt(2)
@@ -81,7 +112,15 @@ def get_B1B2_basis():
     return basis_b,basis_f
 
 
-def get_B1B2B3_basis():
+def get_3qutrit_irrep_basis():
+    r'''Get the basis of the 3-qutrit irrep (irreducible representation).
+
+    Returns:
+        basis3 (np.ndarray): the basis of the Bosonic part, shape=(10,27), Young diagram (3,)
+        basis21a (np.ndarray): the basis of the mixed-symmetric part, shape=(8,27), Young diagram (2,1)
+        basis21b (np.ndarray): the basis of the mixed-symmetric part, shape=(8,27), Young diagram (2,1)
+        basis111 (np.ndarray): the basis of the Fermionic part, shape=(1,27), Young diagram (1,1,1)
+    '''
     # hf0 = lambda x: f'{x//9}{(x%9)//3}{x%3}'
     # hf1 = lambda y: [int(x[0])*9+int(x[1])*3+int(x[2]) for x in y.split(' ')]
     basis3 = np.zeros((10,27), dtype=np.float64)
@@ -115,7 +154,18 @@ def get_B1B2B3_basis():
     return basis3,basis21a,basis21b,basis111
 
 
-def get_sud_symmetric_irrep_basis(dim, kext, zero_eps=1e-7):
+def get_sud_symmetric_irrep_basis(dim:int, kext:int, zero_eps:float=1e-7):
+    r'''Get the basis of the symmetric extension irrep (irreducible representation) for (B1B2...Bk) system.
+
+    Parameters:
+        dim (int): dimension of the Hilbert space
+        kext (int): the number of extension
+        zero_eps (float): the zero threshold, default is 1e-7
+
+    Returns:
+        basis_list (list[list[np.ndarray]]): list of list of basis, the first list indexing is for Young diagram,
+                the second list indexing is for Young tableaux. np.ndarray are of shape (#basis,dim)
+    '''
     assert dim >= 2
     Ydiagram_list = [tuple(y for y in x if y>0) for x in get_sym_group_young_diagram(kext).tolist()]
     # TODO sparse
@@ -162,7 +212,7 @@ def _basis_partial_trace(basis, dim):
 
 
 @functools.lru_cache
-def _get_symmetric_extension_irrep_coeff_internal(dim, kext):
+def _get_symmetric_extension_irrep_coeff_internal(dim:int, kext:int):
     dim = int(dim)
     kext = int(kext)
     if dim==2:
@@ -181,7 +231,7 @@ def _get_symmetric_extension_irrep_coeff_internal(dim, kext):
 
 
 def get_symmetric_extension_irrep_coeff(dim:int, kext:int):
-    r'''Get the coefficients of the symmetric extension irrep.
+    r'''Get the coefficients of the symmetric extension irrep. If dim=2, only Dicke state is used.
 
     Parameters:
         dim (int): dimension of the Hilbert space
@@ -197,7 +247,13 @@ def get_symmetric_extension_irrep_coeff(dim:int, kext:int):
     ret = _get_symmetric_extension_irrep_coeff_internal(dim, kext)
     return ret
 
-def print_symmetric_extension_irrep_coeff(coeff, zero_eps:float=1e-10):
+def print_symmetric_extension_irrep_coeff(coeff:np.ndarray, zero_eps:float=1e-10):
+    r'''Print the coefficients of the symmetric extension irrep.
+
+    Parameters:
+        coeff (np.ndarray): the coefficients, shape=(dk, dk, dim, dim), where dk is the dimension of the k-th irrep
+        zero_eps (float): the zero threshold, default is 1e-10
+    '''
     coeff = coeff.copy()
     coeff[np.abs(coeff)<zero_eps] = 0
     index = np.stack(np.nonzero(coeff), axis=1)
@@ -207,28 +263,9 @@ def print_symmetric_extension_irrep_coeff(coeff, zero_eps:float=1e-10):
     ind0 = [x[0] for x in sorted(enumerate(tmp0), key=hf0)]
     for x in tmp0[ind0]:
         print(f'B({x[0]},{x[1]},{x[2]},{x[3]})={x[4]}')
-        # print([int(y) for y in x[:4]]+[float(x[4])])
 
 
-def print_young_tableaux(N0):
-    tmp0 = [tuple(y for y in x if y>0) for x in get_sym_group_young_diagram(N0).tolist()]
-    young_tableaux = {x:get_all_young_tableaux(x) for x in tmp0}
-    for key,value in young_tableaux.items():
-        tmp0 = '[' + ','.join(str(x) for x in key) + ']:'
-        print(tmp0, f'#tableaux: {len(value)}')
-        mask = get_young_diagram_mask(key)
-        for ind0 in range(len(value)):
-            for x,y in zip(value[ind0],mask):
-                print(x[:y.sum()].tolist())
-            print(('=' if ind0==(len(value)-1) else '-')*30)
-
-
-# def hf_good_print(np0, zero_eps=1e-7):
-#     tmp0 = np0.copy()
-#     tmp0[np.abs(np0)<zero_eps] = 0
-#     print(tmp0)
-
-
+# deprecated, use get_sud_symmetric_irrep_basis instead, keep for historical reason
 def get_B3_irrep_basis(dim, zero_eps=1e-7):
     assert dim >= 2
     kext = 3

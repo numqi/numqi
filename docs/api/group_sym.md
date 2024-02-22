@@ -1,5 +1,7 @@
 # Symmetric group
 
+`numqi.group._symmetric`
+
 ::: numqi.group.permutation_to_cycle_notation
     options:
       heading_level: 2
@@ -37,5 +39,9 @@
       heading_level: 2
 
 ::: numqi.group.young_tableau_to_young_symmetrizer
+    options:
+      heading_level: 2
+
+::: numqi.group.print_all_young_tableaux
     options:
       heading_level: 2
