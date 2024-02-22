@@ -15,6 +15,6 @@ site/
 # setuptools-scm
 python/*/_version.py
 
-.coverage
+.coverage*
 
 *.ipynb filter=strip-notebook-output
