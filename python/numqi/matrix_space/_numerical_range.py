@@ -11,7 +11,7 @@ def get_matrix_numerical_range(matA, num_point=100):
 
     $$W(A)=\left\{ x^{\dagger}Ax:x\in\mathbb{C}^{n},\lVert x\rVert_{2}=1\right\}$$
 
-    see https://arxiv.org/abs/2212.12811 appendix A
+    see [arxiv-link](https://arxiv.org/abs/2212.12811) appendix A
 
     Parameters:
         matA (np.ndarray): a square matrix, could be complex
@@ -46,7 +46,7 @@ def get_matrix_numerical_range_along_direction(matA, alpha, kind='max'):
     This function might give wrong results especially when the numerical range is not smooth,
     In that case, a warning will be printed.
 
-    see https://arxiv.org/abs/2212.12811 appendix A
+    see [arxiv-link](https://arxiv.org/abs/2212.12811) appendix A
 
     Parameters:
         matA (np.ndarray): a square matrix, could be complex
@@ -156,7 +156,7 @@ def detect_real_matrix_subspace_rank_one(matrix_subspace):
 
     Then this function can detect whether $\langle A\rangle_\mathbb{R}$ has nonzero rank-one element.
 
-    see https://arxiv.org/abs/2212.12811 theorem 3
+    see [arxiv-link](https://arxiv.org/abs/2212.12811) theorem 3
 
     Parameters:
         matrix_subspace (np.ndarray): 3-dimensional numpy array of shape `(N0,N1,N1)`, must be real
