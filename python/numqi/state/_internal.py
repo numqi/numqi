@@ -81,6 +81,27 @@ def GHZ(n:int=2):
     return ret
 
 
+def Bell(i:int=0):
+    r'''get the Bell state
+
+    Parameters:
+        i(int): the index of the Bell state, $i\in[0,3]$
+
+    Returns:
+        ret(np.ndarray): the Bell state, `ret.ndim=1`
+    '''
+    i = int(i)
+    assert i in [0,1,2,3]
+    if i==0:
+        ret = np.array([1,0,0,1], dtype=np.float64) / np.sqrt(2)
+    elif i==1:
+        ret = np.array([1,0,0,-1], dtype=np.float64) / np.sqrt(2)
+    elif i==2:
+        ret = np.array([0,1,1,0], dtype=np.float64) / np.sqrt(2)
+    else:
+        ret = np.array([0,1,-1,0], dtype=np.float64) / np.sqrt(2)
+    return ret
+
 def get_qubit_dicke_state_GME(n:int, k:int):
     r'''get the geometric measure of entanglement for the Dicke state
 
@@ -256,6 +277,21 @@ def maximally_entangled_state(d:int):
     assert d>1
     ret = np.diag(np.ones(d)*np.sqrt(1/d)).reshape(-1)
     return ret
+
+
+def maximally_mixed_state(d:int):
+    r'''get the maximally mixed state
+
+    Parameters:
+        d(int): the dimension of the Hilbert space
+
+    Returns:
+        ret(np.ndarray): the maximally mixed state, `ret.ndim=2` of shape $(d^2,d^2)$
+    '''
+    assert d>=1
+    ret = np.eye(d*d) / d*d
+    return ret
+
 
 # TODO AME
 
