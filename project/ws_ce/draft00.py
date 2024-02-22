@@ -123,7 +123,7 @@ class ConcentratableEntanglementModel(torch.nn.Module):
 
 # dim0 = 4
 # dim1 = 4
-# pure_state = numqi.random.rand_state(dim0*dim1)
+# pure_state = numqi.random.rand_haar_state(dim0*dim1)
 # dm0 = pure_state[:,np.newaxis]*pure_state.conj()
 
 # z0 = _concentratable_entanglement_part_slow(dm0, [0,2])

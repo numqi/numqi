@@ -124,4 +124,5 @@ final_state = circ.apply_state(initial_state)
 9. [github/QGopt](https://github.com/LuchnikovI/QGOpt) Riemannian optimization for quantum technologies
 10. [qctrl](https://docs.q-ctrl.com/references/qctrl/index.html)
 11. [github/cvxquad](https://github.com/hfawzi/cvxquad)
-12. qiskit
+12. [github/qiskit](https://github.com/Qiskit/qiskit)
+13. [github/torchquantum](https://github.com/mit-han-lab/torchquantum)

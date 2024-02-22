@@ -54,6 +54,7 @@ nav:
   - Installation: installation.md
   - Tutorial:
     - tutorial/get_started.ipynb
+    - tutorial/state.ipynb
     - tutorial/gellmann.ipynb
     - tutorial/dicke_basis.ipynb
     - tutorial/random.ipynb
@@ -87,7 +88,6 @@ nav:
       - tutorial/simulator/customized_gate.ipynb
     - entanglement:
       - tutorial/entangle/dm_numerical_range.ipynb
-      - tutorial/entangle/special_state.md
       - tutorial/entangle/dm_cross_section.ipynb
       - tutorial/entangle/basic.ipynb
       - tutorial/entangle/advanced00.ipynb
@@ -113,10 +113,14 @@ nav:
       - tutorial/misc/optimal_povm.ipynb
   - API:
     - matrix space: api/matrix_space.md
+    - state: api/state.md
     - random: api/random.md
     - dicke: api/dicke.md
-    - quantum gate: api/gate.md
-    - entanglement detection: api/entangle.md
-    - quantum state: api/state.md
+    - gate: api/gate.md
+    - group: api/group.md
+    - group / Symmetric: api/group_sym.md
+    - group / Lie: api/group_lie.md
+    - entangle: api/entangle.md
     - manifold: api/manifold.md
+    - utils: api/utils.md
   - misc: misc.md

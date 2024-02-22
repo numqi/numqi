@@ -101,7 +101,7 @@ def get_real_bipartite_numerical_range(mat, kind='min', method='eigen'):
     where $W^{\arctan y/x}(A)$ is the numerical range of $A$ along the direction $e^{i\arctan y/x}$, see
     `numqi.matrix_space.get_matrix_numerical_range_along_direction()`
 
-    see https://arxiv.org/abs/2212.12811
+    see [arxiv-link](https://arxiv.org/abs/2212.12811)
 
     Parameters:
         mat (np.ndarray): 4-dimensional numpy array of shape `(dimA,dimB,dimA,dimB)`, must be real
@@ -110,7 +110,7 @@ def get_real_bipartite_numerical_range(mat, kind='min', method='eigen'):
             If 'rotation': use `numqi.matrix_space.get_matrix_numerical_range_along_direction()` to compute the numerical range.
             'rotation' method might give wrong results, especially when numerical range is not smooth.
 
-            If 'eigen': (see theorem 2 in https://arxiv.org/abs/2212.12811) use the eigenvalue decomposition to compute the numerical range.
+            If 'eigen': (see theorem 2 in [arxiv-link](https://arxiv.org/abs/2212.12811)) use the eigenvalue decomposition to compute the numerical range.
             the matrix `mat` must be symmetric.
 
             Two methods **usually** give the same output and one might be faster (TODO benchmark)

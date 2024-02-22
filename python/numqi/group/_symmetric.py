@@ -5,7 +5,7 @@ import collections
 import sympy.combinatorics
 import numpy as np
 
-from ._internal import permutation_to_cycle_notation
+import numqi.utils
 
 # def get_symmetric_group_matrix(n):
 #     # TODO seems not correct, we need regular form, this seems to be permutation group
@@ -19,9 +19,37 @@ from ._internal import permutation_to_cycle_notation
 #     return ret
 
 
+def permutation_to_cycle_notation(index_tuple:tuple[int]):
+    r'''Permutation to cycle notation
+
+    Parameters:
+        index_tuple (tuple[int]): tuple of int, e.g. `(2,3,0,1)`
+
+    Returns:
+        ret (tuple[tuple[int]]): tuple of tuple of int, e.g. `((0,2),(1,3))`
+    '''
+    assert len(index_tuple)>0
+    z0 = dict(enumerate(numqi.utils.hf_tuple_of_int(index_tuple)))
+    z1 = set(z0.keys())
+    ret = []
+    while len(z1)>0:
+        x0 = z1.pop()
+        tmp0 = [x0]
+        while True:
+            x = z0[tmp0[-1]]
+            if x==x0:
+                break
+            else:
+                assert x in z1
+                tmp0.append(x)
+                z1.remove(x)
+        ret.append(tmp0)
+    ret = tuple(tuple(x) for x in ret)
+    return ret
+
+
 @functools.lru_cache
-def get_symmetric_group_cayley_table(n, alternating=False):
-    assert n>=2
+def _get_symmetric_group_cayley_table_hf0(n:int, alternating:bool):
     if alternating:
         perm_list = []
         for x in itertools.permutations(list(range(n))):
@@ -35,6 +63,22 @@ def get_symmetric_group_cayley_table(n, alternating=False):
     ret = np.array(tuple([tuple([tmp1[tuple(y)] for y in x]) for x in tmp2[:, tmp2].tolist()]), dtype=np.int64)
     return ret
 
+
+def get_symmetric_group_cayley_table(n:int, alternating:bool=False):
+    r'''Cayley table of symmetric group
+
+    Parameters:
+        n (int): the order of symmetric group
+        alternating (bool): whether to get the alternating group
+
+    Returns:
+        ret (np.ndarray): the Cayley table of symmetric group, `dtype=np.int64`, `shape=(n!,n!)`
+    '''
+    n = int(n)
+    assert n>=2
+    alternating = bool(alternating)
+    ret = _get_symmetric_group_cayley_table_hf0(n, alternating)
+    return ret
 
 # slow, only for N<=50
 # @functools.lru_cache
@@ -63,8 +107,7 @@ def get_symmetric_group_cayley_table(n, alternating=False):
 
 
 @functools.lru_cache
-def get_sym_group_num_irrep(N:int, return_full=False):
-    assert N>=1
+def _get_sym_group_num_irrep_hf0(N:int, return_full=False):
     if N<=3:
         if return_full:
             tmp0 = np.array([[1,1,1,1], [1,1,1,1], [1,1,2,2], [1,1,2,3]]) #0,1,2,3
@@ -87,8 +130,33 @@ def get_sym_group_num_irrep(N:int, return_full=False):
     return ret
 
 
+def get_sym_group_num_irrep(N:int, return_full:bool=False):
+    r'''Number of irreducible representations of symmetric group
+
+    Parameters:
+        N (int): the order of symmetric group
+        return_full (bool): whether to return the full table
+
+    Returns:
+        ret0 (int): the number of irreducible representations
+        ret1 (np.ndarray): the full table of the number of irreducible representations, `dtype=np.int64`,
+                    `shape=(N+1,N+1)`, only if `return_full` is `True`
+    '''
+    N = int(N)
+    assert N>=1
+    return_full = bool(return_full)
+    ret = _get_sym_group_num_irrep_hf0(N, return_full)
+    return ret
+
 def get_sym_group_young_diagram(N:int):
-    # almost to N=50 (10 seconds)
+    r'''Young diagram of symmetric group, almost to N=50 (10 seconds)
+
+    Parameters:
+        N (int): the order of symmetric group
+
+    Returns:
+        ret (np.ndarray): the Young diagram of symmetric group, `dtype=np.int64`, `shape=(#Young,N)`
+    '''
     assert N>=1
     dtype = np.int64
     if N==1:
@@ -143,7 +211,16 @@ def get_sym_group_young_diagram(N:int):
     return ret
 
 
-def get_young_diagram_mask(young, check=True):
+def get_young_diagram_mask(young:tuple[int], check:bool=True):
+    r'''Young diagram mask
+
+    Parameters:
+        young (tuple[int]): the Young diagram, e.g. `(3,2,1)`
+        check (bool): whether to check the input
+
+    Returns:
+        ret (np.ndarray): the Young diagram mask, `dtype=np.int64`, `shape=(len(young),young[0])`
+    '''
     young = np.asarray(young, dtype=np.int64)
     if check:
         check_young_diagram(young)
@@ -151,7 +228,12 @@ def get_young_diagram_mask(young, check=True):
     ret = (young[:,np.newaxis]>tmp0).astype(np.int64)
     return ret
 
-def check_young_diagram(np0):
+def check_young_diagram(np0:tuple[int]):
+    r'''Check the Young diagram
+
+    Parameters:
+        np0 (tuple[int]): the Young diagram, e.g. `(3,2,1)`
+    '''
     assert len(np0)>0
     np0 = np.asarray(np0, dtype=np.int64)
     assert np.all(np0>0)
@@ -160,8 +242,7 @@ def check_young_diagram(np0):
 
 
 @functools.lru_cache
-def get_hook_length(*int_tuple, check=True):
-    # https://en.wikipedia.org/wiki/Hook_length_formula
+def _get_hook_length_hf0(*int_tuple, check):
     np0 = np.asarray(int_tuple, dtype=np.int64)
     if check:
         check_young_diagram(np0)
@@ -172,8 +253,32 @@ def get_hook_length(*int_tuple, check=True):
     ret = math.prod([k**v for k,v in tmp4.items() if v>0]) // math.prod([k**(-v) for k,v in tmp4.items() if v<0])
     return ret
 
+def get_hook_length(*int_tuple:tuple[int], check:bool=True):
+    r'''Hook length [wiki-link](https://en.wikipedia.org/wiki/Hook_length_formula)
 
-def get_young_diagram_transpose(np0, check=True):
+    Parameters:
+        int_tuple (tuple[int]): the Young diagram, e.g. `(3,2,1)`
+        check (bool): whether to check the input
+
+    Returns:
+        ret (int): the hook length
+    '''
+    int_tuple = numqi.utils.hf_tuple_of_int(int_tuple)
+    check = bool(check)
+    ret = _get_hook_length_hf0(*int_tuple, check=check)
+    return ret
+
+
+def get_young_diagram_transpose(np0:tuple[int], check=True):
+    r'''Transpose of Young diagram
+
+    Parameters:
+        np0 (tuple[int]): the Young diagram, e.g. `(3,2,1)`
+        check (bool): whether to check the input
+
+    Returns:
+        ret (np.ndarray): the transpose of Young diagram, `dtype=np.int64`, `shape=(len(np0),)`
+    '''
     np0 = np.asarray(np0, dtype=np.int64)
     if check:
         check_young_diagram(np0)
@@ -240,8 +345,17 @@ def _get_all_young_tableaux_hf0(young, index, lower_bound):
         ret = np.concatenate(ret, axis=0)
     return ret
 
-def get_all_young_tableaux(young, check=True):
-    young = np.array(young, dtype=np.int64)
+def get_all_young_tableaux(young:tuple[int], check:bool=True):
+    r'''All Young tableaux
+
+    Parameters:
+        young (tuple[int]): the Young diagram, e.g. `(3,2,1)`
+        check (bool): whether to check the input
+
+    Returns:
+        ret (np.ndarray): all Young tableaux, `dtype=np.int64`, `shape=(#tableaux,len(young),young[0])`
+    '''
+    young = np.asarray(young, dtype=np.int64)
     if check:
         check_young_diagram(young)
     index = np.arange(young.sum(), dtype=np.int64)
@@ -250,7 +364,17 @@ def get_all_young_tableaux(young, check=True):
     return ret
 
 
-def young_tableau_to_young_symmetrizer(young, tableau):
+def young_tableau_to_young_symmetrizer(young:tuple[int], tableau:np.ndarray):
+    r'''Young tableau to Young symmetrizer
+
+    Parameters:
+        young (tuple[int]): the Young diagram, e.g. `(3,2,1)`
+        tableau (np.ndarray): the Young tableau, `dtype=np.int64`, `shape=(len(young),young[0])`
+
+    Returns:
+        symmetrizer (np.ndarray): the Young symmetrizer, `dtype=np.int64`, `shape=(#?,sum(young))`
+        sign (np.ndarray): the sign of Young symmetrizer, `dtype=np.int64`, `shape=(#?,)`
+    '''
     young = np.asarray(young, dtype=np.int64)
     youngT = get_young_diagram_transpose(young)
     N0 = young.sum()

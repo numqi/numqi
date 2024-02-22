@@ -6,7 +6,7 @@ from ._internal import (
     reduce_group_representation,
     to_unitary_representation,
     matrix_block_diagonal,
-    get_charater_and_class,
+    get_character_and_class,
     hf_Euler_totient,
     hf_is_prime,
     get_multiplicative_group_cayley_table,
@@ -16,7 +16,7 @@ from ._internal import (
     pretty_print_character_table,
 )
 
-from ._lie import (angle_to_su2, angle_to_so3, rand_su2, rand_so3, so3_to_angle, su2_to_angle,
+from ._lie import (angle_to_su2, angle_to_so3, so3_to_angle, su2_to_angle,
         so3_to_su2, su2_to_so3, get_su2_irrep, get_rational_orthogonal2_matrix)
 
 from ._symmetric import (
@@ -29,6 +29,7 @@ from ._symmetric import (
     get_young_diagram_transpose,
     get_all_young_tableaux,
     young_tableau_to_young_symmetrizer,
+    permutation_to_cycle_notation,
 )
 
 from . import symext

@@ -38,7 +38,7 @@ def test_reduce_group_representation():
         N0 = len(cayley_table) #n_element
         left_regular_form = numqi.group.cayley_table_to_left_regular_form(cayley_table) #(np,int,(N0,N0,N0))
         irrep_list = numqi.group.reduce_group_representation(left_regular_form) #(list,(np,complex,(N0,N1,N1)))
-        character,class_list,character_table = numqi.group.get_charater_and_class(irrep_list)
+        character,class_list,character_table = numqi.group.get_character_and_class(irrep_list)
         # print('#element={} dim(rep)={}, sum(dim**2)={}'.format(N0, [x.shape[1] for x in irrep_list], sum(x.shape[1]**2 for x in irrep_list)))
         assert sum(x.shape[1]**2 for x in irrep_list)==N0
 

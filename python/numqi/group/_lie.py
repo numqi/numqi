@@ -3,20 +3,17 @@ import numpy as np
 import scipy.linalg
 import scipy.special
 
+def angle_to_su2(alpha:float|np.ndarray, beta:float|np.ndarray, gamma:float|np.ndarray):
+    r'''Convert Euler angles to SU(2) matrix
 
-# TODO: merge with numqi.random.get_numqi_rng
-def get_numpy_rng(np_rng_or_seed_or_none=None):
-    if np_rng_or_seed_or_none is None:
-        ret = np.random.default_rng()
-    elif isinstance(np_rng_or_seed_or_none, np.random.Generator):
-        ret = np_rng_or_seed_or_none
-    else:
-        seed = int(np_rng_or_seed_or_none)
-        ret = np.random.default_rng(seed)
-    return ret
+    Parameters:
+        alpha (np.ndarray,float): alpha angle
+        beta (np.ndarray,float): beta angle
+        gamma (np.ndarray,float): gamma angle
 
-
-def angle_to_su2(alpha, beta, gamma):
+    Returns:
+        ret (np.ndarray): SU(2) matrix
+    '''
     alpha,beta,gamma = [np.asarray(x) for x in (alpha,beta,gamma)]
     shape = np.broadcast_shapes(alpha.shape, beta.shape, gamma.shape)
     N0 = np.prod(np.array(shape, dtype=np.int64))
@@ -32,7 +29,17 @@ def angle_to_su2(alpha, beta, gamma):
     return ret
 
 
-def angle_to_so3(alpha, beta, gamma):
+def angle_to_so3(alpha:float|np.ndarray, beta:float|np.ndarray, gamma:float|np.ndarray):
+    r'''Convert Euler angles to SO(3) matrix
+
+    Parameters:
+        alpha (np.ndarray,float): alpha angle
+        beta (np.ndarray,float): beta angle
+        gamma (np.ndarray,float): gamma angle
+
+    Returns:
+        ret (np.ndarray): SO(3) matrix
+    '''
     alpha,beta,gamma = [np.asarray(x) for x in (alpha,beta,gamma)]
     shape = np.broadcast_shapes(alpha.shape, beta.shape, gamma.shape)
     N0 = np.prod(np.array(shape, dtype=np.int64))
@@ -48,42 +55,6 @@ def angle_to_so3(alpha, beta, gamma):
         sa*cb*cg+ca*sg,-sa*cb*sg+ca*cg,sa*sb,
         -sb*cg,sb*sg,cb,
     ], axis=1).reshape(shape + (3,3))
-    return ret
-
-
-def rand_su2(*size, seed=None):
-    if len(size)==0:
-        shape = (2,2)
-        N0 = 1
-    else:
-        shape = size + (2,2)
-        N0 = np.prod(np.array(size, dtype=np.int64))
-    np_rng = get_numpy_rng(seed)
-    tmp0 = np_rng.normal(size=(N0,4))
-    tmp0 = tmp0 / np.linalg.norm(tmp0, axis=1, keepdims=True)
-    a = tmp0[:,0] + 1j*tmp0[:,1]
-    b = tmp0[:,2] + 1j*tmp0[:,3]
-    ret = np.zeros((N0,4), dtype=np.complex128)
-    ret[:,0] = a
-    ret[:,3] = a.conj()
-    ret[:,1] = b
-    ret[:,2] = -b.conj()
-    ret = ret.reshape(shape)
-    return ret
-
-
-def rand_so3(*size, seed=None):
-    if len(size)==0:
-        shape = (3,3)
-        N0 = 1
-    else:
-        shape = size + (3,3)
-        N0 = np.prod(np.array(size, dtype=np.int64))
-    np_rng = np.random.default_rng(seed)
-    alpha = np_rng.uniform(0, 2*np.pi, size=N0) #z-axis
-    beta = np_rng.uniform(0, np.pi, size=N0) #y-axis
-    gamma = np_rng.uniform(0, 2*np.pi, size=N0) #z-axis
-    ret = angle_to_so3(alpha, beta, gamma).reshape(shape)
     return ret
 
 
