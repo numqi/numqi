@@ -114,13 +114,16 @@ nav:
   - API:
     - state: api/state.md
     - random: api/random.md
+    - gellmann: api/gellmann.md
     - dicke: api/dicke.md
     - gate: api/gate.md
-    - group: api/group.md
-    - group / Lie: api/group_lie.md
-    - group / Symmetric: api/group_sym.md
-    - group / Symmetric-Extension: api/group_symext.md
-    - group / GF2 Symplectic Group: api/group_spf2.md
+    - simulator: api/sim.md
+    - group:
+      - core: api/group.md
+      - Lie group: api/group_lie.md
+      - Symmetric group: api/group_sym.md
+      - Symmetric-Extension: api/group_symext.md
+      - GF2 Symplectic Group: api/group_spf2.md
     - matrix space: api/matrix_space.md
     - entangle: api/entangle.md
     - manifold: api/manifold.md
