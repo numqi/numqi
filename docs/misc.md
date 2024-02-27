@@ -88,6 +88,9 @@ model name
 16. [ ] multi-processing support [link0](https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork) [link1](https://github.com/numpy/numpy/issues/11826) [link2](https://github.com/joblib/threadpoolctl)
 17. [ ] gradient back-propagation for density matrix circuit `numqi.circuit.dm`
 18. [ ] Clifford circuit simulator is not in good states
+19. [ ] host gitee pages
+20. [ ] REE / EoF for pure states [arxiv-link0](https://arxiv.org/abs/2009.04982) [arxiv-link1](https://arxiv.org/abs/quant-ph/0409009)
+21. [ ] github codespace `devcontainer.json`
 
 ## license
 

@@ -72,6 +72,8 @@ OPENBLAS="$(brew --prefix openblas)" pip install scs
 pip install numqi
 ```
 
+(PS) notice some weird problems if installed `conda-forge/numpy` on ubuntu, then use `pip install numpy` instead.
+
 ## for developer
 
 Personally i use `conda/miniconda/mamba/micromamba` to create a virtual environment. You can use any familiar tools `poetry/rye/etc.` to create a virtual environment.
