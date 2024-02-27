@@ -1,6 +1,4 @@
-# Pauli group and Clifford group
-
-This note explain how Clifford circuit can be simulated efficiently on classical computers.
+# Symplectic group over F2
 
 1. link
     * [wiki/symplectic-group](https://en.wikipedia.org/wiki/Symplectic_group)
@@ -61,56 +59,3 @@ $$h\in\mathbb{F}_{2}^{2n},T_{h}\left(x\right)=T_{h}x=x+\langle x,h\rangle h:\mat
 1. $\forall h\in\mathbb{F}_{2}^{2n},T_{h}T_{h}x=x=T_{0}x$
 2. $\forall x,y\in\mathbb{F}_{2}^{2n}\setminus\lbrace 0\rbrace \Rightarrow\exists a,b\in\mathbb{F}_{2}^{2n},y=T_{b}T_{a}x$
     * Lemma 2 in paper [doi-link](https://doi.org/10.1063%2F1.4903507)
-
-## Clifford group
-
-$$C_{n}=\lbrace x\in U\left(2^{n}\right):xP_{n}x^{\dagger}=P_{n}\rbrace /U\left(1\right)$$
-
-1. group isomorphism $C_{n}\cong\mathbb{F}_{2}^{2n}\times Sp\left(2n,\mathbb{F}_{2}\right)$
-
-    $$ U\in C_{n},r\in\mathbb{F}_{2}^{2n},S\in Sp\left(2n,\mathbb{F}_{2}\right) $$
-
-    $$UX_{j}U^{\dagger}=\left(-1\right)^{r_{j}}\left(i\right)^{\sum_{k}S_{kj}S_{k+n,j}}\prod_{k=1}^{n}X_{k}^{S_{kj}}Z_{k}^{S_{k+n,j}}$$
-
-    $$UZ_{j}U^{\dagger}=\left(-1\right)^{r_{j+n}}\left(i\right)^{\sum_{k}S_{k,j+n}S_{k+n,j+n}}\prod_{k=1}^{n}X_{k}^{S_{k,j+n}}Z_{k}^{S_{k+n,j+n}}$$
-
-    $$\Delta=x_{0}^{\prime}+\sum_{i=1}^{n}\sum_{j=1}^{2n}x_{j}S_{ij}S_{i+n,j}$$
-
-    $$y_{0}=x_{0}+\sum_{i=1}^{2n}x_{i}r_{i}+\sum_{i=1}^{n}\sum_{j=1}^{2n}\sum_{k=j+1}^{2n}x_{j}x_{k}S_{i+n,j}S_{ik}+\left\lfloor \frac{\Delta\%4}{2}\right\rfloor$$
-
-    $$y_{0}^{\prime}=\Delta\%2,y_{i}=\sum_{j=1}^{2n}S_{ij}x_{j}$$
-
-2. group center $Z(C_n)\cong P_n/Z(P_n)$
-3. identity $I_{2^n} \mapsto 0^{n}\times I_n$
-4. inverse *TODO*
-5. multiplication: $x,y\in C{}_{n},z=y\circ x,x\mapsto r^{(x)}\times S^{(x)},y\mapsto r^{(y)}\times S^{(y)},z\mapsto r^{(z)}\times S^{(z)}$
-
-    $$ a=xX_{\alpha}x^{\dagger},xZ_{\alpha}x^{\dagger} $$
-
-    $$ b=yay^{\dagger} $$
-
-    $$ a_{0}=r_{\alpha}^{(x)},a_{0}^{\prime}=\sum_{k=1}^{n}S_{k\alpha}^{(x)}S_{k+n,\alpha}^{(x)},a_{i}=S_{i\alpha}^{(x)} $$
-
-    $$ \Delta=a_{0}^{\prime}+\sum_{i=1}^{n}\sum_{j=1}^{2n}a_{j}S_{ij}^{(y)}S_{i+n,j}^{(y)}-\sum_{k}S_{k\alpha}^{(z)}S_{k+n,\alpha}^{(z)} $$
-
-    $$ r_{\alpha}^{(z)}=b_{0}=a_{0}+\sum_{i=1}^{2n}a_{i}r_{i}^{(y)}+\sum_{i=1}^{n}\sum_{j=1}^{2n}\sum_{k=j+1}^{2n}a_{j}a_{k}S_{i+n,j}^{(y)}S_{ik}^{(y)}+\left\lfloor \frac{\Delta\%4}{2}\right\rfloor $$
-
-    $$ S_{i\alpha}^{(z)}=b_{i}=\sum_{j=1}^{2n}S_{ij}^{(y)}a_{j}=\sum_{j=1}^{2n}S_{ij}^{(y)}S_{j\alpha}^{(x)} $$
-
-6. example
-
-    $$ HXH=Z,HYH=-Y,HZH=X,H\simeq 00\times\begin{bmatrix}0 & 1\\1 & 0\end{bmatrix} $$
-
-    $$ XXX=X,XYX=-Y,XZX=-Z,X\simeq 01\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix} $$
-
-    $$ YXY=-X,YYY=Y,YZY=-Z,Y\simeq 11\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix} $$
-
-    $$ ZXZ=-X,ZYZ=-Y,ZZZ=Z,Z\simeq 01\times\begin{bmatrix}1 & 0\\0 & 1\end{bmatrix} $$
-
-    $$ SXS^\dagger=Y,SYS^\dagger=-X,SZS^\dagger=Z,S\simeq 00\times\begin{bmatrix}1 & 0\\1 & 1\end{bmatrix} $$
-
-    $$ \mathrm{CNOT}\simeq 0000\times\begin{bmatrix}1&0&0&0\\ 1&1&0&0\\0&0&1&1\\0&0&0&1\end{bmatrix} $$
-
-TODO
-
-1. clifford circuit
