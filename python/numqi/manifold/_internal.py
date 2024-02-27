@@ -904,7 +904,7 @@ def to_special_orthogonal_exp(theta, dim:int):
         if is_real:
             tmp0 = torch.zeros(N1, N0, dtype=theta.dtype, device=device)
             tmp1 = torch.zeros(N1, dim, dtype=theta.dtype, device=device)
-            mat = numqi.gellmann.gellmann_basis_to_matrix(torch.concat([theta, tmp0, tmp1], axis=1)).imag
+            mat = numqi.gellmann.gellmann_basis_to_matrix(torch.concat([tmp0, theta, tmp1], axis=1)).imag
         else:
             tmp0 = torch.zeros(N1, 1, dtype=theta.dtype, device=device)
             mat = 1j*numqi.gellmann.gellmann_basis_to_matrix(torch.concat([theta, tmp0], axis=1))
@@ -914,7 +914,7 @@ def to_special_orthogonal_exp(theta, dim:int):
         if is_real:
             tmp0 = np.zeros((N1, N0), dtype=theta.dtype)
             tmp1 = np.zeros((N1, dim), dtype=theta.dtype)
-            mat = numqi.gellmann.gellmann_basis_to_matrix(np.concatenate([theta, tmp0, tmp1], axis=1)).imag
+            mat = numqi.gellmann.gellmann_basis_to_matrix(np.concatenate([tmp0, theta, tmp1], axis=1)).imag
         else:
             tmp0 = np.zeros((N1, 1), dtype=theta.dtype)
             mat = 1j*numqi.gellmann.gellmann_basis_to_matrix(np.concatenate([theta, tmp0], axis=1))
