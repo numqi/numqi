@@ -77,8 +77,9 @@ nav:
       - tutorial/group/basic.ipynb
       - tutorial/group/young-tableaux.ipynb
       - tutorial/group/symext.ipynb
-      - Clifford: tutorial/group/spf2.md
+      - Symplectic-Group-F2: tutorial/group/spf2.md
       - tutorial/group/pauli.ipynb
+      - tutorial/group/clifford.ipynb
     - quantum error correction:
       - tutorial/qecc/basic.md
       - tutorial/qecc/varqecc.ipynb
@@ -117,7 +118,10 @@ nav:
     - gellmann: api/gellmann.md
     - dicke: api/dicke.md
     - gate: api/gate.md
-    - simulator: api/sim.md
+    - simulator:
+      - core: api/sim.md
+      - state: api/sim_state.md
+      - density-matrix: api/sim_dm.md
     - group:
       - core: api/group.md
       - Lie group: api/group_lie.md
