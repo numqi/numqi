@@ -382,11 +382,6 @@ class PauliOperator:
         return ret
 
     @property
-    def op_list(self):
-        ret = [(self.sign,[(y,x) for x,y in enumerate(self.np_list)])]
-        return ret
-
-    @property
     def full_matrix(self):
         # use this for unittest only, for that this is not efficient
         int_to_map = {

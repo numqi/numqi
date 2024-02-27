@@ -5,7 +5,14 @@ import numqi.random
 
 # see numqi.group.spf2
 
-def apply_clifford_on_pauli(pauli_bit, cli_r, cli_mat):
+def apply_clifford_on_pauli(pauli_bit:np.ndarray, cli_r:np.ndarray, cli_mat:np.ndarray):
+    r'''apply a clifford gate (Symplectic form) on a pauli operator (Symplectic form)
+
+    Parameters:
+        pauli_bit (np.ndarray): the pauli operator, `pauli_bit.shape==(2*N0+2,)`
+        cli_r (np.ndarray): the phase part of the clifford gate, `cli_r.shape==(2*N0,)`
+        cli_mat (np.ndarray): the matrix part of the clifford gate, `cli_mat.shape==(2*N0,2*N0)`
+    '''
     for x in [pauli_bit, cli_r, cli_mat]:
         assert x.dtype.type==np.uint8
     assert pauli_bit.max()<=1

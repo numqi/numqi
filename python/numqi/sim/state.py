@@ -6,58 +6,83 @@ import opt_einsum
 from numqi.utils import hf_num_state_to_num_qubit, hf_tuple_of_int
 import numqi.random
 
-def _reduce_shape_index_list_int(shape_index_list):
-    if len(shape_index_list)>1:
-        np0 = np.array([x[1:] for x in shape_index_list[::-1]])
-        tmp0 = np.cumprod(np.array([1] + [x[0] for x in shape_index_list[::-1]]))
-        tmp1 = np.sum(tmp0[:-1,np.newaxis]*np0, axis=0).tolist()
-        ret = (int(tmp0[-1]),) + tuple(tmp1)
-    else:
-        ret = shape_index_list[0]
-    return ret
-
-
-def _reduce_shape_index_list_none(shape_index_list):
-    tmp0 = [x[0] for x in shape_index_list]
-    tmp1 = functools.reduce(lambda y0,y1: y0*y1, tmp0, 1)
-    ret = (tmp1,) + (slice(None),)*(len(shape_index_list[0])-1)
-    return ret
-
-
 @functools.lru_cache
-def reduce_shape_index_list(shape, *index_list):
+def _reduce_shape_index_hf0(shape, index):
+    ret = []
+    for x0,x1 in itertools.groupby(zip(shape,index), key=lambda x: x[1]==None):
+        x1 = list(x1)
+        shape_i = [x[0] for x in x1]
+        if x0: #index=None
+            tmp0 = functools.reduce(lambda y0,y1: y0*y1, shape_i)
+            ret.append((tmp0, slice(None)))
+        else:
+            index_i = [x[1] for x in x1]
+            tmp0 = np.cumprod(np.array([1]+shape_i[::-1]))
+            tmp1 = np.dot(tmp0[:-1], np.array(index_i[::-1]))
+            ret.append((tmp0[-1], tmp1))
+    reduced_shape = tuple(x[0] for x in ret)
+    reduced_index = tuple(x[1] for x in ret)
+    return reduced_shape, reduced_index
+
+
+def reduce_shape_index(shape:tuple[int], index:tuple[int|None]):
+    r'''reduce the shape and index
+
+    1. group index by None
+
+    2. group index by integer
+
+    Parameters:
+        shape (tuple[int]): the shape of the tensor
+        index (tuple[int|None]): the index list
+
+    Returns:
+        reduced_shape (tuple[int]): the reduced shape
+        reduced_index (tuple[int|None]): the reduced index list
     '''
-    1. remove shape==1
-    2. group index_list by None
-    3. group index_list by integer
-    '''
-    assert isinstance(shape, tuple) and len(shape)>0 and all(x>1 for x in shape)
+    shape = tuple(int(x) for x in shape)
+    assert (len(shape)>0) and all(x>1 for x in shape)
     N0 = len(shape)
-    assert all(len(x)==N0 for x in index_list)
-    for shape_i,tmp0 in zip(shape, zip(*index_list)):
-        assert all(x==None for x in tmp0) or all((isinstance(x,int) and (0<=x<shape_i)) for x in tmp0)
-    tmp0 = itertools.groupby(zip(shape,*index_list), key=lambda x: x[1]==None)
-    ret = [(_reduce_shape_index_list_none(list(x1)) if x0 else _reduce_shape_index_list_int(list(x1))) for x0,x1 in tmp0]
-    ret = tuple(zip(*ret))
+    index = tuple((None if x is None else int(x)) for x in index)
+    assert (len(index)==N0) and all(((y is None) or (0<=y<=x)) for x,y in zip(shape,index))
+    ret = _reduce_shape_index_hf0(shape, index)
     return ret
 
 
-def new_base(num_qubit, dtype=np.complex128):
+def new_base(num_qubit:int, dtype=np.complex128):
+    r'''return the base state of the qubit quantum system
+
+    Parameters:
+        num_qubit (int): the number of qubits
+        dtype (dtype): the data type of the base state
+
+    Returns:
+        ret (np.ndarray): the base state
+    '''
     ret = np.zeros(2**num_qubit, dtype=dtype)
     ret[0] = 1
     return ret
 
 
-def apply_gate(q0, op, index):
+def apply_gate(q0:np.ndarray, op:np.ndarray, index:int|tuple[int]):
+    r'''apply the gate to the quantum vector
+
+    Parameters:
+        q0 (np.ndarray): the quantum vector, `ndim=1`
+        op (np.ndarray): the gate, `ndim=2`
+        index (int,tuple[int]): the index of the qubits to apply the gate, count from left to right |0123>
+
+    Returns:
+        ret (np.ndarray): the quantum vector after applying the gate
+    '''
+    assert q0.ndim==1
     index = hf_tuple_of_int(index)
     num_state = len(q0)
     num_qubit = hf_num_state_to_num_qubit(num_state)
     N0 = len(index)
-    assert num_state==(2**num_qubit)
     assert all(isinstance(x,int) and (0<=x) and (x<num_qubit) for x in index)
     assert len(index)==len(set(index))
-    assert op.ndim==2 and op.shape[0]==op.shape[1]
-    assert op.shape[0]==2**N0
+    assert (op.ndim==2) and (op.shape[0]==op.shape[1]) and (op.shape[0]==2**N0)
     tmp0 = q0.reshape([2 for _ in range(num_qubit)])
     tmp1 = list(range(num_qubit))
     tmp2 = op.reshape([2 for _ in range(2*N0)])
@@ -67,7 +92,21 @@ def apply_gate(q0, op, index):
     ret = opt_einsum.contract(tmp0, tmp1, tmp2, tmp3+tuple(index), tmp5).reshape(-1)
     return ret
 
-def apply_gate_grad(q0_conj, q0_grad, op, index, tag_op_grad=True):
+def apply_gate_grad(q0_conj:np.ndarray, q0_grad:np.ndarray, op:np.ndarray, index:int|tuple[int], tag_op_grad:bool=True):
+    r'''gradient back propagation of apply_gate
+
+    Parameters:
+        q0_conj (np.ndarray): the conjugate of the quantum vector, `ndim=1`
+        q0_grad (np.ndarray): the gradient of the quantum vector, `ndim=1`
+        op (np.ndarray): the gate, `ndim=2`
+        index (int,tuple[int]): the index of the qubits to apply the gate
+        tag_op_grad (bool): whether to calculate the gradient of the gate
+
+    Returns:
+        q0_conj (np.ndarray): the conjugate of the quantum vector before applying the gate
+        q0_grad (np.ndarray): the gradient of the quantum vector before applying the gate
+        op_grad (np.ndarray,None): the gradient of the gate, None if `tag_op_grad=False`
+    '''
     q0_conj = apply_gate(q0_conj, op.T, index)
     if tag_op_grad:
         num_state = len(q0_conj)
@@ -93,12 +132,30 @@ def _control_n_index(num_qubit, ind_control_set, ind_target):
     index_list = [None]*num_qubit
     for x in ind_control_set:
         index_list[x] = 1
-    shape0,index_tuple0 = reduce_shape_index_list((2,)*num_qubit, tuple(index_list))
+    shape0,index_tuple0 = reduce_shape_index((2,)*num_qubit, tuple(index_list))
     return shape0, index_tuple0, ind_target_new
 
-def apply_control_n_gate(q0, op, ind_control_set, ind_target):
-    num_state = q0.size
-    num_qubit = hf_num_state_to_num_qubit(num_state)
+
+def apply_control_n_gate(q0:np.ndarray, op:np.ndarray, ind_control_set:int|set[int], ind_target:int|tuple[int]):
+    r'''apply the n-controlled gate to the quantum vector
+
+    Parameters:
+        q0 (np.ndarray): the quantum vector, `ndim=1`
+        op (np.ndarray): the gate, `ndim=2`
+        ind_control_set (int,set[int]): the index of the control qubits
+        ind_target (int,tuple[int]): the index of the target qubits
+
+    Returns:
+        ret (np.ndarray): the quantum vector after applying the gate
+    '''
+    if not hasattr(ind_control_set, '__len__'):
+        ind_control_set = {int(ind_control_set)}
+    else:
+        tmp0 = set(hf_tuple_of_int(ind_control_set))
+        assert len(tmp0)==len(ind_control_set)
+        ind_control_set = tmp0
+    ind_target = hf_tuple_of_int(ind_target)
+    num_qubit = hf_num_state_to_num_qubit(q0.size)
     assert len(ind_target)==len(set(ind_target))
     assert all((x not in ind_control_set) for x in ind_target)
     shape0, index_tuple0, ind_target_new = _control_n_index(num_qubit, ind_control_set, ind_target)
@@ -108,7 +165,30 @@ def apply_control_n_gate(q0, op, ind_control_set, ind_target):
     return ret
 
 
-def apply_control_n_gate_grad(q0_conj, q0_grad, op, ind_control_set, ind_target, tag_op_grad=True):
+def apply_control_n_gate_grad(q0_conj:np.ndarray, q0_grad:np.ndarray, op:np.ndarray,
+            ind_control_set:int|set[int], ind_target:int|tuple[int], tag_op_grad:bool=True):
+    r'''gradient back propagation of apply_control_n_gate
+
+    Parameters:
+        q0_conj (np.ndarray): the conjugate of the quantum vector, `ndim=1`
+        q0_grad (np.ndarray): the gradient of the quantum vector, `ndim=1`
+        op (np.ndarray): the gate, `ndim=2`
+        ind_control_set (int,set[int]): the index of the control qubits
+        ind_target (int,tuple[int]): the index of the target qubits
+        tag_op_grad (bool): whether to calculate the gradient of the gate
+
+    Returns:
+        q0_conj (np.ndarray): the conjugate of the quantum vector before applying the gate
+        q0_grad (np.ndarray): the gradient of the quantum vector before applying the gate
+        op_grad (np.ndarray,None): the gradient of the gate, None if `tag_op_grad=False`
+    '''
+    if not hasattr(ind_control_set, '__len__'):
+        ind_control_set = {int(ind_control_set)}
+    else:
+        tmp0 = set(hf_tuple_of_int(ind_control_set))
+        assert len(tmp0)==len(ind_control_set)
+        ind_control_set = tmp0
+    ind_target = hf_tuple_of_int(ind_target)
     q0_conj = apply_control_n_gate(q0_conj, op.T, ind_control_set, ind_target)
     if tag_op_grad:
         num_qubit = hf_num_state_to_num_qubit(q0_conj.size)
@@ -129,38 +209,38 @@ def apply_control_n_gate_grad(q0_conj, q0_grad, op, ind_control_set, ind_target,
 
 
 # TODO torch.autograd.Function
-def inner_product_psi0_O_psi1(psi0, psi1, operator_list):
+def inner_product_psi0_O_psi1(psi0:np.ndarray, psi1:np.ndarray, op_list:list[list[tuple]]):
+    r'''calculate the inner product of <psi0|O|psi1>
+
+    Parameters:
+        psi0 (np.ndarray): the quantum vector, `ndim=1`
+        psi1 (np.ndarray): the quantum vector, `ndim=1`
+        op_list (list[list[tuple]]): the operator list. The first level of list is the sum of the operator
+                and the second level of list is matrix multiplication (from left to right). Each tuple is a gate and the index
+
+    Returns:
+        ret (np.ndarray): the inner product, `ndim=1` of the length equal to the number of operators (first level of list)
     '''
-    psi0(np,?,(N0,))
-    psi1(np,?,(N0,))
-    operator_list(list,(tuple,%,2))
-        %0(float): coefficient
-        %1(list,(tuple,%,?))
-            %0(np,?,(N1,N1))
-            %1...(tuple,int)
-    '''
-    psi0_conjugate = np.conjugate(psi0)
-    ret = 0
-    for coefficient,term_i in operator_list:
+    ret = []
+    for term_i in op_list:
         tmp_psi1 = psi1 #no need to copy
         for tmp0 in reversed(term_i):
-            tmp_psi1 = apply_gate(tmp_psi1, tmp0[0], list(tmp0[1:]))
-        ret = ret + coefficient * np.dot(psi0_conjugate, tmp_psi1)
-    return ret
-
-# TODO to be replaced by inner_product_psi0_O_psi1
-def operator_expectation(q0, operator, qubit_sequence):
-    tmp0 = apply_gate(q0, operator, qubit_sequence)
-    ret = np.dot(np.conjugate(q0), tmp0)
+            tmp_psi1 = apply_gate(tmp_psi1, tmp0[0], tuple(tmp0[1:]))
+        ret.append(np.vdot(psi0, tmp_psi1))
+    ret = np.array(ret)
     return ret
 
 
-def to_dm(q0):
-    ret = q0[:,np.newaxis] * np.conjugate(q0)
-    return ret
+def reduce_to_probability(q0:np.ndarray, keep_index_set:set[int]):
+    r'''reduce the quantum vector to the probability
 
+    Parameters:
+        q0 (np.ndarray): the quantum vector, `ndim=1`
+        keep_index_set (set[int]): the index to keep
 
-def reduce_to_probability(q0, keep_index_set):
+    Returns:
+        ret (np.ndarray): the probability
+    '''
     num_qubit = hf_num_state_to_num_qubit(q0.size)
     assert isinstance(keep_index_set,set) and all(0<=x for x in keep_index_set) and all(x<num_qubit for x in keep_index_set)
     tmp0 = (np.abs(q0)**2).reshape([2]*num_qubit)
@@ -171,7 +251,7 @@ def reduce_to_probability(q0, keep_index_set):
 
 
 def inner_product(q0, q1):
-    ret = np.dot(q0.conj(), q1)
+    ret = np.vdot(q0, q1) #np.dot(q0.conj(), q1)
     return ret
 
 
@@ -204,7 +284,19 @@ def _measure_quantum_vector_hf0(num_qubit, index):
     return shape,keep_dim,reduce_dim
 
 
-def measure_quantum_vector(q0, index, seed=None):
+def measure_quantum_vector(q0:np.ndarray, index:int|tuple[int], seed:int|None|np.random.Generator=None):
+    r'''measure the quantum vector
+
+    Parameters:
+        q0 (np.ndarray): the quantum vector, `ndim=1`
+        index (int,tuple[int]): the index to measure, must be sorted (ascending)
+        seed (int,None,np.random.Generator): the random seed
+
+    Returns:
+        bitstr (list[int]): the measurement result
+        prob (np.ndarray): the probability of each result
+        q1 (np.ndarray): the quantum vector after measurement
+    '''
     np_rng = numqi.random.get_numpy_rng(seed)
     index = numqi.utils.hf_tuple_of_int(index)
     assert all(x==y for x,y in zip(sorted(index),index)), 'index must be sorted'
