@@ -54,3 +54,8 @@ write_to = "python/numqi/_version.py"
 
 [tool.setuptools.package-data]
 numqi = ["_data/*"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
