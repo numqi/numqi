@@ -110,7 +110,7 @@ def partial_trace(rho:np.ndarray, dim:tuple[int], keep_index:set[int]):
         ret (np.ndarray): the partial trace of the density matrix, shape=(*dim[keep_index], *dim[keep_index])
     '''
     if not isinstance(keep_index, collections.abc.Iterable):
-        keep_index = [keep_index]
+        keep_index = {int(keep_index)}
     N0 = len(dim)
     keep_index = sorted(set(keep_index))
     rho = rho.reshape(*dim, *dim)

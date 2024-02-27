@@ -1,22 +1,33 @@
 import numpy as np
-import opt_einsum
 
 import numqi
 
-hfe = lambda x,y,eps=1e-5: np.max(np.abs(x-y)/(np.abs(x)+np.abs(y)+eps))
+np_rng = np.random.default_rng()
 
-def test_np_operator_expectation_dm(num_qubit=3):
-    assert num_qubit>=3
-    ind0,ind1 = np.sort(np.random.permutation(num_qubit)[:2]).tolist()
-    np0 = numqi.random.rand_density_matrix(2**num_qubit)
-    operator = np.random.randn(4,4) + 1j*np.random.randn(4,4)
+def test_reduce_shape_index():
+    snone = slice(None)
+    case_list = [
+        ((2,2,2,2), (None,1,0,None), (2,4,2), (snone,2,snone)),
+        ((2,2,2,2), (None,None,1,1), (4,4), (snone,3)),
+    ]
+    for shape,index,shape1,index1 in case_list:
+        ret = numqi.sim.state.reduce_shape_index(shape, index)
+        assert ret == (shape1, index1)
 
-    tmp0 = operator.reshape(2,2,2,2)
-    tmp1 = [ind0,ind1,ind0+num_qubit,ind1+num_qubit]
-    tmp2 = [(np.eye(2),[x,x+num_qubit]) for x in sorted(set(range(num_qubit))-{ind0,ind1})]
-    tmp3 = list(range(2*num_qubit))
-    operator_pad = opt_einsum.contract(tmp0, tmp1, *(y for x in tmp2 for y in x), tmp3).reshape(2**num_qubit,2**num_qubit)
-    ret_ = np.trace(operator_pad @ np0)
 
-    ret0 = numqi.sim.dm.operator_expectation(np0, operator, [ind0,ind1])
-    assert hfe(ret_, ret0) < 1e-7
+def test_inner_product_psi0_O_psi1():
+    N0 = 2
+    num_term = 4
+    q0 = numqi.random.rand_haar_state(2**N0)
+    q1 = numqi.random.rand_haar_state(2**N0)
+    coeff = np_rng.normal(size=num_term)
+    op_list = np.stack([numqi.random.rand_hermitian_matrix(2**N0) for _ in range(num_term)])
+    tmp0 = tuple(range(N0))
+    operator_list = [[(x,*tmp0)] for x in op_list]
+
+    tmp0 = np.einsum(op_list, [0,1,2], coeff, [0], [1,2], optimize=True)
+    ret_ = np.vdot(q0, tmp0@q1)
+
+    tmp0 = numqi.sim.state.inner_product_psi0_O_psi1(q0, q1, operator_list)
+    ret0 = np.dot(tmp0, coeff)
+    assert np.abs(ret_-ret0).max() < 1e-7

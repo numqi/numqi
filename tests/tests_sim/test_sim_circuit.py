@@ -20,8 +20,8 @@ class DummyQNNModel(torch.nn.Module):
         self.q0[:] = 0
         self.q0[0] = 1
         q0 = self.circuit_torch(self.q0)
-        inner_product = torch.dot(self.target_state.conj(), q0)
-        loss = (inner_product*inner_product.conj()).real
+        tmp0 = torch.vdot(self.target_state, q0)
+        loss = (tmp0*tmp0.conj()).real
         return loss
 
 

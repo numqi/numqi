@@ -63,10 +63,12 @@ def test_CliffordCircuit():
         q0 = numqi.random.rand_haar_state(2**num_qubit)
 
         q1 = circ.to_universal_circuit().apply_state(q0)
-        tmp0 = numqi.gate.PauliOperator.from_F2(pauli_F2).op_list
-        ret_ = numqi.sim.state.inner_product_psi0_O_psi1(q1, q1, tmp0).real
+        tmp0 = numqi.gate.PauliOperator.from_F2(pauli_F2)
+        op_list = [[(y,x) for x,y in enumerate(tmp0.np_list)]]
+        ret_ = (numqi.sim.state.inner_product_psi0_O_psi1(q1, q1, op_list).item() * tmp0.sign).real
 
-        tmp0 = numqi.gate.PauliOperator.from_F2(circ.apply_pauli_F2(pauli_F2)).op_list
-        ret0 = numqi.sim.state.inner_product_psi0_O_psi1(q0, q0, tmp0)
+        tmp0 = numqi.gate.PauliOperator.from_F2(circ.apply_pauli_F2(pauli_F2))
+        op_list = [[(y,x) for x,y in enumerate(tmp0.np_list)]]
+        ret0 = numqi.sim.state.inner_product_psi0_O_psi1(q0, q0, op_list).item() * tmp0.sign
         assert abs(ret0.imag) < 1e-10
         assert abs(ret_-ret0) < 1e-10
