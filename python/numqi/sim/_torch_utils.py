@@ -76,6 +76,19 @@ class _CircuitFunction(torch.autograd.Function):
         return ret
 
 
+def _get_first_come_id(object_list, index_list):
+    id_to_index = dict()
+    ret = []
+    for ind0,object in enumerate(object_list):
+        id_ = id(object)
+        if id_ not in id_to_index:
+            id_to_index[id_] = len(id_to_index)
+            ret.append([index_list[ind0]])
+        else:
+            ret[id_to_index[id_]].append(index_list[ind0])
+    return ret
+
+
 class CircuitTorchWrapper(torch.nn.Module):
     def __init__(self, circuit):
         super().__init__()
@@ -98,11 +111,10 @@ class CircuitTorchWrapper(torch.nn.Module):
         tmp0 = [(ind0,x) for ind0,(x,_) in enumerate(gate_index_list) if x.requires_grad]
         hf0 = lambda x: x[1].name
         tmp0 = {x:list(y) for x,y in itertools.groupby(sorted(tmp0, key=hf0), key=hf0)}
-        hf1 = lambda x: id(x[1])
         for key,value in tmp0.items():
-            tmp1 = [[y[0] for y in x] for _,x in itertools.groupby(sorted(value, key=hf1), key=hf1)]
-            tmp2 = np.array([gate_index_list[x[0]][0].args for x in tmp1], dtype=np.float64)
-            theta[key] = torch.nn.Parameter(torch.from_numpy(tmp2))
+            tmp1 = _get_first_come_id([x[1] for x in value], [x[0] for x in value])
+            tmp2 = torch.from_numpy(np.array([gate_index_list[x[0]][0].args for x in tmp1], dtype=np.float64))
+            theta[key] = torch.nn.Parameter(tmp2)
             ind_theta_to_ind_gate[key] = tmp1
         ind_gate_to_ind_theta = {y:(k,x0) for k,v in ind_theta_to_ind_gate.items() for x0,x1 in enumerate(v) for y in x1}
         pgate_name_list = sorted(theta.keys())
