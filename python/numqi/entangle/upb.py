@@ -1,6 +1,11 @@
 import math
 import numpy as np
 import scipy.linalg
+import torch
+
+import numqi.gellmann
+import numqi.manifold
+
 
 hf_is_prime = lambda n: (n>=2) and ((n==2) or ((n%2==1) and all(n%x>0 for x in range(3, int(math.sqrt(n))+1, 2))))
 # TODO sympy.isprime()
@@ -9,17 +14,25 @@ hf_is_prime = lambda n: (n>=2) and ((n==2) or ((n%2==1) and all(n%x>0 for x in r
 # False: -1,0,1,4,6
 
 
-def upb_product(upb):
+def get_upb_product(upb:list[np.ndarray]):
+    r'''get product of unextendible product basis (UPB)
+
+    Parameters:
+        upb (list[np.ndarray]): unextendible product basis (UPB)
+
+    Returns:
+        upb (np.ndarray): product of unextendible product basis (UPB)
+    '''
     ret = upb[0]
     for x in upb[1:]:
         ret = (ret[:,:,np.newaxis]*x[:,np.newaxis]).reshape(ret.shape[0], -1)
     return ret
 
 
-def load_upb(kind, args=None, return_product=False, return_bes=False, ignore_warning=False):
+def load_upb(kind:str, args:int|tuple=None, return_product:bool=False, return_bes:bool=False, ignore_warning:bool=False):
     r'''load unextendible product basis (UPB)
 
-    see http://www.qetlab.com/UPB
+    see [qetlab-doc/UPB](http://www.qetlab.com/UPB)
 
     TODO John2^8 John2^4k CJ4k1 CJBip CJBip46 Feng2x2x5 Feng4m2 Feng2x2x2x4 Feng2x2x2x2x5 AlonLovasz
 
@@ -31,7 +44,7 @@ def load_upb(kind, args=None, return_product=False, return_bes=False, ignore_war
         return_bes (bool): return bounding entangled states
 
     Returns:
-        upb (list of np.ndarray, np.ndarray): If `return_product=False`, the length of list is the number of partites. Each np.ndarray is of shape `(N,dimI)`
+        upb (list[np.ndarray], np.ndarray): If `return_product=False`, the length of list is the number of partites. Each np.ndarray is of shape `(N,dimI)`
             where `N` is the number of product states, `dimI` is the dimension of the i-th partite. If `return_product=True`,
             the return value is a `np.ndarray` of shape (N,dim0*dim1*dim2*...)
         bes (np.ndarray): only when `return_bes=True`, the return value is a `np.ndarray` of shape `(dim0*dim1*dim2*...,dim0*dim1*dim2*...)`
@@ -189,16 +202,23 @@ def load_upb(kind, args=None, return_product=False, return_bes=False, ignore_war
         assert False, 'not implemented'
     else:
         assert False
-    if return_product:
-        upb = upb_product(upb)
-    ret = (upb,upb_to_bes(upb)) if return_bes else upb
+    ret = get_upb_product(upb) if return_product else upb
+    if return_bes:
+        ret = ret,upb_to_bes(upb)
     return ret
 
 
-def upb_to_bes(upb):
-    # unextendible product basis (UPB), bound entangled state (BES)
+def upb_to_bes(upb:list[np.ndarray]):
+    r'''convert unextendible product basis (UPB) to bound entangled state (BES)
+
+    Parameters:
+        upb (np.ndarray, list[np.ndarray]): unextendible product basis
+
+    Returns:
+        bes (np.ndarray): bound entangled state (BES)
+    '''
     if not isinstance(upb, np.ndarray):
-        upb = upb_product(upb)
+        upb = get_upb_product(upb)
     ret = np.eye(upb.shape[1]) - upb.T @ upb.conj()
     ret /= np.trace(ret)
     return ret
@@ -209,3 +229,109 @@ def fourier_matrix(dim):
     tmp0 = np.arange(dim)
     ret = (w**(tmp0[:,np.newaxis]*tmp0))/np.sqrt(dim)
     return ret
+
+
+class LocalUnitaryEquivalentModel(torch.nn.Module):
+    def __init__(self, dimA, dimB, num_term=1):
+        super().__init__()
+        self.manifold_U0 = numqi.manifold.SpecialOrthogonal(dimA, batch_size=num_term, dtype=torch.complex128)
+        self.manifold_U1 = numqi.manifold.SpecialOrthogonal(dimB, batch_size=num_term, dtype=torch.complex128)
+        if num_term==1:
+            self.prob = torch.tensor([1], dtype=torch.float64)
+        else:
+            self.manifold_prob = numqi.manifold.DiscreteProbability(num_term, dtype=torch.float64)
+
+        self.dimA = dimA
+        self.dimB = dimB
+        self.dm0 = None
+        self.dm1 = None
+
+    def set_density_matrix(self, dm0=None, dm1=None):
+        if dm0 is not None:
+            assert (dm0.shape[0]==(self.dimA*self.dimB)) and (dm0.shape[1]==(self.dimA*self.dimB))
+            self.dm0 = torch.tensor(dm0, dtype=torch.complex128)
+        if dm1 is not None:
+            assert (dm1.shape[0]==(self.dimA*self.dimB)) and (dm1.shape[1]==(self.dimA*self.dimB))
+            self.dm1 = torch.tensor(dm1, dtype=torch.complex128)
+
+    def forward(self):
+        prob = self.prob if hasattr(self, 'prob') else self.manifold_prob()
+        u0 = self.manifold_U0()
+        u1 = self.manifold_U1()
+        dm0 = self.dm0.reshape(self.dimA,self.dimB,self.dimA,self.dimB)
+        ret = torch.einsum(dm0, [0,1,2,3], u0, [8,4,0], u0.conj(), [8,5,2],
+                    u1, [8,6,1], u1.conj(), [8,7,3], prob, [8], [4,6,5,7]).reshape(self.dm1.shape)
+        tmp0 = (ret - self.dm1).reshape(-1)
+        loss = torch.vdot(tmp0, tmp0).real
+        return loss
+
+
+class BESNumEigenModel(torch.nn.Module):
+    def __init__(self, dimA, dimB, rank0, rank1=None, with_ppt=True, with_ppt1=True):
+        # TODO what is the loss for the genshfits UPB/BES
+        super().__init__()
+        np_rng = np.random.default_rng()
+        tmp0 = np_rng.uniform(-1, 1, size=(dimA*dimB)**2-1)
+        self.rho_vec = torch.nn.Parameter(torch.tensor(tmp0 / np.linalg.norm(tmp0), dtype=torch.float64))
+        self.dimA = dimA
+        self.dimB = dimB
+        self.rank0 = rank0
+        self.rank1 = (dimA*dimB-rank0) if (rank1 is None) else rank1
+        self.with_ppt = with_ppt
+        self.with_ppt1 = with_ppt1
+
+    def forward(self):
+        rho_vec_norm = self.rho_vec / torch.linalg.norm(self.rho_vec)
+        rho_norm = numqi.gellmann.gellmann_basis_to_dm(rho_vec_norm)
+        tmp0 = torch.linalg.eigvalsh(rho_norm)
+        beta0 = 1/(1-rho_norm.shape[0]*tmp0[0])
+        beta1 = 1/(1-rho_norm.shape[0]*tmp0[-1])
+        dm0 = numqi.gellmann.gellmann_basis_to_dm(beta0*rho_vec_norm)
+        dm1 = numqi.gellmann.gellmann_basis_to_dm(beta1*rho_vec_norm)
+        loss0 = torch.linalg.eigvalsh(dm0)[:(dm0.shape[0]-self.rank0)].sum()
+        loss1 = torch.linalg.eigvalsh(dm1)[:(dm0.shape[0]-self.rank1)].sum()
+        loss = (loss0 + loss1)**2
+        if self.with_ppt:
+            tmp1 = dm0.reshape(self.dimA,self.dimB,self.dimA,self.dimB).transpose(1,3).reshape(self.dimA*self.dimB,-1)
+            loss2 = torch.linalg.eigvalsh(tmp1)[0]**2
+            loss = loss + loss2
+            # without this constraint, it will not converge to BES
+            tmp1 = dm1.reshape(self.dimA,self.dimB,self.dimA,self.dimB).transpose(1,3).reshape(self.dimA*self.dimB,-1)
+            loss3 = torch.linalg.eigvalsh(tmp1)[0]**2
+            loss = loss + loss3
+        return loss
+
+
+class BESNumEigen3qubitModel(torch.nn.Module):
+    def __init__(self, rank0, rank1=None, with_ppt=True):
+        # TODO what is the loss for the genshfits UPB/BES
+        super().__init__()
+        np_rng = np.random.default_rng()
+        dimA,dimB,dimC = 2,2,2
+        tmp0 = np_rng.uniform(-1, 1, size=(dimA*dimB*dimC)**2-1)
+        self.rho_vec = torch.nn.Parameter(torch.tensor(tmp0 / np.linalg.norm(tmp0), dtype=torch.float64))
+        self.dimA = dimA
+        self.dimB = dimB
+        self.dimC = dimC
+        self.rank0 = rank0
+        self.rank1 = (dimA*dimB*dimC-rank0) if (rank1 is None) else rank1
+        self.with_ppt = with_ppt
+
+    def forward(self):
+        rho_vec_norm = self.rho_vec / torch.linalg.norm(self.rho_vec)
+        rho_norm = numqi.gellmann.gellmann_basis_to_dm(rho_vec_norm)
+        tmp0 = torch.linalg.eigvalsh(rho_norm)
+        beta0 = 1/(1-rho_norm.shape[0]*tmp0[0])
+        beta1 = 1/(1-rho_norm.shape[0]*tmp0[-1])
+        dm0 = numqi.gellmann.gellmann_basis_to_dm(beta0*rho_vec_norm)
+        dm1 = numqi.gellmann.gellmann_basis_to_dm(beta1*rho_vec_norm)
+        loss0 = torch.linalg.eigvalsh(dm0)[:(dm0.shape[0]-self.rank0)].sum()
+        loss1 = torch.linalg.eigvalsh(dm1)[:(dm0.shape[0]-self.rank1)].sum()
+        loss = (loss0 + loss1)**2
+        if self.with_ppt:
+            for dm_i in [dm0,dm1]:
+                tmp1 = dm_i.reshape(self.dimA,self.dimB*self.dimC,self.dimA,-1).transpose(1,3).reshape(self.dimA*self.dimB*self.dimC,-1)
+                loss = loss + torch.linalg.eigvalsh(tmp1)[0]**2
+                tmp1 = dm_i.reshape(-1,self.dimC,self.dimA*self.dimB,self.dimC).transpose(1,3).reshape(self.dimA*self.dimB*self.dimC,-1)
+                loss = loss + torch.linalg.eigvalsh(tmp1)[0]**2
+        return loss

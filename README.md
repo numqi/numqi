@@ -102,7 +102,7 @@ print(bell_state) #a numpy array
 #  [ 0.   0.5 -0.5  0. ]
 #  [ 0.  -0.5  0.5  0. ]
 #  [ 0.   0.   0.   0. ]]
-print(numqi.entangle.is_ppt(bell_state)) #True if seperable, False if entangled
+print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable, False if entangled
 # False
 ```
 

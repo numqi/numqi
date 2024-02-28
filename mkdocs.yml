@@ -129,7 +129,14 @@ nav:
       - Symmetric-Extension: api/group_symext.md
       - GF2 Symplectic Group: api/group_spf2.md
     - matrix space: api/matrix_space.md
-    - entangle: api/entangle.md
+    - entangle:
+      - core: api/entangle.md
+      - PPT-criteria: api/entangle_ppt.md
+      - Symmetric-Extension-Criteria: api/entangle_symext.md
+      - Entanglement-of-Formation: api/entangle_eof.md
+      - Convex-Hull-Approximation: api/entangle_cha.md
+      - UPB-BES: api/entangle_upb.md
+      - Pure-Bosonic-Extension: api/entangle_pureb.md
     - manifold: api/manifold.md
     - utils: api/utils.md
   - misc: misc.md

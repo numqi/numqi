@@ -83,7 +83,7 @@ print(bell_state) #a numpy array
 #  [ 0.   0.5 -0.5  0. ]
 #  [ 0.  -0.5  0.5  0. ]
 #  [ 0.   0.   0.   0. ]]
-print(numqi.entangle.is_ppt(bell_state)) #True if seperable state, False is entangle state (small probability also return True)
+print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable state, False is entangle state (small probability also return True)
 # False
 ```
 
@@ -127,3 +127,4 @@ final_state = circ.apply_state(initial_state)
 12. [github/qiskit](https://github.com/Qiskit/qiskit)
 13. [github/torchquantum](https://github.com/mit-han-lab/torchquantum)
 14. [github/pysme](https://github.com/CQuIC/pysme)
+15. [github/quantumgroup](https://quantumghent.github.io/)

@@ -38,7 +38,7 @@ if not tag_ppt:
     print('[entangled] dm0 is not PPT')
 else:
     eps = 1e-10
-    model_cha = numqi.entangle.AutodiffCHAREE(dimA, dimB)
+    model_cha = numqi.entangle.AutodiffCHAREE((dimA, dimB))
     model_cha.set_dm_target(dm0)
     loss_cha = numqi.optimize.minimize(model_cha, num_repeat=3, tol=1e-12, print_every_round=0).fun
     tag_cha = loss_cha < eps

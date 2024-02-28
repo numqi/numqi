@@ -21,11 +21,10 @@ def quick_beta_boundary(dm0, dimA, dimB, kext=16):
     ret_l = [-beta_l,beta_ppt_l,beta_svqc_l, f'PPT-SVQC={beta_ppt_l-beta_svqc_l:.4f},dm-PPT={-beta_l-beta_ppt_l:.4f}']
     return ret_u,ret_l
 
-def quick_plot_dm0_dm1_plane(rho0, rho1, dim, num_point, pureb_kext, tag_cha, tag_gppt=False,
-                            savepath='tbd00.png', num_eig0=0, label0=None, label1=None):
+def quick_plot_dm0_dm1_plane(rho0, rho1, dim, num_point, pureb_kext, tag_cha, tag_gppt=False, label=None):
     dimA,dimB = dim
     theta1,hf_theta = numqi.entangle.get_density_matrix_plane(rho0, rho1)
-    theta_list = np.linspace(-np.pi, np.pi, num_point)
+    theta_list = np.linspace(0, 2*np.pi, num_point)
     pureb_kext = [int(x) for x in pureb_kext] if hasattr(pureb_kext, '__len__') else [int(pureb_kext)]
 
     beta_pureb = dict()
@@ -39,9 +38,12 @@ def quick_plot_dm0_dm1_plane(rho0, rho1, dim, num_point, pureb_kext, tag_cha, ta
         beta_cha = np.array([model_cha.solve(hf_theta(x),use_tqdm=False) for x in tqdm(theta_list, desc='CHA')])
     else:
         beta_cha = None
-    fig,ax,all_data = numqi.entangle.plot_bloch_vector_cross_section(dm_tiles, dm_pyramid, (3,3), num_point,
-            beta_pureb, beta_cha, num_eig0=num_eig0, tag_gppt=tag_gppt, label0=label0, label1=label1, savepath=savepath)
-    return fig,ax
+    info = numqi.entangle.get_dm_cross_section_boundary(rho0, rho1, num_point=num_point, dim=(dimA,dimB), tag_ppt=True, tag_gppt=tag_gppt)
+    info['beta_pureb'] = beta_pureb
+    info['beta_cha'] = beta_cha
+    fig,ax=numqi.entangle.plot_dm_cross_section(info['beta_dm'], info['theta_op'], label=label,
+                    CHA=beta_cha, PureB=beta_pureb, PPT=info['beta_ppt'], GPPT=info['beta_gppt'])
+    return fig,ax,info
 
 dimA = 3
 dimB = 3
@@ -54,7 +56,7 @@ dm_sixparam1 = numqi.entangle.load_upb('sixparam', return_bes=True)[1]
 dm_genshift3 = numqi.entangle.load_upb('genshifts', 3, return_bes=True)[1]
 
 fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm_pyramid, (3,3), num_point=201,
-            pureb_kext=16, tag_cha=False, label0=r'$\rho_{tiles}$', label1=r'$\rho_{pyramid}$')
+            pureb_kext=16, tag_cha=False, label=(r'$\rho_{tiles}$',r'$\rho_{pyramid}$'))
 
 # fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm_pyramid, (3,3), num_point=201,
 #             pureb_kext=[8,32], tag_cha=True, label0=r'Tiles UPB', label1=r'Pyramid UPB')
@@ -149,7 +151,7 @@ fig,ax,all_data = quick_plot_dm0_dm1_plane(dm_tiles, dm1, (dimA,dimB), num_point
 
 # import time
 # dm_target = np.diag(np.array([1,1,1,1,0,0,0,0,0])/4)
-# model = numqi.entangle.AutodiffCHAREE(dim0=3, dim1=3, num_state=18, distance_kind='gellmann')
+# model = numqi.entangle.AutodiffCHAREE(dim=(3,3), num_state=18, distance_kind='gellmann')
 # model.set_dm_target(dm_target)
 # t0 = time.time()
 # loss = numqi.optimize.minimize(model, theta0='uniform', tol=1e-12, num_repeat=3, print_every_round=0).fun

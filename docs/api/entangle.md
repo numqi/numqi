@@ -1,59 +1,43 @@
 # entangle
 
-## PPT
+`numqi.entangle`
 
-::: numqi.entangle.get_ppt_boundary
+::: numqi.entangle.hf_interpolate_dm
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.is_ppt
+::: numqi.entangle.get_dm_numerical_range
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.is_generalized_ppt
+::: numqi.entangle.get_negativity
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.get_generalized_ppt_boundary
+::: numqi.entangle.check_reduction_witness
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.get_ppt_numerical_range
+::: numqi.entangle.check_swap_witness
     options:
-      heading_level: 3
+      heading_level: 2
 
-## Symmetric extension
-
-::: numqi.entangle.get_ABk_symmetric_extension_ree
+::: numqi.entangle.get_density_matrix_plane
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.is_ABk_symmetric_ext
+::: numqi.entangle.get_density_matrix_boundary
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.get_ABk_symmetric_extension_boundary
+::: numqi.entangle.get_dm_cross_section_moment
     options:
-      heading_level: 3
+      heading_level: 2
 
-::: numqi.entangle.get_ABk_extension_numerical_range
+::: numqi.entangle.is_dm_cross_section_similar
     options:
-      heading_level: 3
+      heading_level: 2
 
-## Concurrence and EOF
-
-::: numqi.entangle.get_concurrence_pure
+::: numqi.entangle.group_dm_cross_section_moment
     options:
-      heading_level: 3
-
-::: numqi.entangle.get_concurrence_2qubit
-    options:
-      heading_level: 3
-
-::: numqi.entangle.get_eof_pure
-    options:
-      heading_level: 3
-
-::: numqi.entangle.get_eof_2qubit
-    options:
-      heading_level: 3
+      heading_level: 2

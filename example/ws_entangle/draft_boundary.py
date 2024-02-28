@@ -18,7 +18,7 @@ def demo_ppt_cha_gap():
     for dim,seed_i in zip(dim_list,seed_list):
         np_rng_i = np.random.default_rng(seed_i)
         model = numqi.entangle.CHABoundaryBagging((dim,dim))
-        # model = numqi.entangle.AutodiffCHAREE(dim, dim, distance_kind='ree')
+        # model = numqi.entangle.AutodiffCHAREE((dim, dim), distance_kind='ree')
         for _ in tqdm(range(num_sample)):
             dm0 = numqi.random.rand_density_matrix(dim*dim, seed=np_rng_i)
             beta_ppt = numqi.entangle.get_ppt_boundary(dm0, (dim,dim))[1]

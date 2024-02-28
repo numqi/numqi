@@ -47,8 +47,8 @@ if __name__=='__main__':
     ret_ppt = []
     ret_cha = []
     dm_list = []
-    model_cha = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
-    model_kwargs = dict(dim0=dimA, dim1=dimB, distance_kind='gellmann')
+    model_cha = numqi.entangle.AutodiffCHAREE((dimA, dimB), distance_kind='gellmann')
+    model_kwargs = dict(dim=(dimA,dimB), distance_kind='gellmann')
     kwargs = dict(theta0='uniform', tol=1e-14, num_repeat=3, print_every_round=0, early_stop_threshold=cha_threshold)
     for haar_k in haar_k_list:
         print(f"k={haar_k}")
