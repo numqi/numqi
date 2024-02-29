@@ -1,5 +1,4 @@
 import math
-import random
 import itertools
 import numpy as np
 import scipy.linalg
@@ -8,7 +7,7 @@ import scipy.linalg
 from numqi.gellmann import gellmann_basis_to_matrix
 from numqi.manifold import to_special_orthogonal_exp
 
-from ._public import get_random_rng, get_numpy_rng
+from ._public import get_numpy_rng
 
 # TODO batch_size
 # TODO refactor to use numqi.manifold

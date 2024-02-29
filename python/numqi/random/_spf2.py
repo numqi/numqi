@@ -1,6 +1,6 @@
 import numpy as np
 
-from ._internal import get_random_rng, get_numpy_rng
+from ._public import get_random_rng, get_numpy_rng
 import numqi.group.spf2
 from ..gate._pauli import PauliOperator
 
