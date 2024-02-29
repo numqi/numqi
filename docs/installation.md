@@ -95,10 +95,10 @@ pip install -e ".[dev]"
 run the unittest
 
 ```bash
-# take about for 300 seconds on my laptop, "OMP_NUM_THREADS=1" usually runs faster (some unnecessay threads are disabled)
+# "OMP_NUM_THREADS=1" usually runs faster (some unnecessay threads are disabled)
 OMP_NUM_THREADS=1 pytest --cov=python/numqi
 
-# if you have a multi-core CPU, you can run the unittest in parallel (take about 70 seconds on my laptop)
+# if you have a multi-core CPU, you can run the unittest in parallel (take about 120 seconds on my laptop)
 OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
 ```
 
@@ -117,14 +117,20 @@ mkdocs serve
     * [github/best-of-mkdocs](https://github.com/mkdocs/best-of-mkdocs)
 4. special module name, not for users
    * `._xxx.py`: internal functions, not for users
-   * `._internal.py`: private to submodules. E.g., `numqi.A._internal` can only be imported in `numqi.A.xxx`
-   * `._lib_public.py`: library public functions. E.g., `numqi.A._lib_public` can be imported by `numqi.B`
+   * `._internal.py`: private to submodules. E.g., `numqi.A._internal` should only be imported in `numqi.A.xxx`
+   * `._public.py`: library public functions. E.g., `numqi.A._public` can be imported by `numqi.B`
+5. strip the jupyter notebook output before commit
 
-strip the jupyter notebook output before commit (only setup once), add following lines to `.git/config` or global `.gitconfig`
+Recommended courses
 
-```text
-[filter "strip-notebook-output"]
-    clean = "jupyter nbconvert --ClearOutputPreprocessor.enabled=True --to=notebook --stdin --stdout --log-level=ERROR"
-```
+TODO add quantum stuff
 
-**VSCODE-USER**: if you are using `vscode`, please click the button `clear all ouputs` manually before commit.
+1. point-set topology
+    * [youtube-link](https://youtube.com/playlist?list=PLd8NbPjkXPliJunBhtDNMuFsnZPeHpm-0&si=Y5-wnge2rWO1HNVb) Marius Furter
+2. smooth manifold
+    * [youtube-link](https://www.youtube.com/playlist?list=PLBh2i93oe2qvRGAtgkTszX7szZDVd6jh1) The Bright Side of Mathematics
+    * [youtube-link](https://www.youtube.com/playlist?list=PLD2r7XEOtm-AGjr3ynbljbx3oWHdus9Xb) qncubed3
+3. Riemannian manifold
+4. Differential geometry
+5. algebraic topology
+    * [youtube-link](https://www.youtube.com/playlist?list=PLOROtRhtegr7DmeMyFxfKxsljAVsAn_X4) Presented by Dr. Anthony Bosman.
