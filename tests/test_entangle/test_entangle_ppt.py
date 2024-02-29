@@ -15,7 +15,7 @@ def test_is_ppt():
     # false positive example from https://qetlab.com/Main_Page
     # tiles UPB/BES
     dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
-    assert numqi.entangle.is_ppt(dm_tiles)
+    assert numqi.entangle.is_ppt(dm_tiles, (3,3))
     # Determined to be entangled via the realignment criterion. Reference:
     # K. Chen and L.-A. Wu. A matrix realignment method for recognizing entanglement. Quantum Inf. Comput., 3:193-202, 2003
 

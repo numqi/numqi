@@ -13,7 +13,16 @@ from ._misc import get_density_matrix_boundary, hf_interpolate_dm, _ree_bisectio
 
 
 class PureBosonicExt(torch.nn.Module):
-    def __init__(self, dimA, dimB, kext, distance_kind='ree'):
+    r'''Approximate the relative entropy of entanglement via Pure Bosonic Extension'''
+    def __init__(self, dimA:int, dimB:int, kext:int, distance_kind:str='ree'):
+        r'''Initialize the module
+
+        Parameters:
+            dimA (int): The dimension of the system A
+            dimB (int): The dimension of the system B
+            kext (int): extension value for system B
+            distance_kind (str): The kind of distance, either 'ree' or 'gellmann'
+        '''
         super().__init__()
         distance_kind = distance_kind.lower()
         assert distance_kind in {'ree','gellmann'}
@@ -32,13 +41,23 @@ class PureBosonicExt(torch.nn.Module):
         self.expect_op_T_vec = None
         self._torch_logm = ('pade',6,8) #set it by user
 
-    def set_dm_target(self, rho):
+    def set_dm_target(self, rho:np.ndarray):
+        r'''Set the target density matrix
+
+        Parameters:
+            rho (np.ndarray): The target density matrix
+        '''
         assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1]) #drop support for pure state
         # rho = rho[:,np.newaxis] * rho.conj() #pure
         self.dm_target = torch.tensor(rho, dtype=torch.complex128)
         self.tr_rho_log_rho = -numqi.utils.get_von_neumann_entropy(rho)
 
-    def set_expectation_op(self, op):
+    def set_expectation_op(self, op:np.ndarray):
+        r'''Set the expectation operator
+
+        Parameters:
+            op (np.ndarray): Hermitian expectation operator
+        '''
         self.dm_target = None
         self.tr_rho_log_rho = None
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
@@ -56,7 +75,24 @@ class PureBosonicExt(torch.nn.Module):
             loss = torch.dot(dm_torch.view(-1), self.expect_op_T_vec).real
         return loss
 
-    def get_boundary(self, dm0, xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=1, use_tqdm=True, return_info=False, seed=None):
+    def get_boundary(self, dm0:np.ndarray, xtol:float=1e-4, converge_tol:float=1e-10, threshold:float=1e-7,
+                    num_repeat:int=1, use_tqdm:bool=True, return_info:bool=False, seed:int|None=None):
+        r'''Get the boundary of Pure Bosonic Extension
+
+        Parameters:
+            dm0 (np.ndarray): The initial density matrix
+            xtol (float): The tolerance for the boundary
+            converge_tol (float): The convergence tolerance for optimization
+            threshold (float): The threshold for the boundary
+            num_repeat (int): The number of repeat for optimization
+            use_tqdm (bool): Whether to use tqdm
+            return_info (bool): Whether to return the history information
+            seed (int|None): The random seed
+
+        Returns:
+            beta (float): length of the boundary
+            history_info (list): The history information, only if return_info is True
+        '''
         beta_u = get_density_matrix_boundary(dm0)[1]
         dm0_norm = numqi.gellmann.dm_to_gellmann_norm(dm0)
         np_rng = numqi.random.get_numpy_rng(seed)
@@ -71,7 +107,22 @@ class PureBosonicExt(torch.nn.Module):
         ret = (beta,history_info) if return_info else beta
         return ret
 
-    def get_numerical_range(self, op0, op1, num_theta=400, converge_tol=1e-5, num_repeat=1, use_tqdm=True, seed=None):
+    def get_numerical_range(self, op0:np.ndarray, op1:np.ndarray, num_theta:int=400, converge_tol:float=1e-5,
+                            num_repeat:int=1, use_tqdm:bool=True, seed:int|None=None):
+        r'''Get the numerical range of Pure Bosonic Extension
+
+        Parameters:
+            op0 (np.ndarray): Hermitian expectation operator
+            op1 (np.ndarray): Hermitian expectation operator
+            num_theta (int): The number of theta
+            converge_tol (float): The convergence tolerance for optimization
+            num_repeat (int): The number of repeat for optimization
+            use_tqdm (bool): Whether to use tqdm
+            seed (int|None): The random seed
+
+        Returns:
+            ret (np.ndarray): The numerical range, `shape=(num_theta,2)`
+        '''
         np_rng = numqi.random.get_numpy_rng(seed)
         N0 = self.dimA*self.dimB
         assert (op0.shape==(N0,N0)) and (op1.shape==(N0,N0))

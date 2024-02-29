@@ -22,12 +22,6 @@ def test_entangle_check_swap_witness():
         tmp0 = numqi.random.rand_separable_dm(dimA=3, dimB=3, k=2)
         assert numqi.entangle.check_swap_witness(tmp0)
 
-    # z0 = []
-    # for _ in range(1000):
-    #     tmp0 = numqi.random.rand_bipartite_state(2, 2, k=2, return_dm=True)
-    #     z0.append(numqi.entangle.check_swap_witness(tmp0, return_info=True)[1])
-    # print('true_entangled_rate(swap):', np.mean(np.array(z0)<0)) #about 0.15
-
 
 def test_isotropic_state():
     np_rng = np.random.default_rng()
@@ -38,12 +32,12 @@ def test_isotropic_state():
         tmp0 = np.kron(u0, u0.conj())
         assert np.abs(tmp0 @ rho @ tmp0.T.conj() - rho).max() < 1e-7
     for d in range(2, 10):
-        rho_entangled = numqi.state.Isotropic(d, np_rng.uniform(1/(d+1), 1))
-        rho_separable = numqi.state.Isotropic(d, np_rng.uniform(-(1/(d**2-1)), 1/(d+1)))
-        assert numqi.entangle.is_ppt(rho_separable)
-        assert not numqi.entangle.is_ppt(rho_entangled)
-        assert numqi.entangle.check_reduction_witness(rho_separable)
-        assert not numqi.entangle.check_reduction_witness(rho_entangled)
+        rho_ent = numqi.state.Isotropic(d, np_rng.uniform(1/(d+1), 1))
+        rho_sep = numqi.state.Isotropic(d, np_rng.uniform(-(1/(d**2-1)), 1/(d+1)))
+        assert numqi.entangle.is_ppt(rho_sep, (d,d))
+        assert not numqi.entangle.is_ppt(rho_ent, (d,d))
+        assert numqi.entangle.check_reduction_witness(rho_sep, (d,d))
+        assert not numqi.entangle.check_reduction_witness(rho_ent, (d,d))
 
 
 def test_werner_state():
@@ -58,12 +52,12 @@ def test_werner_state():
     for d in range(2, 10):
         alpha_sep = np_rng.uniform(-1, 1/d-zero_eps)
         alpha_ent = np_rng.uniform(1/d, 1)
-        rho_entangled = numqi.state.Werner(d, alpha_ent)
-        rho_separable = numqi.state.Werner(d, alpha_sep)
-        assert numqi.entangle.is_ppt(rho_separable)
-        assert not numqi.entangle.is_ppt(rho_entangled)
-        assert numqi.entangle.check_reduction_witness(rho_separable)
-        tmp0 = numqi.entangle.check_reduction_witness(rho_entangled)
+        rho_ent = numqi.state.Werner(d, alpha_ent)
+        rho_sep = numqi.state.Werner(d, alpha_sep)
+        assert numqi.entangle.is_ppt(rho_sep, (d,d))
+        assert not numqi.entangle.is_ppt(rho_ent, (d,d))
+        assert numqi.entangle.check_reduction_witness(rho_sep, (d,d))
+        tmp0 = numqi.entangle.check_reduction_witness(rho_ent, (d,d))
         if d==2:
             assert not tmp0 #only d==2 is correct
         else:

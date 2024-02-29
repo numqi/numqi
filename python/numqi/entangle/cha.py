@@ -14,6 +14,8 @@ import numqi.manifold
 
 from ._misc import get_density_matrix_boundary, hf_interpolate_dm, _ree_bisection_solve
 
+# TODO docs/api
+
 def _rand_norm_bounded_unitary(dim, norm2_bound, N0, np_rng):
     # |A|_2 <= |A|_F
     # https://math.stackexchange.com/a/252831
@@ -46,8 +48,18 @@ def _cha_reset_state(ketA, ketB, probability, threshold, norm, np_rng, indexR=No
 
 
 class CHABoundaryBagging:
-    # CHA with bagging 10.1103/PhysRevA.98.012315
-    def __init__(self, dim, num_state=None) -> None:
+    r'''Convex Hull Approximation with Bagging
+
+    Separability-entanglement classifier via machine learning
+    [doi-link](https://doi.org/10.1103/PhysRevA.98.012315)
+    '''
+    def __init__(self, dim:tuple[int], num_state:int|None=None):
+        r'''initialize the model
+
+        Parameters:
+            dim (tuple[int]): dimension of the bipartite system, len(dim) must be 2
+            num_state (int): number of states in the convex hull, default to 3*(dim[0]*dim[1])**2
+        '''
         assert len(dim)==2
         dimA,dimB = dim
         num_state = 3*(dimA*dimB)**2 if (num_state is None) else num_state
@@ -94,12 +106,31 @@ class CHABoundaryBagging:
         # ret and self.cvx_lambda.value could be None if num_state is too small
         return ret
 
-    def set_dm_target(self, dm):
+    def solve(self, dm:np.ndarray, maxiter:int=150, norm2_init:float=1, decay_rate:float=0.97, threshold:float=1e-7,
+                num_init_retry:int=10, use_tqdm:bool=False, return_info:bool=False, seed:None|int=None):
+        r'''solve the convex hull approximation
+
+        Parameters:
+            dm (np.ndarray): target density matrix
+            maxiter (int): maximum number of iterations, default to 150
+            norm2_init (float): initial norm2 bound, default to 1
+            decay_rate (float): decay rate of the norm2 bound, default to 0.97
+            threshold (float): threshold for the probability, default to 1e-7. if `solver=MOSEK`,
+                    then a more precise threshold is required, otherwise the solver will fail sometimes
+            num_init_retry (int): number of retries for the initial state, default to 10
+            use_tqdm (bool): use tqdm, default to False
+            return_info (bool): return the information of the optimization, default to False
+            seed (int): random seed, default to None
+
+        Returns:
+            beta (float): the optimal beta, boundary length
+            info (tuple[np.ndarray,np.ndarray,np.ndarray,np.ndarray]): the information of the optimization
+        '''
         N0 = self.dimA*self.dimB
-        assert dm.shape==(N0,N0)
+        assert (dm.shape==(N0,N0))
         assert abs(np.trace(dm)-1) < 1e-10
         assert np.abs(dm-dm.T.conj()).max() < 1e-10
-        self.dm_target = dm.copy()
+        self.dm_target = dm.copy() #maybe not necessary
         dm_normed = (dm - np.eye(N0)/N0).reshape(-1) / numqi.gellmann.dm_to_gellmann_norm(dm)
         cvx_constrants = [
             self.cvx_beta*dm_normed.real==self.cvx_lambda @ self.cvx_A_r,
@@ -109,9 +140,6 @@ class CHABoundaryBagging:
         ]
         self.cvx_problem = cvxpy.Problem(self.cvx_obj, cvx_constrants)
 
-    def solve(self, dm, maxiter=150, norm2_init=1, decay_rate=0.97, threshold=1e-7,
-                num_init_retry=10, use_tqdm=False, return_info=False, seed=None):
-        self.set_dm_target(dm)
         np_rng = numqi.random.get_numpy_rng(seed)
         if num_init_retry>0:
             self._rand_init_state(np_rng, num_init_retry)
@@ -138,16 +166,19 @@ class CHABoundaryBagging:
 
 
 class AutodiffCHAREE(torch.nn.Module):
-    def __init__(self, dim0, dim1, num_state=None, distance_kind='ree'):
-        r'''Gradient descent model for convex hull approximation to separable states
+    '''Gradient descent model for convex hull approximation to separable states'''
+    def __init__(self, dim:tuple[int], num_state:int|None=None, distance_kind:str='ree'):
+        r'''initialize the model
 
         Parameters:
-            dim0(int): dimension of the first subsystem
-            dim1(int): dimension of the second subsystem
-            num_state(int): number of states in the convex hull, default to 2*dim0*dim1
-            distance_kind(str): 'gellmann' or 'ree', default to 'ree'
+            dim (tuple[int]): dimension of the bipartite system, len(dim) must be 2
+            num_state (int): number of states in the convex hull, default to 2*dim0*dim1 (seems to work well)
+            distance_kind (str): 'gellmann' or 'ree', default to 'ree'
         '''
         super().__init__()
+        assert len(dim)==2
+        dim0 = int(dim[0])
+        dim1 = int(dim[1])
         # [2*dA*dB,3*dA*dB] seems to be good enough
         num_state = (2*dim0*dim1) if (num_state is None) else num_state
         distance_kind = distance_kind.lower()
@@ -164,13 +195,23 @@ class AutodiffCHAREE(torch.nn.Module):
         self.expect_op_T_vec = None
         self._torch_logm = ('pade',6,8) #set it by user
 
-    def set_dm_target(self, rho):
+    def set_dm_target(self, rho:np.ndarray):
+        r'''set the target density matrix
+
+        Parameters:
+            rho (np.ndarray): target density matrix
+        '''
         assert (rho.shape[0]==(self.dim0*self.dim1)) and (rho.shape[0]==rho.shape[1])
         self.expect_op_T_vec = None
         self.dm_target = torch.tensor(rho, dtype=torch.complex128)
         self.tr_rho_log_rho = -numqi.utils.get_von_neumann_entropy(rho)
 
-    def set_expectation_op(self, op):
+    def set_expectation_op(self, op:np.ndarray):
+        r'''set the expectation operator
+
+        Parameters:
+            op (np.ndarray): the expectation operator
+        '''
         self.dm_target = None
         self.tr_rho_log_rho = None
         self.expect_op_T_vec = torch.tensor(op.T.reshape(-1), dtype=torch.complex128)
@@ -187,7 +228,24 @@ class AutodiffCHAREE(torch.nn.Module):
             loss = torch.dot(dm_torch.reshape(-1), self.expect_op_T_vec).real
         return loss
 
-    def get_boundary(self, dm0, xtol=1e-4, converge_tol=1e-10, threshold=1e-7, num_repeat=1, use_tqdm=True, return_info=False, seed=None):
+    def get_boundary(self, dm0:np.ndarray, xtol:float=1e-4, converge_tol:float=1e-10, threshold:float=1e-7, num_repeat:int=1,
+                    use_tqdm:bool=True, return_info:bool=False, seed:int|None=None):
+        r'''get the boundary of the convex hull approximation
+
+        Parameters:
+            dm0 (np.ndarray): initial density matrix
+            xtol (float): tolerance for the bisection, default to 1e-4
+            converge_tol (float): tolerance for the optimization, default to 1e-10
+            threshold (float): threshold for the probability, default to 1e-7
+            num_repeat (int): number of repeats for the optimization, default to 1
+            use_tqdm (bool): use tqdm, default to True
+            return_info (bool): return the information of the optimization, default to False
+            seed (int): random seed, default to None
+
+        Returns:
+            beta (float): the optimal beta, boundary length
+            info (np.ndarray): the information of the optimization
+        '''
         beta_u = get_density_matrix_boundary(dm0)[1]
         dm0_norm = numqi.gellmann.dm_to_gellmann_norm(dm0)
         np_rng = numqi.random.get_numpy_rng(seed)
@@ -202,7 +260,22 @@ class AutodiffCHAREE(torch.nn.Module):
         ret = (beta,history_info) if return_info else beta
         return ret
 
-    def get_numerical_range(self, op0, op1, num_theta=400, converge_tol=1e-5, num_repeat=1, use_tqdm=True, seed=None):
+    def get_numerical_range(self, op0:np.ndarray, op1:np.ndarray, num_theta:int=400, converge_tol:float=1e-5,
+                            num_repeat:int=1, use_tqdm:bool=True, seed:int|None=None):
+        r'''get the numerical range of the two Hermitian operators
+
+        Parameters:
+            op0 (np.ndarray): the first Hermitian operator
+            op1 (np.ndarray): the second Hermitian operator
+            num_theta (int): number of theta, default to 400
+            converge_tol (float): tolerance for the optimization, default to 1e-5
+            num_repeat (int): number of repeats for the optimization, default to 1
+            use_tqdm (bool): use tqdm, default to True
+            seed (int): random seed, default to None
+
+        Returns:
+            ret (np.ndarray): the numerical range of the two Hermitian operators, `shape=(num_theta,2)`
+        '''
         np_rng = numqi.random.get_numpy_rng(seed)
         N0 = self.dim0*self.dim1
         assert (op0.shape==(N0,N0)) and (op1.shape==(N0,N0))

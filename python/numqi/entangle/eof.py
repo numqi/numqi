@@ -97,9 +97,23 @@ def get_eof_2qubit(rho:np.ndarray):
 
 
 class EntanglementFormationModel(torch.nn.Module):
+    '''Calculate the entanglement of formation (EOF) of a bipartite pure state via optimization
+
+    Variational characterizations of separability and entanglement of formation
+    [doi-link](https://doi.org/10.1103/PhysRevA.64.052304)
+
+    TODO pade approximation to avoid 0*log(0) issue
+    '''
     def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None, zero_eps=1e-10):
-        # https://doi.org/10.1103/PhysRevA.64.052304
-        # TODO pade approximation to avoid 0*log(0) issue
+        r'''Initialize the model
+
+        Parameters:
+            dimA (int): the dimension of the first subsystem
+            dimB (int): the dimension of the second subsystem
+            num_term (int): the number of terms in the variational ansatz, `num_term` is bounded by (dimA*dimB)**2
+            rank (int): the rank of the density matrix
+            zero_eps (float): a small number to avoid log(0)
+        '''
         super().__init__()
         self.dimA = dimA
         self.dimB = dimB
@@ -107,9 +121,8 @@ class EntanglementFormationModel(torch.nn.Module):
             rank = dimA*dimB
         self.num_term = num_term
         assert num_term>=rank
-        # num_term bounded by (dimA*dimB)**2 https://doi.org/10.1103%2FPhysRevA.64.052304
         self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='sqrtm')
-        # sometimes fail when method='qr'
+        # TODO sometimes fail when method='qr'
         self.rank = rank
         self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
         # torch.finfo(torch.float64).eps #TODO
@@ -117,7 +130,13 @@ class EntanglementFormationModel(torch.nn.Module):
         self.EVL = None
         self.EVC = None
 
-    def set_density_matrix(self, dm0, zero_eps=1e-10):
+    def set_density_matrix(self, dm0:np.ndarray, zero_eps:float=1e-10):
+        r'''Set the density matrix
+
+        Parameters:
+            dm0 (np.ndarray): the density matrix, shape=(dimA*dimB,dimA*dimB)
+            zero_eps (float): a small number to determine the rank
+        '''
         assert dm0.shape == (self.dimA*self.dimB, self.dimA*self.dimB)
         assert np.abs(dm0 - dm0.T.conj()).max() < zero_eps
         assert abs(np.trace(dm0) - 1) < zero_eps
@@ -144,9 +163,23 @@ class EntanglementFormationModel(torch.nn.Module):
 
 
 class ConcurrenceModel(torch.nn.Module):
-    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None, zero_eps=1e-10):
-        # https://physics.stackexchange.com/a/46509/283720
-        # TODO use pade approximation to avoid sqrt(0) issue
+    '''Calculate the concurrence of a 2-qubit density matrix via optimization
+
+    What is the motivation for the definition of concurrence in quantum information?
+    [stackexchange-link](https://physics.stackexchange.com/a/46509/283720)
+
+    TODO use pade approximation to avoid sqrt(0) issue
+    '''
+    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None, zero_eps:float=1e-10):
+        r'''Initialize the model
+
+        Parameters:
+            dimA (int): the dimension of the first subsystem
+            dimB (int): the dimension of the second subsystem
+            num_term (int): the number of terms in the variational ansatz, `num_term` is bounded by (dimA*dimB)**2
+            rank (int): the rank of the density matrix
+            zero_eps (float): a small number to avoid sqrt(0)
+        '''
         super().__init__()
         self.dimA = dimA
         self.dimB = dimB
@@ -155,14 +188,19 @@ class ConcurrenceModel(torch.nn.Module):
         self.num_term = num_term
         assert num_term>=rank
         self.rank = rank
-        # num_term bounded by (dimA*dimB)**2 https://doi.org/10.1103%2FPhysRevA.64.052304
         self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='sqrtm')
         self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
         self.dm0 = None
         self.EVL = None
         self.EVC = None
 
-    def set_density_matrix(self, dm0, zero_eps=1e-10):
+    def set_density_matrix(self, dm0:np.ndarray, zero_eps:float=1e-10):
+        r'''Set the density matrix
+
+        Parameters:
+            dm0 (np.ndarray): the density matrix, shape=(dimA*dimB,dimA*dimB)
+            zero_eps (float): a small number to determine the rank
+        '''
         assert dm0.shape == (self.dimA*self.dimB, self.dimA*self.dimB)
         assert np.abs(dm0 - dm0.T.conj()).max() < zero_eps
         assert abs(np.trace(dm0) - 1) < zero_eps

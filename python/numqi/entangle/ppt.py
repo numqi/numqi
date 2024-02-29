@@ -5,11 +5,13 @@ from tqdm.auto import tqdm
 import scipy.optimize
 import scipy.sparse.linalg
 import cvxpy
+import matplotlib.pyplot as plt
 
 import numqi.gellmann
 
-from ._misc import get_density_matrix_boundary, _sdp_ree_solve, _check_input_rho_SDP
+from ._misc import get_density_matrix_boundary, _sdp_ree_solve, _check_input_rho_SDP, hf_interpolate_dm
 
+cp_tableau = ['#4c72b0', '#dd8452', '#55a868', '#c44e52', '#8172b3', '#937860', '#da8bc3', '#8c8c8c', '#ccb974', '#64b5cd']
 
 def get_ppt_numerical_range(op_list, direction, dim, return_info=False, use_tqdm=True):
     r'''get the PPT (positive partial transpose) numerical range of a list of operators
@@ -125,27 +127,25 @@ def get_ppt_boundary(dm, dim, dm_norm=None, within_dm=True):
     return beta_pt_l,beta_pt_u
 
 
-def is_ppt(rho, dim=None, eps=-1e-7, return_info=False):
+def is_ppt(rho:np.ndarray, dim:tuple[int], eps:float=-1e-7):
     '''Positive Partial Transpose (PPT)
+
+    [wiki/entanglement-witness](https://en.wikipedia.org/wiki/Entanglement_witness)
+
+    [wiki/Peres-Horodecki-criterion](https://en.wikipedia.org/wiki/Peres%E2%80%93Horodecki_criterion)
 
     Parameters:
         rho (np.ndarray): density matrix
         dim (tuple[int]): tuple of integers
         eps (float): threshold for the eigenvalues
-        return_info (bool): whether to return the list of eigenvalues
 
     Returns:
         tag (bool): whether rho is PPT
     '''
-    # Positive Partial Transpose (PPT)
-    # https://en.wikipedia.org/wiki/Entanglement_witness
-    # https://en.wikipedia.org/wiki/Peres%E2%80%93Horodecki_criterion
     N0 = rho.shape[0]
-    if dim is None:
-        tmp0 = int(np.sqrt(N0))
-        assert tmp0*tmp0==N0
-        dim = [tmp0,tmp0]
-    assert (len(dim)>1) and (rho.shape[1]==N0) and (np.prod(dim)==N0) and all(x>1 for x in dim)
+    assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1])
+    dim = numqi.utils.hf_tuple_of_int(dim)
+    assert (len(dim)>1) and (np.prod(dim)==rho.shape[0]) and all(x>1 for x in dim)
     def hf0(i):
         tmp0 = np.prod(dim[:i]) if i>0 else 1
         tmp1 = np.prod(dim[(i+1):]) if (i+1)<len(dim) else 1
@@ -156,11 +156,7 @@ def is_ppt(rho, dim=None, eps=-1e-7, return_info=False):
             EVL = np.linalg.eigvalsh(rhoT)[0]
         return EVL
     tmp0 = (hf0(i) for i in range(len(dim)))
-    if return_info:
-        tmp1 = list(tmp0)
-        ret = all(x>eps for x in tmp1), tmp1
-    else:
-        ret = all(x>eps for x in tmp0)
+    ret = all(x>eps for x in tmp0)
     return ret
 
 
@@ -321,3 +317,118 @@ def get_ppt_ree(rho, dimA, dimB, return_info=False, sqrt_order=3, pade_order=3, 
     prob = cvxpy.Problem(obj, constraint)
     ret = _sdp_ree_solve(rho, use_tqdm, cvx_rho, cvxP, prob, obj, return_info, is_single_item)
     return ret
+
+
+def get_dm_cross_section_boundary(op0:np.ndarray, op1:np.ndarray, num_point:int=101, dim:None|tuple[int]=None,
+                tag_eig:bool=False, tag_ppt:bool=True, tag_gppt:bool=False):
+    r'''Get the boundary of the cross section spanned by two Hermitian operators.
+
+    Parameters:
+        op0 (np.ndarray): Hermitian operator, `ndim=2`
+        op1 (np.ndarray): Hermitian operator, `ndim=2`
+        num_point (int): number of points to sample the boundary
+        dim (None|tuple[int]): the dimension of bipartite system, Required if `tag_ppt` or `tag_gppt` is `True`
+        tag_eig (bool): whether to calculate the eigenvalues of the interpolated density matrix
+        tag_ppt (bool): whether to calculate the PPT boundary
+        tag_gppt (bool): whether to calculate the generalized PPT boundary
+
+    Returns:
+        ret (dict): a dictionary containing the following keys:
+            theta_list (np.ndarray): the angles of the boundary points
+            beta_dm (np.ndarray): the boundary points of the cross section
+            theta_op (float): the angle of the plane spanned by `op0` and `op1`
+            eig_dm (np.ndarray): the eigenvalues of the interpolated density matrix
+            beta_ppt (np.ndarray): the boundary points of the PPT
+            beta_gppt (np.ndarray): the boundary points of the generalized PPT
+    '''
+    assert (op0.ndim==2) and (op0.shape[0]==op0.shape[1]) and (op0.shape==op1.shape)
+    assert np.abs(op0.conj().T - op0).max() < 1e-10
+    assert np.abs(op1.conj().T - op1).max() < 1e-10
+    theta_op,hf_plane = numqi.entangle.get_density_matrix_plane(op0, op1) #trace is ignored
+    if dim is None:
+        tag_ppt = False
+        tag_gppt = False
+    else:
+        assert len(dim)==2
+        dimA = int(dim[0])
+        dimB = int(dim[1])
+        assert op0.shape[0]==(dimA*dimB)
+
+    theta_list = np.linspace(0, 2*np.pi, num_point)
+    beta_dm = np.zeros_like(theta_list)
+    eig_dm = np.zeros((op0.shape[0], len(theta_list)), dtype=np.float64)
+    beta_ppt = np.zeros_like(theta_list)
+    beta_gppt = np.zeros_like(theta_list)
+    for ind0,x in enumerate(theta_list):
+        dm_target = hf_plane(x)
+        beta_dm[ind0] = get_density_matrix_boundary(dm_target)[1]
+        if tag_eig:
+            eig_dm[:,ind0] = np.linalg.eigvalsh(hf_interpolate_dm(dm_target, beta=beta_dm[ind0]))
+        if tag_ppt:
+            beta_ppt[ind0] = get_ppt_boundary(dm_target, (dimA, dimB))[1]
+        if tag_gppt:
+            beta_gppt[ind0] = get_generalized_ppt_boundary(dm_target, (dimA,dimB))
+    ret = dict(theta_list=theta_list, beta_dm=beta_dm, theta_op=theta_op)
+    if tag_eig:
+        ret['eig_dm'] = eig_dm
+    if tag_ppt:
+        ret['beta_ppt'] = beta_ppt
+    if tag_gppt:
+        ret['beta_gppt'] = beta_gppt
+    return ret
+
+
+def plot_dm_cross_section(beta_dm:np.ndarray, theta_op:float|None=None, label:tuple[str]|None=None, dim:int|None=None,
+            ax=None, tag_show_legend:bool=True, **kwargs:dict):
+    r'''Plot the boundary of the cross section spanned by two Hermitian operators.
+
+    see `numqi.entangle.get_dm_cross_section_boundary`
+
+    Parameters:
+        beta_dm (np.ndarray): the boundary length of the density matrix in the cross section
+        theta_op (float|None): the angle of the plane spanned by `op0` and `op1`
+        label (tuple[str]|None): the label of the plane and the boundary
+        dim (int|None): the dimension of the bipartite system, if provided, then the inscribed circle and the circumscribed circle will be plotted
+        ax (None|matplotlib.axes._subplots.AxesSubplot): the axes to plot, if `None`, then create a new figure
+        tag_show_legend (bool): whether to show the legend
+        kwargs (dict): additional boundary points to plot, the key will be used as label, value can be a 1d array or a dictionary of 1d arrays
+
+    Returns:
+        fig (matplotlib.figure.Figure): the figure
+        ax (matplotlib.axes._subplots.AxesSubplot): the axes
+    '''
+    if label is not None:
+        assert (len(label)==2) and isinstance(label[0], str) and isinstance(label[1], str)
+
+    if ax is not None:
+        fig = ax.get_figure()
+    else:
+        fig,ax = plt.subplots()
+    hf0 = lambda theta,r: (r*np.cos(theta), r*np.sin(theta))
+    if dim is not None:
+        assert isinstance(dim, int) and (dim>=2)
+        r_inner = np.sqrt(1/(2*dim*dim-2*dim))
+        r_outter = np.sqrt((dim-1)/(2*dim))
+        tmp0 = np.linspace(0, 2*np.pi, len(beta_dm))
+        ax.plot(*hf0(tmp0, r_inner), color=cp_tableau[1], linestyle='dashed')
+        ax.plot(*hf0(tmp0, r_outter), color=cp_tableau[1], linestyle='dashed')
+    ax.plot(*hf0(np.linspace(0, 2*np.pi, len(beta_dm)), beta_dm), label='DM', color=cp_tableau[0])
+    if theta_op is not None:
+        radius = 0.3
+        ax.plot([0, radius], [0, 0], linestyle=':', color=cp_tableau[2], label=(None if (label is None) else label[0]))
+        ax.plot([0, radius*np.cos(theta_op)], [0, radius*np.sin(theta_op)], color=cp_tableau[2],
+                    linestyle=':', label=(None if (label is None) else label[1]))
+    color_iter = iter(cp_tableau[3:])
+    for key,value in kwargs.items():
+        if isinstance(value, dict):
+            for k1,v1 in value.items():
+                v1 = np.asarray(v1)
+                assert v1.ndim==1
+                ax.plot(*hf0(np.linspace(0, 2*np.pi, len(v1)), v1), label=f'{key}({k1})', color=next(color_iter))
+        else:
+            value = np.asarray(value)
+            assert value.ndim==1
+            ax.plot(*hf0(np.linspace(0, 2*np.pi, len(value)), value), label=key, color=next(color_iter))
+    if tag_show_legend:
+        ax.legend()
+    return fig,ax

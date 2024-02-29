@@ -177,7 +177,8 @@ with torch.no_grad():
             beta_model.append(scipy.optimize.root_scalar(hf0, bracket=[0,r_outer]).root)
 beta_model = np.array(beta_model)
 print('#nan', np.isnan(beta_model).sum())
-fig,ax,_ = numqi.entangle.plot_bloch_vector_cross_section(op0, op1, (dimA,dimB), beta_cha=beta_model, num_point=201)
+info = numqi.entangle.get_dm_cross_section_boundary(op0, op1, num_point=num_point, dim=(dimA,dimB), tag_ppt=True)
+fig,ax = numqi.entangle.plot_dm_cross_section(info['beta_dm'], info['theta_op'], model=beta_model, PPT=info['beta_ppt'])
 ax.set_aspect('equal')
 fig.savefig('tbd00.png')
 

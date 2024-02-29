@@ -9,7 +9,7 @@ def test_tiles_sixparam_equivalent():
     dm_sixparam = numqi.entangle.load_upb('sixparam', tmp0, return_bes=True)[1]
     dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
 
-    model = numqi.entangle.DensityMatrixLocalUnitaryEquivalentModel(3, 3, num_term=1)
+    model = numqi.entangle.LocalUnitaryEquivalentModel(3, 3, num_term=1)
     model.set_density_matrix(dm_sixparam, dm_tiles)
     # theta_optim = numqi.optimize.minimize(model, num_repeat=3, print_every_round=1, tol=1e-15)
     tmp0 = [0, 0, 0, -0.729011064926899, -1.7599883993660514, -1.7599884089794073, 0, 0,
@@ -24,7 +24,7 @@ def test_pyramid_sixparam_equivalent():
     dm_sixparam = numqi.entangle.load_upb('sixparam', tmp0, return_bes=True)[1]
     dm_pyramid = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
 
-    model = numqi.entangle.DensityMatrixLocalUnitaryEquivalentModel(3, 3, num_term=1)
+    model = numqi.entangle.LocalUnitaryEquivalentModel(3, 3, num_term=1)
     model.set_density_matrix(dm_sixparam, dm_pyramid)
     # theta_optim = numqi.optimize.minimize(model, num_repeat=3, print_every_round=1, tol=1e-15)
     tmp0 = [-1.3617766992911065, -0.43429912791906067, 0.26613885602984894, 0.19735746689907954,
@@ -37,6 +37,6 @@ def test_pyramid_sixparam_equivalent():
     # tiles and pyramid are not LOCC-1 equivalent
     # dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
     # dm_pyramid = numqi.entangle.load_upb('pyramid', return_bes=True)[1]
-    # model = numqi.entangle.DensityMatrixLocalUnitaryEquivalentModel(3, 3, num_term=4)
+    # model = numqi.entangle.LocalUnitaryEquivalentModel(3, 3, num_term=4)
     # model.set_density_matrix(dm_tiles, dm_pyramid)
     # theta_optim = numqi.optimize.minimize(model, num_repeat=10, print_every_round=1, tol=1e-8)

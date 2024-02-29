@@ -23,14 +23,14 @@ def demo_ree_gellmann_random_dm():
     beta_ppt = numqi.entangle.get_ppt_boundary(dm_target, (dimA, dimB))[1]
 
     kwargs = dict(tol=1e-12, num_repeat=1, print_every_round=0)
-    model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='ree') #None meanns 2*dimA*dimB
+    model = numqi.entangle.AutodiffCHAREE((dimA, dimB), distance_kind='ree') #None meanns 2*dimA*dimB
     ree_cha = []
     for dm_target_i in tqdm(dm_target_list):
         model.set_dm_target(dm_target_i)
         ree_cha.append(numqi.optimize.minimize(model, **kwargs).fun)
     ree_cha = np.array(ree_cha)
 
-    model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='gellmann')
+    model = numqi.entangle.AutodiffCHAREE((dimA, dimB), distance_kind='gellmann')
     gellmann_cha = []
     for dm_target_i in tqdm(dm_target_list):
         model.set_dm_target(dm_target_i)
@@ -82,7 +82,7 @@ def demo_werner_gellmann():
     beta_u = numqi.entangle.get_density_matrix_boundary(dm_target)[1]
     beta_list = np.linspace(0, beta_u, 100)
     # z0 = numqi.entangle.hf_interpolate_dm(dm_target, beta=beta_u)
-    numqi.entangle.is_ppt(numqi.entangle.hf_interpolate_dm(dm_target, beta=beta_u))
+    numqi.entangle.is_ppt(numqi.entangle.hf_interpolate_dm(dm_target, beta=beta_u), (dim,dim))
     dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_target, beta=x) for x in beta_list]
 
     z0 = []
@@ -127,7 +127,7 @@ def demo_cha_gellmann():
 
     z0 = []
     for num_state in num_state_list:
-        model = numqi.entangle.AutodiffCHAREE(dimA, dimB, num_state=num_state, distance_kind='gellmann')
+        model = numqi.entangle.AutodiffCHAREE((dimA, dimB), num_state=num_state, distance_kind='gellmann')
         for dm_target_i in tqdm(dm_target_list):
             model.set_dm_target(dm_target_i)
             tmp0 = numqi.optimize.minimize(model, theta0='uniform', tol=1e-9, num_repeat=1, print_every_round=0).fun
@@ -161,7 +161,7 @@ def demo_werner_ree():
 
     ree_ppt = numqi.entangle.get_ppt_ree(dm_target_list, dim, dim)
 
-    model = numqi.entangle.AutodiffCHAREE(dim0=dim, dim1=dim, distance_kind='ree')
+    model = numqi.entangle.AutodiffCHAREE((dim,dim), distance_kind='ree')
     ree_cha = []
     for dm_target_i in tqdm(dm_target_list):
         model.set_dm_target(dm_target_i)
@@ -207,7 +207,7 @@ def demo_tiles_upb_bes():
     dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_target, beta=x, dm_norm=dm_norm) for x in beta_list]
     beta_ppt = numqi.entangle.get_ppt_boundary(dm_target, (dimA, dimB))[1]
 
-    model = numqi.entangle.AutodiffCHAREE(dimA, dimB, distance_kind='ree')
+    model = numqi.entangle.AutodiffCHAREE((dimA, dimB), distance_kind='ree')
     ree_cha = []
     for dm_target_i in tqdm(dm_target_list):
         model.set_dm_target(dm_target_i)

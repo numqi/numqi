@@ -1,12 +1,12 @@
-from ._misc import (hf_interpolate_dm, check_swap_witness, get_density_matrix_numerical_range,
-            get_density_matrix_boundary, get_density_matrix_plane, check_reduction_witness,
-            product_state_to_dm, get_quantum_negativity)
-from .upb import load_upb, upb_to_bes, upb_product
+from ._misc import (hf_interpolate_dm, check_swap_witness, get_dm_numerical_range,
+            get_density_matrix_plane, get_density_matrix_boundary, check_reduction_witness,
+            get_negativity, get_dm_cross_section_moment,
+            is_dm_cross_section_similar, group_dm_cross_section_moment)
+from .upb import (load_upb, upb_to_bes, get_upb_product,
+                  LocalUnitaryEquivalentModel, BESNumEigenModel, BESNumEigen3qubitModel)
 from .ppt import (get_ppt_numerical_range, get_ppt_boundary, is_ppt, get_generalized_ppt_boundary, is_generalized_ppt,
-                  cvx_matrix_xlogx, cvx_matrix_mlogx, get_ppt_ree)
+                  cvx_matrix_xlogx, cvx_matrix_mlogx, get_ppt_ree, get_dm_cross_section_boundary, plot_dm_cross_section)
 from .cha import CHABoundaryBagging, AutodiffCHAREE
-from .bes import (plot_bloch_vector_cross_section,
-            DensityMatrixLocalUnitaryEquivalentModel, BESNumEigenModel, BESNumEigen3qubitModel)
 from .pureb import PureBosonicExt
 from .pureb_quantum import QuantumPureBosonicExt
 from .symext import (SymmetricExtABkIrrepModel, is_ABk_symmetric_ext, is_ABk_symmetric_ext_naive,
@@ -18,7 +18,6 @@ from .eof import (get_concurrence_2qubit, get_concurrence_pure, get_eof_pure, ge
 from . import upb
 from . import ppt
 from . import cha
-from . import bes
 from . import pureb
 from . import pureb_quantum
 from . import symext

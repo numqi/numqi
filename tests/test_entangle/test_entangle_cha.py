@@ -15,7 +15,7 @@ def test_AutodiffCHAREE_werner():
         # dim=5, 10 seconds
         ree_analytical = np.array([numqi.state.get_Werner_ree(dim, x) for x in alpha_list])
 
-        model = numqi.entangle.AutodiffCHAREE(dim, dim, distance_kind='ree')
+        model = numqi.entangle.AutodiffCHAREE((dim, dim), distance_kind='ree')
         # num_repeat=1 should be good for most cases, to avoid unittest failure, use num_repeat=3
         kwargs = dict(theta0='uniform', tol=1e-12, num_repeat=3, print_every_round=0)
         ree_cha = []
@@ -29,13 +29,13 @@ def test_AutodiffCHAREE_werner():
 def test_AutodiffCHAREE_boundary():
     rho = numqi.entangle.load_upb('tiles', return_bes=True)[1]
     # rho_norm = numqi.gellmann.dm_to_gellmann_norm(rho)
-    model = numqi.entangle.AutodiffCHAREE(3, 3, distance_kind='ree')
+    model = numqi.entangle.AutodiffCHAREE((3, 3), distance_kind='ree')
     beta = model.get_boundary(rho, xtol=1e-4, threshold=1e-7, converge_tol=1e-10, num_repeat=3, use_tqdm=False)
     assert abs(beta-0.22792) < 5e-4 #fails sometimes for 3e-4
     # beta=0.8649*rho_norm=0.2279211623566359 https://arxiv.org/abs/1705.01523
     # beta=0.2279208149384356
 
-    model = numqi.entangle.AutodiffCHAREE(3, 3, distance_kind='gellmann')
+    model = numqi.entangle.AutodiffCHAREE((3, 3), distance_kind='gellmann')
     beta = model.get_boundary(rho, xtol=1e-4, threshold=1e-7, converge_tol=1e-10, num_repeat=3, use_tqdm=False)
     assert abs(beta-0.22792) < 5e-4
 
