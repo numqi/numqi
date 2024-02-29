@@ -113,22 +113,7 @@ nav:
       - tutorial/misc/channel_tomography.ipynb
       - tutorial/misc/optimal_povm.ipynb
   - API:
-    - state: api/state.md
-    - random: api/random.md
-    - gellmann: api/gellmann.md
     - dicke: api/dicke.md
-    - gate: api/gate.md
-    - simulator:
-      - core: api/sim.md
-      - state: api/sim_state.md
-      - density-matrix: api/sim_dm.md
-    - group:
-      - core: api/group.md
-      - Lie group: api/group_lie.md
-      - Symmetric group: api/group_sym.md
-      - Symmetric-Extension: api/group_symext.md
-      - GF2 Symplectic Group: api/group_spf2.md
-    - matrix space: api/matrix_space.md
     - entangle:
       - core: api/entangle.md
       - PPT-criteria: api/entangle_ppt.md
@@ -137,6 +122,22 @@ nav:
       - Convex-Hull-Approximation: api/entangle_cha.md
       - UPB-BES: api/entangle_upb.md
       - Pure-Bosonic-Extension: api/entangle_pureb.md
+    - gate: api/gate.md
+    - gellmann: api/gellmann.md
+    - group:
+      - core: api/group.md
+      - Lie group: api/group_lie.md
+      - Symmetric group: api/group_sym.md
+      - Symmetric-Extension: api/group_symext.md
+      - GF2 Symplectic Group: api/group_spf2.md
     - manifold: api/manifold.md
+    - matrix-space: api/matrix_space.md
+    - random: api/random.md
+    - simulator:
+      - core: api/sim.md
+      - state: api/sim_state.md
+      - density-matrix: api/sim_dm.md
+    - state: api/state.md
+    - unique-determine: api/unique_determine.md
     - utils: api/utils.md
   - misc: misc.md

@@ -6,3 +6,4 @@ from ._uda_udp import DetectUDModel, check_UD, find_optimal_UD
 
 from . import _uda_udp
 from . import _recovery
+from . import _internal

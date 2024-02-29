@@ -11,7 +11,14 @@ import numqi.optimize
 from ._internal import save_index_to_file, get_matrix_list_indexing
 
 class _UDAEigenvalueManifold(torch.nn.Module):
+    '''Eigenvalue manifold for UDA'''
     def __init__(self, dim:int, dtype:torch.dtype=torch.float32):
+        r'''initizalize the model
+
+        Parameters:
+            dim (int): dimension of the matrix
+            dtype (torch.dtype): data type of the parameters
+        '''
         super().__init__()
         assert dtype in {torch.float32, torch.float64}
         dim = int(dim)
@@ -28,7 +35,15 @@ class _UDAEigenvalueManifold(torch.nn.Module):
 
 
 class DetectUDModel(torch.nn.Module):
+    '''Model for detecting UDA or UDP'''
     def __init__(self, dim:int, is_uda:bool, dtype:str='float32'):
+        r'''initizalize the model
+
+        Parameters:
+            dim (int): dimension of the matrix
+            is_uda (bool): True for UDA, False for UDP
+            dtype (str): data type of the parameters, 'float32' or 'float64'
+        '''
         super().__init__()
         assert dtype in {'float32','float64'}
         self.dtype = torch.float32 if dtype=='float32' else torch.float64
@@ -43,10 +58,15 @@ class DetectUDModel(torch.nn.Module):
         self.matH = None
         self.mat_list_conj = None
 
-    def set_mat_list(self, mat_list):
-        # assume mat_list is Hermitian
-        # <A,H>=tr(A^\dag H)=tr(AH)=sum_ij (A_ji, H_ij)=sum_ij (A_ij^*, H_ij)
-        # mat_list: 3d-nparray, list of sparse
+    def set_mat_list(self, mat_list:np.ndarray|list):
+        r'''set the list of Hermitian matrices
+
+        $$ \langle A,H\rangle=Tr(A^\dag H)=tr(AH)=sum_ij (A_{ji}, H_{ij})=sum_{ij} (A_{ij}^*, H_{ij}) $$
+
+        Parameters:
+            mat_list (np.ndarray|list): list of Hermitian matrices, 3d-array or list of sparse matrix
+                assume mat_list is Hermitian
+        '''
         assert self.dim==mat_list[0].shape[0]
         dim = self.dim
         N0 = len(mat_list)
@@ -105,9 +125,32 @@ def _check_UD_one(is_uda, mat_list, num_repeat, converge_tol, early_stop_thresho
     return ret
 
 
-def check_UD(kind:str, mat_list, num_repeat:int, converge_tol:float=1e-5, early_stop_threshold:float=1e-2,
+def check_UD(kind:str, mat_list:np.ndarray|list, num_repeat:int, converge_tol:float=1e-5, early_stop_threshold:float=1e-2,
                 dtype:str='float32', num_worker:int=1, tag_single_thread:bool=True,
                 tag_print:int=0, return_model:bool=False, seed=None):
+    r'''Check if the given measurement scheme (`mat_list`, matrix subspace) is UDA or UDP
+
+    Parameters:
+        kind (str): 'uda' or 'udp'
+        mat_list (np.ndarray|list): list of Hermitian matrices, 3d-array or list of sparse matrix
+            assume mat_list is Hermitian. Support batch input, then mat_list is a list of 3d-array or list of sparse matrix.
+            For batch input, if `num_worker>1`, the function will use multi-processing to check each item in `mat_list`.
+        num_repeat (int): number of repeat for optimization
+        converge_tol (float): tolerance for convergence
+        early_stop_threshold (float): threshold for early stopping
+        dtype (str): data type of the parameters, 'float32' or 'float64'
+        num_worker (int): number of workers
+        tag_single_thread (bool): if True, use single thread for each worker
+        tag_print (int): 0 for no print, 1 for print only the final result, 2 for print every round
+        return_model (bool): if True, return the model
+        seed (int): random seed
+
+    Returns:
+        tag (bool): True if the measurement scheme is UD. For batch input, it is a list of (tag, loss, model)
+        loss (float): loss value
+        parameter (np.ndarray): parameter of the model
+    '''
+    # theta_optim.fun>early_stop_threshold, theta_optim.fun, theta_optim.x
     kind = kind.lower()
     assert kind in {'uda','udp'}
     is_uda = kind=='uda'
@@ -222,10 +265,36 @@ def _find_optimal_UD_one(is_uda, mat_list, num_repeat, num_init_sample, indexF, 
     return ret
 
 
-def find_optimal_UD(kind:str, num_round:int, mat_list, num_repeat:int, num_init_sample:int=0, indexF=None,
-            early_stop_threshold:float=0.01, converge_tol:float=1e-5, last_converge_tol=None, last_num_repeat=None,
+def find_optimal_UD(kind:str, num_round:int, mat_list:np.ndarray|list, num_repeat:int, num_init_sample:int=0, indexF:None|tuple[int]=None,
+            early_stop_threshold:float=0.01, converge_tol:float=1e-5, last_converge_tol:None|float=None, last_num_repeat:None|int=None,
             dtype:str='float32', num_worker:int=1, key:(str|None)=None, file:(str|None)=None,
             tag_single_thread:bool=True, tag_print:bool=False, seed=None):
+    r'''Find the optimal measurement scheme for UDA or UDP
+
+    Parameters:
+        kind (str): 'uda' or 'udp'
+        num_round (int): number of rounds
+        mat_list (np.ndarray|list): list of Hermitian matrices, 3d-array or list of sparse matrix
+            assume mat_list is Hermitian.  Support batch input, then mat_list is a list of 3d-array or list of sparse matrix.
+            For batch input, if `num_worker>1`, the function will use multi-processing to check each item in `mat_list`.
+        num_repeat (int): number of repeat for optimization
+        num_init_sample (int): number of initial samples
+        indexF (None|tuple[int]): index of fixed items
+        early_stop_threshold (float): threshold for early stopping
+        converge_tol (float): tolerance for convergence
+        last_converge_tol (None|float): tolerance for convergence in the last round
+        last_num_repeat (None|int): number of repeat for optimization in the last round
+        dtype (str): data type of the parameters, 'float32' or 'float64'
+        num_worker (int): number of workers
+        key (str): key for saving the result
+        file (str): file for saving the result
+        tag_single_thread (bool): if True, use single thread for each worker
+        tag_print (bool): if True, print the result
+        seed (int): random seed
+
+    Returns:
+        ret (list[int]|list[list[int]]): list of index of the optimal measurement scheme. For batch input, it is a list of list of index.
+    '''
     kind = kind.lower()
     assert kind in {'uda', 'udp'}
     is_uda = kind=='uda'
