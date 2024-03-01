@@ -21,7 +21,7 @@ theme:
 plugins:
   search:
   mkdocs-jupyter:
-    include: ["*.ipynb"] # Default: ["*.py", "*.ipynb"]
+    include: ["foundation/**/*.ipynb", "application/**/*.ipynb"] # Default: ["*.py", "*.ipynb"]
     execute: true
   mkdocstrings:
     default_handler: python
@@ -52,66 +52,70 @@ extra_javascript:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Tutorial:
-    - tutorial/get_started.ipynb
-    - tutorial/state.ipynb
-    - tutorial/gellmann.ipynb
-    - tutorial/dicke_basis.ipynb
-    - tutorial/random.ipynb
-    - tutorial/channel_capacity_1_inf.ipynb
-    - optimize:
-      - tutorial/optimize/basic.ipynb
-      - tutorial/optimize/wiki-test-function.ipynb
-      - tutorial/optimize/adam-vs-lbfgs.ipynb
-      - tutorial/optimize/wiki-test-function-ALM.ipynb
-    - manifold:
-      - tutorial/manifold/trivialization.ipynb
-      - tutorial/manifold/basic_sphere.ipynb
-      - tutorial/manifold/basic_stiefel.ipynb
-    - matrix space:
-      - tutorial/matrix_space/numerical_range.ipynb
-      - tutorial/matrix_space/numerical_range1.ipynb
-      - tutorial/matrix_space/space_schmidt_rank.ipynb
-      - tutorial/matrix_space/space_schmidt_rank_real.ipynb
-    - group:
-      - tutorial/group/basic.ipynb
-      - tutorial/group/young-tableaux.ipynb
-      - tutorial/group/symext.ipynb
-      - Symplectic-Group-F2: tutorial/group/spf2.md
-      - tutorial/group/pauli.ipynb
-      - tutorial/group/clifford.ipynb
-    - quantum error correction:
-      - tutorial/qecc/basic.md
-      - tutorial/qecc/varqecc.ipynb
-      - tutorial/qecc/qecc733.ipynb
-    - simulator:
-      - tutorial/simulator/basic.ipynb
-      - tutorial/simulator/customized_gate.ipynb
-    - entanglement:
-      - tutorial/entangle/dm_numerical_range.ipynb
-      - tutorial/entangle/dm_cross_section.ipynb
-      - tutorial/entangle/basic.ipynb
-      - tutorial/entangle/advanced00.ipynb
-      - "Entanglement: Advanced 1": tutorial/entangle/advanced01.md
-      - "Entanglement: Advanced 2": tutorial/entangle/advanced02.md
-      - tutorial/entangle/cha.ipynb
-      - tutorial/entangle/various_JANR.ipynb
-      - tutorial/entangle/sym_bos_ext.ipynb
-      - tutorial/entangle/pureb.ipynb
-      - tutorial/entangle/entanglement-of-formation.ipynb
-    - unique-determine:
-      - tutorial/unique_determine/basic.ipynb
-      - tutorial/unique_determine/advanced00.ipynb
-      - tutorial/unique_determine/advanced01.ipynb
-    - optimal-control:
-      - dynamic simulation: tutorial/optimal_control/simulate_dynamics.ipynb
-    - tutorial/maxent.ipynb
-    - tutorial/query_grover.ipynb
-    - misc:
-      - tutorial/misc/gate_decomposition.ipynb
-      - tutorial/misc/state_tomography.ipynb
-      - tutorial/misc/channel_tomography.ipynb
-      - tutorial/misc/optimal_povm.ipynb
+  - Foundation:
+    - Group:
+      - foundation/group/basic.ipynb
+      - foundation/group/young-tableaux.ipynb
+      - foundation/group/symext.ipynb
+      - Symplectic-Group-F2: foundation/group/spf2.md
+      - foundation/group/pauli.ipynb
+      - foundation/group/clifford.ipynb
+    - Manifold:
+      - foundation/manifold/trivialization.ipynb
+      - foundation/manifold/basic_sphere.ipynb
+      - foundation/manifold/basic_stiefel.ipynb
+    - Matrix space:
+      - foundation/matrix_space/numerical_range.ipynb
+      - foundation/matrix_space/numerical_range1.ipynb
+      - foundation/matrix_space/space_schmidt_rank.ipynb
+      - foundation/matrix_space/space_schmidt_rank_real.ipynb
+    - Optimization:
+      - foundation/optimize/basic.ipynb
+      - foundation/optimize/wiki-test-function.ipynb
+      - foundation/optimize/adam-vs-lbfgs.ipynb
+      - foundation/optimize/wiki-test-function-ALM.ipynb
+    - foundation/misc/random.ipynb
+    - foundation/misc/gellmann.ipynb
+    - foundation/misc/dicke.ipynb
+  - Application:
+    - Get started:
+      - application/get_started/overview.md
+      - application/get_started/quantum_state.ipynb
+    - Geometry of quantum state:
+      - application/geometry/numerical_range_dm.ipynb
+      - application/geometry/bloch_vector.ipynb
+    - Entanglement:
+      - application/entangle/bipartite.ipynb
+      - application/entangle/multipartite.ipynb
+      - application/entangle/measure.ipynb
+      - Detection Method:
+        - application/entangle/overview_method.ipynb
+        - application/entangle/cha.ipynb
+        - application/entangle/sym_bos_ext.ipynb
+        - application/entangle/pureb.ipynb
+        - application/entangle/boundary_method.ipynb
+    - Quantum error correction:
+      - application/qecc/basic.md
+      - application/qecc/varqecc.ipynb
+      - application/qecc/qecc733.ipynb
+    - Quantum tomography:
+      - application/tomography/state_tomography.ipynb
+      - application/tomography/channel_tomography.ipynb
+      - application/tomography/optimal_povm.ipynb
+      - Pure state tomography:
+        - application/tomography/basic.ipynb
+        - application/tomography/advanced00.ipynb
+        - application/tomography/advanced01.ipynb
+    - Quantum circuit:
+      - application/circuit/basic.ipynb
+      - application/circuit/customized_gate.ipynb
+      - application/circuit/gate_decomposition.ipynb
+    - Quantum control:
+      - application/control/simulate_dynamics.ipynb
+    - Quantum communication:
+      - application/communication/channel_capacity_1_inf.ipynb
+    - application/misc/maxent.ipynb
+    - application/misc/query_grover.ipynb
   - API:
     - dicke: api/dicke.md
     - entangle:
