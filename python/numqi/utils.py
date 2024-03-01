@@ -368,3 +368,33 @@ def get_tetrahedron_POVM(num_qubit:int=1):
     for _ in range(num_qubit-1):
         ret = np.einsum(ret, [0,1,2], mat, [3,4,5], [0,3,1,4,2,5], optimize=True).reshape(-1, ret.shape[1]*2, ret.shape[2]*2)
     return ret
+
+
+def is_positive_semi_definite(np0:np.ndarray, shift:float=0.0, hermitian_eps:float|None=None):
+    '''check whether a matrix is positive semi-definite.
+    Cholesky decomposition is used to check the positive semi-definite property.
+
+    Determining whether a symmetric matrix is positive-definite
+    [stackexchange-link](https://math.stackexchange.com/a/13311)
+
+    A practical way to check if a matrix is positive-definite
+    [stackexchange-link](https://math.stackexchange.com/a/87538)
+
+    Parameters:
+        np0 (np.ndarray): matrix, must be Hermitian
+        shift (float): shift the matrix by a scalar, e.g. `shift=1e-10` or `shift=-1e-10`
+        hermitian_eps (float|None): threshold for the Hermitian property, raise AssertionError if fail. if `None`, then skip the check
+
+    Returns:
+        tag (bool): whether the matrix is positive semi-definite
+    '''
+    if hermitian_eps is not None:
+        assert np.abs(np0-np0.T.conj()).max() < hermitian_eps
+    if shift!=0:
+        np0 = np0 + shift*np.eye(np0.shape[0])
+    try:
+        np.linalg.cholesky(np0)
+        ret = True
+    except np.linalg.LinAlgError:
+        ret = False
+    return ret

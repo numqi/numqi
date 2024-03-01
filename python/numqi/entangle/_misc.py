@@ -3,13 +3,11 @@ import scipy.sparse.linalg
 import scipy.linalg
 import scipy.integrate
 from tqdm.auto import tqdm
-import matplotlib.pyplot as plt
 
 import numqi.gellmann
 import numqi.matrix_space
 import numqi.utils
 
-# TODO docs/api
 # TODO rename _density_matrix to _dm
 
 def _ree_bisection_solve(hf0, x0, x1, xtol, threshold, use_tqdm):
@@ -184,13 +182,13 @@ def check_reduction_witness(rho:np.ndarray, dim:tuple[int], eps:float=-1e-7):
     Parameters:
         rho (np.ndarray): density matrix, `ndim=2`
         dim (tuple[int]): dimension of the density matrix, `(dimA,dimB,dimC,...)`
-        eps (float): threshold for the reduction witness
+        eps (float): threshold for the reduction witness. if min(eig(X))>eps, then we say X is positive
 
     Returns:
         ret (bool): whether the density matrix passes the reduction criterion
     '''
     N0 = rho.shape[0]
-    assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1])
+    assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1]) and (np.abs(rho-rho.T.conj()).max()<1e-10)
     dim = numqi.utils.hf_tuple_of_int(dim)
     assert (len(dim)>1) and (np.prod(dim)==rho.shape[0]) and all(x>1 for x in dim)
     def hf0(i):
@@ -202,12 +200,9 @@ def check_reduction_witness(rho:np.ndarray, dim:tuple[int], eps:float=-1e-7):
             tmp3 = np.kron(np.eye(tmp0), tmp3)
         if tmp1!=1:
             tmp3 = np.kron(tmp3, np.eye(tmp1))
-        if N0>=5: #5 is chosen intuitively
-            EVL = scipy.sparse.linalg.eigsh(tmp3-rho, k=1, sigma=None, which='SA', return_eigenvectors=False)[0]
-        else:
-            EVL = np.linalg.eigvalsh(tmp3-rho).min()
-        return EVL
-    ret = all(hf0(i)>eps for i in range(len(dim)))
+        ret = numqi.utils.is_positive_semi_definite(tmp3-rho, shift=-eps)
+        return ret
+    ret = all(hf0(i) for i in range(len(dim)))
     return ret
 
 

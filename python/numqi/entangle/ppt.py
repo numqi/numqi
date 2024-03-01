@@ -8,6 +8,7 @@ import cvxpy
 import matplotlib.pyplot as plt
 
 import numqi.gellmann
+import numqi.utils
 
 from ._misc import get_density_matrix_boundary, _sdp_ree_solve, _check_input_rho_SDP, hf_interpolate_dm
 
@@ -137,26 +138,22 @@ def is_ppt(rho:np.ndarray, dim:tuple[int], eps:float=-1e-7):
     Parameters:
         rho (np.ndarray): density matrix
         dim (tuple[int]): tuple of integers
-        eps (float): threshold for the eigenvalues
+        eps (float): threshold for the eigenvalues, if min(eig(X))>=eps, then X is positive semi-definite
 
     Returns:
         tag (bool): whether rho is PPT
     '''
     N0 = rho.shape[0]
-    assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1])
+    assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1]) and (np.abs(rho-rho.T.conj()).max()<=1e-10)
     dim = numqi.utils.hf_tuple_of_int(dim)
     assert (len(dim)>1) and (np.prod(dim)==rho.shape[0]) and all(x>1 for x in dim)
     def hf0(i):
         tmp0 = np.prod(dim[:i]) if i>0 else 1
         tmp1 = np.prod(dim[(i+1):]) if (i+1)<len(dim) else 1
         rhoT = rho.reshape(tmp0,dim[i],tmp1,tmp0,dim[i],tmp1).transpose(0,4,2,3,1,5).reshape(N0,N0)
-        if N0>=5: #5 is chosen intuitively
-            EVL = scipy.sparse.linalg.eigsh(rhoT, k=1, sigma=None, which='SA', return_eigenvectors=False)[0]
-        else:
-            EVL = np.linalg.eigvalsh(rhoT)[0]
-        return EVL
-    tmp0 = (hf0(i) for i in range(len(dim)))
-    ret = all(x>eps for x in tmp0)
+        ret = numqi.utils.is_positive_semi_definite(rhoT, shift=-eps)
+        return ret
+    ret = all(hf0(i) for i in range(len(dim)))
     return ret
 
 
@@ -172,7 +169,8 @@ def _is_generalized_ppt_dim_list(num_partite):
 def is_generalized_ppt(rho, dim, return_info=False):
     '''Generalized Positive Partial Transpose (PPT)
 
-    doi-link: doi.org/10.1016/S0375-9601(02)01538-4
+    The generalized partial transposition criterion for separability of multipartite quantum states
+    [doi-link](https://doi.org/10.1016/S0375-9601%2802%2901538-4)
 
     Parameters:
         rho (np.ndarray): density matrix

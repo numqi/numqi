@@ -6,8 +6,6 @@ import torch
 
 import numqi
 
-from utils import is_positive_semi_definite
-
 if torch.get_num_threads()!=1:
     torch.set_num_threads(1)
 
@@ -54,7 +52,7 @@ if __name__=='__main__':
         print(f"k={haar_k}")
         tmp0 = [numqi.random.rand_density_matrix(dimA*dimB, k=haar_k, seed=np_rng) for _ in range(num_sample)]
         dm_list.append(tmp0)
-        ret_ppt.append([is_positive_semi_definite(x.reshape(dimA,dimB,dimA,dimB).transpose(0,3,2,1).reshape(dimA*dimB,dimA*dimB)) for x in tmp0])
+        ret_ppt.append([numqi.utils.is_positive_semi_definite(x.reshape(dimA,dimB,dimA,dimB).transpose(0,3,2,1).reshape(dimA*dimB,dimA*dimB)) for x in tmp0])
         ret_cha.append(get_cha_distance(tmp0, model_kwargs, kwargs, num_worker=num_worker))
     ret_ppt = np.array(ret_ppt)
     ret_cha = np.stack(ret_cha)

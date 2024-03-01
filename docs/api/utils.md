@@ -47,3 +47,7 @@
 ::: numqi.utils.get_tetrahedron_POVM
     options:
       heading_level: 2
+
+::: numqi.utils.is_positive_semi_definite
+    options:
+      heading_level: 2

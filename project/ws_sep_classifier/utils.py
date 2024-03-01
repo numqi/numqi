@@ -90,18 +90,6 @@ def plot_bloch_vector_plane(model, op0, op1, dim, num_theta=500, tag_ppt=True, f
     return fig,ax
 
 
-def is_positive_semi_definite(np0):
-    # https://math.stackexchange.com/a/13311
-    # https://math.stackexchange.com/a/87538
-    # Sylvester's criterion
-    try:
-        np.linalg.cholesky(np0)
-        ret = True
-    except np.linalg.LinAlgError:
-        ret = False
-    return ret
-
-
 def rand_npt_entangle_state(dim, num_sample, haar_k=None, witness_list=None, seed=None):
     np_rng = numqi.random.get_numpy_rng(seed)
     dimA,dimB = dim
@@ -116,7 +104,7 @@ def rand_npt_entangle_state(dim, num_sample, haar_k=None, witness_list=None, see
         rho = numqi.random.rand_density_matrix(dimA*dimB, k=haar_k, seed=np_rng)
         dm_list.append(rho)
         rho_pt = rho.reshape(dimA,dimB,dimA,dimB).transpose(0,3,2,1).reshape(dimA*dimB,dimA*dimB)
-        if not is_positive_semi_definite(rho_pt):
+        if not numqi.utils.is_positive_semi_definite(rho_pt):
             ent_list.append(rho)
             if ppt_tag is not None:
                 ppt_tag.append(False)
