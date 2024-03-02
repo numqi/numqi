@@ -1,4 +1,4 @@
-# numqi
+# NumQI
 
 **WARNING**: the package is still under development, the documentation page is for preview only.
 
@@ -50,44 +50,30 @@ Generally, the application modules are implemented based on the core modules. Fo
 
 *PS*: Stay relaxing if none of these terminologies make sense, I will (try to) explain these words in the following pages.
 
-## Installation
+## quicksta
 
-(TODO, when the repo `numqi` is public available) The following command should be okay for `win/mac/linux`.
+## Quickstart
 
 ```bash
 pip install numqi
 # TODO upload to pypi.org
 ```
 
-Since `numqi` is still not public available right now, please download the source code and install it manually.
-
-```bash
-git clone git@github.com:husisy/numqi.git
-cd numqi
-pip install .
-```
-
-test whether succuessfully installed (run it in `python/ipython` REPL)
-
-```python
-import numqi
-```
-
-A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangle or not using positive partial transpose (PPT) criteria.
+Detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangled or not using positive partial transpose (PPT) criteria.
 
 ```python
 import numqi
 bell_state = numqi.state.Werner(d=2, alpha=1)
-print(bell_state) #a numpy array
+print(bell_state)
 # [[ 0.   0.   0.   0. ]
 #  [ 0.   0.5 -0.5  0. ]
 #  [ 0.  -0.5  0.5  0. ]
 #  [ 0.   0.   0.   0. ]]
-print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable state, False is entangle state (small probability also return True)
+print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable, False if entangled
 # False
 ```
 
-`numqi` also include a `numpy` based quantum simulator. Let's try a "non-trival" quantum circuit (we will re-visit this circuit in quantum error correction section)
+Let's try a "non-trival" quantum circuit (Five-qubit error correcting code)
 
 ```python
 import numpy as np
@@ -105,10 +91,9 @@ circ.cy(0, 2)
 circ.cx(0, 3)
 circ.cx(0, 4)
 
-# numqi store quantum state using numpy array
-initial_state = np.zeros(2**5, dtype=np.complex128)
-initial_state[0] = 1
-final_state = circ.apply_state(initial_state)
+q0 = np.zeros(2**5, dtype=np.complex128)
+q0[0] = 1
+q1 = circ.apply_state(q0)
 ```
 
 ## Related Packages
@@ -128,3 +113,5 @@ final_state = circ.apply_state(initial_state)
 13. [github/torchquantum](https://github.com/mit-han-lab/torchquantum)
 14. [github/pysme](https://github.com/CQuIC/pysme)
 15. [github/quantumgroup](https://quantumghent.github.io/)
+16. [github/qibo](https://github.com/qiboteam/qibo)
+17. [github/quimb](https://quimb.readthedocs.io/en/latest/)

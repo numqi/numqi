@@ -1,4 +1,4 @@
-# installation
+# Installation
 
 (TODO, when the repo `numqi` is public available) The following command should be okay for `win/mac/linux`
 
