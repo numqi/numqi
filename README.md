@@ -33,6 +33,7 @@ mindmap
             PureB ext
             irrep symext
             PPT
+            CHA
          qec
             VarQEC
          maximum entropy
