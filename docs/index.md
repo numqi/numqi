@@ -50,8 +50,6 @@ Generally, the application modules are implemented based on the core modules. Fo
 
 *PS*: Stay relaxing if none of these terminologies make sense, I will (try to) explain these words in the following pages.
 
-## quicksta
-
 ## Quickstart
 
 ```bash

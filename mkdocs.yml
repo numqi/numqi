@@ -84,15 +84,16 @@ nav:
     - Geometry of quantum state:
       - application/geometry/numerical_range_dm.ipynb
       - application/geometry/bloch_vector.ipynb
-    - Entanglement:
+    - Quantum entanglement:
       - application/entangle/bipartite.ipynb
       - application/entangle/multipartite.ipynb
       - application/entangle/measure.ipynb
-      - Detection Method:
+      - Detection method:
         - application/entangle/overview_method.ipynb
         - application/entangle/cha.ipynb
         - application/entangle/sym_bos_ext.ipynb
         - application/entangle/pureb.ipynb
+        - application/entangle/gme_subspace.ipynb
         - application/entangle/boundary_method.ipynb
     - Quantum error correction:
       - application/qecc/basic.md
@@ -102,7 +103,7 @@ nav:
       - application/tomography/state_tomography.ipynb
       - application/tomography/channel_tomography.ipynb
       - application/tomography/optimal_povm.ipynb
-      - Pure state tomography:
+      - Pure-state tomography:
         - application/tomography/basic.ipynb
         - application/tomography/advanced00.ipynb
         - application/tomography/advanced01.ipynb
