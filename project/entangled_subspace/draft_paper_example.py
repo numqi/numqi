@@ -383,6 +383,15 @@ def demo_misc00():
     theta_optim = numqi.optimize.minimize(model,**kwargs)
     print(f'numerical result = {theta_optim.fun}')
 
+    rho_bes = numqi.entangle.load_upb('genshifts', 3, return_bes=True)[1]
+    EVL,EVC = np.linalg.eigh(rho_bes)
+    matrix_subspace = (EVC[:, EVL>1e-4]).reshape(2,2,2,-1).transpose(3,0,1,2)
+    model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((2,2,2), rank=1)
+    model.set_target(matrix_subspace)
+    kwargs = dict(theta0='uniform', num_repeat=3, tol=1e-12, print_every_round=0)
+    theta_optim = numqi.optimize.minimize(model,**kwargs)
+    print(f'numerical result = {theta_optim.fun}') #0.08144134645630774
+
 
 def benchmark_is_ABC_completely_entangled_subspace():
     case_list = [(2,2,2,2), (2,2,3,2), (2,2,4,2), (2,2,5,2), (2,2,6,2), (2,2,7,2),
