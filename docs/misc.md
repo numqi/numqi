@@ -74,7 +74,8 @@ model name
     * [ ] numerical range
     * [ ] jupyter notebook: numqi.optimize.minimize_adam
     * [ ] [arxiv-link](https://arxiv.org/abs/quant-ph/0301152) The Bloch Vector for N-Level Systems fig2
-    * [ ] manifold
+    * [ ] manifold, add trivialization map for each model
+    * [ ] check is there any notes in overleaf which should be added to the documentation
 6. [ ] learn from QETLAB
 7. [ ] make a conda-forge package [link](https://conda-forge.org/docs/maintainer/adding_pkgs.html#the-staging-process)
 8. [x] go through cvxquad [github-link](https://github.com/hfawzi/cvxquad) and replace `numqi.entangle.qetlab` module [arxiv-link](https://arxiv.org/abs/1705.00812)
