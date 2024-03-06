@@ -123,3 +123,28 @@ model = DensityMatrixGMEModel([dimA,dimB], num_ensemble=32, rank=rank, CPrank=CP
 model.set_density_matrix(rho)
 loss = model()
 theta_optim = numqi.optimize.minimize(model, num_repeat=10, tol=1e-10)
+
+
+## upb
+rho_bes = numqi.entangle.load_upb('tiles', return_bes=True)[1]
+alpha_list = np.linspace(0,1,32)[1:-1]
+dim = 3
+num_ensemble = 27
+rank = 9
+
+model = DensityMatrixGMEModel([dim,dim], num_ensemble, rank)
+ret = []
+for alpha_i in tqdm(alpha_list):
+    model.set_density_matrix(numqi.entangle.hf_interpolate_dm(rho_bes, alpha=alpha_i))
+    ret.append(numqi.optimize.minimize(model, num_repeat=3, tol=1e-10, print_every_round=0).fun)
+ret = np.array(ret)
+
+fig,ax = plt.subplots()
+ax.plot(alpha_list, ret)
+ax.axvline(0.8647, color='k', linestyle='--')
+ax.set_yscale('log')
+fig.savefig('tbd00.png', dpi=100)
+
+
+## stiefel manifold, polar decomposition
+# https://openreview.net/forum?id=5mtwoRNzjm
