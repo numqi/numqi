@@ -62,7 +62,7 @@ class DensityMatrixGMEModel(torch.nn.Module):
         matX = self.manifold_stiefel()
         psi_list = [x() for x in self.manifold_psi]
         if self.CPrank>1:
-            coeff = self.manifold_coeff().reshape(self.num_ensemble, self.CPrank)
+            coeff = self.manifold_coeff().reshape(self.num_ensemble, self.CPrank).to(matX.dtype)
             psi_list = [x.reshape(self.num_ensemble,self.CPrank,-1) for x in psi_list]
             psi_conj_list = [x.conj().resolve_conj() for x in psi_list]
             psi_psi = self.contract_psi_psi(coeff, coeff, *psi_list, *psi_conj_list).real
@@ -124,6 +124,18 @@ model.set_density_matrix(rho)
 loss = model()
 theta_optim = numqi.optimize.minimize(model, num_repeat=10, tol=1e-10)
 
+
+ret1 = []
+ret2 = []
+model1 = DensityMatrixGMEModel([dimA,dimB], num_ensemble=32,rank=dimA*dimB, CPrank=1)
+model2 = DensityMatrixGMEModel([dimA,dimB], num_ensemble=32,rank=dimA*dimB, CPrank=2)
+kwargs = dict(num_repeat=3, tol=1e-10, print_every_round=8)
+for alpha_i in np.linspace(0,1,32)[1:-1]:
+    tmp0 = (1-alpha_i)*np.eye(dimA*dimB)/(dimA*dimB) + alpha_i * rho
+    model1.set_density_matrix(tmp0)
+    ret1.append(numqi.optimize.minimize(model1, **kwargs).fun)
+    model2.set_density_matrix(tmp0)
+    ret2.append(numqi.optimize.minimize(model2, **kwargs).fun)
 
 ## upb
 rho_bes = numqi.entangle.load_upb('tiles', return_bes=True)[1]
