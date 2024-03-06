@@ -625,7 +625,7 @@ def to_discrete_probability_softmax(theta):
     return ret
 
 class Stiefel(torch.nn.Module):
-    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method:str='qr',
+    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method:str='polar',
                 requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''Stiefel manifold
 
