@@ -20,6 +20,10 @@
     options:
       heading_level: 2
 
+::: numqi.state.Dicke
+    options:
+      heading_level: 2
+
 ::: numqi.state.get_qubit_dicke_state_GME
     options:
       heading_level: 2

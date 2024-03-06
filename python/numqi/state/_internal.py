@@ -3,6 +3,8 @@ import scipy.special
 
 import numqi.utils
 
+from numqi.dicke import Dicke
+
 def W(n:int):
     r'''get the W-state [wiki-link](https://en.wikipedia.org/wiki/W_state)
 
@@ -101,6 +103,7 @@ def Bell(i:int=0):
     else:
         ret = np.array([0,1,-1,0], dtype=np.float64) / np.sqrt(2)
     return ret
+
 
 def get_qubit_dicke_state_GME(n:int, k:int):
     r'''get the geometric measure of entanglement for the Dicke state
@@ -376,3 +379,5 @@ def get_bes3x3_Horodecki1997(a:float):
     ret[[6,8],[6,8]] = (1+a)/(16*a+2)
     ret[[6,8], [8,6]] = np.sqrt(1-a*a)/(16*a+2)
     return ret
+
+
