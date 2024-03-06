@@ -645,6 +645,7 @@ class Stiefel(torch.nn.Module):
                 torch.complex64 / torch.complex128: complex Stiefel matrix
             device (torch.device): device of the parameters.
         '''
+        # Euler-Hurwitz angles parameterization (https://journals.aps.org/pra/abstract/10.1103/PhysRevA.80.042301) TODO
         super().__init__()
         assert (dim>=2) and (rank>=1) and (rank<=dim)
         assert dtype in {torch.float32,torch.float64,torch.complex64,torch.complex128}
