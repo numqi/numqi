@@ -3,6 +3,35 @@ import numpy as np
 import scipy.special
 import torch
 
+
+def _dicke_hf0(klist, base, dim, num_qudit):
+    ret = np.zeros(dim**num_qudit, dtype=np.float64)
+    tmp0 = [int(x) for x,y in enumerate(klist) for _ in range(y)]
+    tmp1 = np.unique(np.array(list(itertools.permutations(tmp0)), dtype=np.int64), axis=0)
+    ret[tmp1 @ base] = 1/np.sqrt(len(tmp1))
+    return ret
+
+
+def Dicke(*klist:tuple[int]):
+    r'''return Dicke state for n qudits
+
+    see [arxiv-link](http://arxiv.org/abs/1904.07358) for more information
+
+    Parameters:
+        klist (tuple[int]): list of int, each int is the number of qudit in each level, `dim=len(klist)`, `num_qudit=sum(klist)`
+
+    Returns:
+        ret (np.ndarray): shape (dim**num_qudit)
+    '''
+    klist = tuple(int(x) for x in klist)
+    assert (len(klist)>=2) and all(x>=0 for x in klist)
+    dim = len(klist)
+    num_qudit = sum(klist)
+    base = dim**(np.arange(num_qudit)[::-1])
+    ret = _dicke_hf0(klist, base, dim, num_qudit)
+    return ret
+
+
 def get_dicke_basis(num_qudit:int, dim:int):
     r'''return Dicke basis for n qudits
 
@@ -19,12 +48,13 @@ def get_dicke_basis(num_qudit:int, dim:int):
     assert dim>=2
     assert num_qudit>=1
     klist = get_dicke_klist(num_qudit, dim)
-    ret = np.zeros((len(klist), dim**num_qudit), dtype=np.float64)
+    # ret = np.zeros((len(klist), dim**num_qudit), dtype=np.float64)
     base = dim**(np.arange(num_qudit)[::-1])
-    for ind0,ki in enumerate(klist):
-        tmp0 = [int(x) for x,y in enumerate(ki) for _ in range(y)]
-        tmp1 = np.unique(np.array(list(itertools.permutations(tmp0)), dtype=np.int64), axis=0)
-        ret[ind0, tmp1 @ base] = 1/np.sqrt(len(tmp1))
+    ret = np.stack([_dicke_hf0(x, base, dim, num_qudit) for x in klist])
+    # for ind0,ki in enumerate(klist):
+    #     tmp0 = [int(x) for x,y in enumerate(ki) for _ in range(y)]
+    #     tmp1 = np.unique(np.array(list(itertools.permutations(tmp0)), dtype=np.int64), axis=0)
+    #     ret[ind0, tmp1 @ base] = 1/np.sqrt(len(tmp1))
     return ret
 
 
