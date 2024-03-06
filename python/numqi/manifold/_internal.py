@@ -264,6 +264,7 @@ def to_trace1_psd_cholesky(theta, dim:int, rank:(int|None)=None):
     return ret
 
 
+# TODO is_skew
 class SymmetricMatrix(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, is_trace0=False, is_norm1=False,
                     requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
@@ -635,7 +636,7 @@ class Stiefel(torch.nn.Module):
             method (str): method to map real vector to a Stiefel matrix.
                 'choleskyL': Cholesky decomposition.
                 'qr': QR decomposition.
-                'sqrtm': square root of a matrix.
+                'polar': square root of a matrix.
                 'so-exp': exponential map of special orthogonal group.
                 'so-cayley': Cayley transform of special orthogonal group.
             requires_grad (bool): whether to track the gradients of the parameters.
@@ -650,8 +651,8 @@ class Stiefel(torch.nn.Module):
         assert (batch_size is None) or (batch_size>0)
         assert isinstance(device, torch.device)
         # choleskyL is really bad
-        assert method in {'choleskyL','qr','so-exp','so-cayley','sqrtm'}
-        if method in {'qr','sqrtm'}:
+        assert method in {'choleskyL','qr','so-exp','so-cayley','polar'}
+        if method in {'qr','polar'}:
             tmp0 = dim*rank if (dtype in {torch.float32,torch.float64}) else 2*dim*rank
         elif method=='choleskyL':
             tmp0 = (dim*rank-((rank*(rank+1))//2)) * (1 if (dtype in {torch.float32,torch.float64}) else 2)
@@ -671,16 +672,16 @@ class Stiefel(torch.nn.Module):
             ret = to_stiefel_choleskyL(self.theta, self.dim, self.rank)
         elif self.method=='qr': #qr
             ret = to_stiefel_qr(self.theta, self.dim, self.rank)
-        elif self.method=='sqrtm':
-            ret = to_stiefel_sqrtm(self.theta, self.dim, self.rank)
+        elif self.method=='polar':
+            ret = to_stiefel_polar(self.theta, self.dim, self.rank)
         elif self.method=='so-exp': #so
             ret = to_special_orthogonal_exp(self.theta, self.dim)[...,:self.rank]
         elif self.method=='so-cayley':
             ret = to_special_orthogonal_cayley(self.theta, self.dim)[...,:self.rank]
         return ret
 
-def to_stiefel_sqrtm(theta, dim:int, rank:int):
-    r'''map real vector to a Stiefel manifold via square root of a matrix
+def to_stiefel_polar(theta, dim:int, rank:int):
+    r'''map real vector to a Stiefel manifold via polar decomposition
 
     [wiki-link](https://en.wikipedia.org/wiki/Stiefel_manifold)
 
@@ -1015,3 +1016,5 @@ def symmetric_matrix_to_trace1PSD(matA):
             ret = np.stack([_hf_trace1_np(scipy.linalg.expm(matA[x]-EVL[x]*matI)) for x in range(N0)])
     ret = ret.reshape(*shape)
     return ret
+
+# TODO doubly stochastic matrix https://arxiv.org/abs/1802.02628

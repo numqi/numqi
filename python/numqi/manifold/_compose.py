@@ -123,14 +123,14 @@ class QuantumChannel(torch.nn.Module):
             dim_out (int): dimension of the output quantum state
             choi_rank (int|None): rank of the Choi matrix
             batch_size (int|None): batch size of quantum channel
-            method (str): method to represent quantum channel, choleskyL / qr / sqrtm / so-exp / so-cayley
+            method (str): method to represent quantum channel, choleskyL / qr / polar / so-exp / so-cayley
             return_kind (str): return kind of quantum channel, 'kraus' or 'choi'
             requires_grad (bool): whether to require gradient
             dtype (torch.dtype): data type of quantum channel
             device (torch.device): device of quantum channel
         '''
         super().__init__()
-        # sqrtm seems to be better than qr TODO
+        # TODO set polar as default, see chatgpt discussion
         if choi_rank is None:
             choi_rank = dim_in*dim_out
         assert dtype in {torch.complex64,torch.complex128}

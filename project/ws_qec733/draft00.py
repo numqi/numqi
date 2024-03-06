@@ -41,7 +41,7 @@ class VarQECSchmidt(torch.nn.Module):
         self.num_logical_dim = num_logical_dim
         self.num_qubit = num_qubit
         self.error_op_torch = torch.tensor(np.stack(error_op_full, axis=0).reshape(-1,2**num_qubit), dtype=torch.complex64).to_sparse_csr()
-        self.manifold = numqi.manifold.Stiefel(2**num_qubit, num_logical_dim, method='sqrtm', dtype=torch.complex64)
+        self.manifold = numqi.manifold.Stiefel(2**num_qubit, num_logical_dim, method='polar', dtype=torch.complex64)
         self.mask = torch.triu(torch.ones(num_logical_dim, num_logical_dim, dtype=torch.complex128), diagonal=1)
 
     def forward(self):

@@ -20,7 +20,7 @@ class DensityMatrixGMEModel(torch.nn.Module):
         assert CPrank>=1
         self.CPrank = int(CPrank)
 
-        self.manifold_stiefel = numqi.manifold.Stiefel(num_ensemble, rank, dtype=torch.complex128, method='sqrtm')
+        self.manifold_stiefel = numqi.manifold.Stiefel(num_ensemble, rank, dtype=torch.complex128, method='polar')
         # methods='QR' seems really bad
         self.manifold_psi = torch.nn.ModuleList([numqi.manifold.Sphere(x, batch_size=num_ensemble*CPrank, dtype=torch.complex128) for x in dim_list])
         if CPrank>1:

@@ -21,7 +21,7 @@ def get_concurrence_2qubit(rho:np.ndarray):
     # tmp0 = np.kron(numqi.gate.Y, numqi.gate.Y).real
     # z0_ = tmp0 @ rho.conj() @ tmp0
     # assert np.abs(z0_-z0).max() < 1e-10
-    tmp0 = scipy.linalg.sqrtm(rho)
+    tmp0 = scipy.linalg.sqrtm(rho) #TODO sqrtm is slow, replace it with eigendecomposition
     if tmp0.dtype.name=='complex256':
         # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
         tmp0 = tmp0.astype(np.complex128)
@@ -121,7 +121,7 @@ class EntanglementFormationModel(torch.nn.Module):
             rank = dimA*dimB
         self.num_term = num_term
         assert num_term>=rank
-        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='sqrtm')
+        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='polar')
         # TODO sometimes fail when method='qr'
         self.rank = rank
         self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
@@ -188,7 +188,7 @@ class ConcurrenceModel(torch.nn.Module):
         self.num_term = num_term
         assert num_term>=rank
         self.rank = rank
-        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='sqrtm')
+        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='polar')
         self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
         self.dm0 = None
         self.EVL = None
