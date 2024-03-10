@@ -14,6 +14,7 @@ from .symext import (SymmetricExtABkIrrepModel, is_ABk_symmetric_ext, is_ABk_sym
                 get_ABk_extension_numerical_range)
 from .eof import (get_concurrence_2qubit, get_concurrence_pure, get_eof_pure, get_eof_2qubit,
                 EntanglementFormationModel, ConcurrenceModel)
+from .measure import DensityMatrixGMEModel, get_gme_2qubit
 
 from . import upb
 from . import ppt
@@ -23,3 +24,4 @@ from . import pureb_quantum
 from . import symext
 from . import eof
 from . import _misc
+from . import measure

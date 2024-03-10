@@ -165,6 +165,25 @@ def get_Werner_ree(d:int, alpha:float):
     return ret
 
 
+def get_Werner_GME(d:int, alpha:float|np.ndarray):
+    r'''get the geometric measure of entanglement (GME) of the Werner state
+
+    Geometric measure of entanglement and applications to bipartite and multipartite quantum states
+    [doi-link](https://doi.org/10.1103/PhysRevA.68.042307) (eq-51)
+
+    Parameters:
+        d (int): the dimension of the Hilbert space
+        alpha (float,np.ndarray): the parameter of the Werner state
+
+    Returns:
+        ret (float,np.ndarray): the geometric measure of entanglement of the Werner state
+    '''
+    assert d>=2
+    tmp0 = d - (1-d*d) / (alpha - d)
+    ret = (tmp0<=0)*(1-np.sqrt(np.maximum(0,1-tmp0*tmp0)))/2
+    return ret
+
+
 def get_Werner_eof(dim:int, alpha:np.ndarray|float):
     r'''get the entanglement of formation (EOF) of the Werner state
 
@@ -235,6 +254,26 @@ def get_Isotropic_ree(d:int, alpha:float):
         rho1 = Isotropic(d, 1/(d+1))
         ret = numqi.utils.get_relative_entropy(rho0, rho1)
     return ret
+
+def get_Isotropic_GME(d:int, alpha:float|np.ndarray):
+    r'''get the geometric measure of entanglement (GME) of the isotropic state
+
+    Geometric measure of entanglement and applications to bipartite and multipartite quantum states
+    [doi-link](https://doi.org/10.1103/PhysRevA.68.042307) (eq-54)
+
+    Parameters:
+        d (int): the dimension of the Hilbert space
+        alpha (float,np.ndarray): the parameter of the isotropic state
+
+    Returns:
+        ret (float,np.ndarray): the geometric measure of entanglement of the isotropic state
+    '''
+    assert d>=2
+    tmp0 = np.clip(alpha + (1-alpha)/(d*d), 0, 1)
+    tmp1 = 1 - ((np.sqrt(tmp0) + np.sqrt((1-tmp0)*(d-1)))**2)/d
+    ret = (tmp0>=(1/d)) * tmp1
+    return ret
+
 
 def get_Isotropic_eof(dim:int, alpha:np.ndarray|float):
     r'''get the entanglement of formation (EOF) of the isotropic state
