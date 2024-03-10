@@ -27,13 +27,13 @@ def get_gme_2qubit(rho:np.ndarray):
 
 class DensityMatrixGMEModel(torch.nn.Module):
     r'''Solve geometric measure of entanglement (GME) for density matrix using gradient descent.'''
-    def __init__(self, dim_list:tuple[int], num_ensemble:int, rank:int, CPrank:int=1, dtype:str='float64'):
+    def __init__(self, dim_list:tuple[int], num_ensemble:int, rank:int|None=None, CPrank:int=1, dtype:str='float64'):
         r'''Initialize the model.
 
         Parameters:
             dim_list (tuple[int]): dimension of the density matrix.
             num_ensemble (int): number of ensemble to sample.
-            rank (int): rank of the density matrix.
+            rank (int): rank of the density matrix, if None, then rank is set to the maximum.
             CPrank (int): Canonical Polyadic rank rank of the state.
             dtype (str): data type of the state.
         '''
@@ -46,6 +46,8 @@ class DensityMatrixGMEModel(torch.nn.Module):
         self.dim_list = dim_list
         N0 = np.prod(np.array(dim_list))
         self.num_ensemble = int(num_ensemble)
+        if rank is None:
+            rank = N0
         assert rank<=N0
         self.rank = int(rank)
         assert CPrank>=1

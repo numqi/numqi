@@ -19,7 +19,7 @@ def demo_werner_gme():
     dim = 3
     datapath = hf_data('fig_werner_gme.pkl')
     if not os.path.exists(datapath):
-        model = numqi.entangle.DensityMatrixGMEModel([dim,dim], num_ensemble=18, rank=9)
+        model = numqi.entangle.DensityMatrixGMEModel([dim,dim], num_ensemble=18)
         ret = []
         for alpha_i in tqdm(alpha_list):
             werner_rho = numqi.state.Werner(dim, alpha=alpha_i)
@@ -55,7 +55,7 @@ def demo_bound_entangled_state():
         rho_bes = numqi.entangle.load_upb('tiles', return_bes=True)[1]
         alpha_list = np.linspace(0, 1, 100)
         ret = []
-        model = numqi.entangle.DensityMatrixGMEModel(dim_list=[3,3], num_ensemble=18, rank=9)
+        model = numqi.entangle.DensityMatrixGMEModel(dim_list=[3,3], num_ensemble=18)
         for alpha_i in tqdm(alpha_list):
             rho = (1-alpha_i) * np.eye(9) / 9 + alpha_i * rho_bes
             model.set_density_matrix(rho)
@@ -99,8 +99,8 @@ def demo_higher_entangled_state():
         alpha_list = np.linspace(0, 1, 200)
         ret1 = []
         ret2 = []
-        model1 = numqi.entangle.DensityMatrixGMEModel([dimA,dimB], num_ensemble=32, rank=16, CPrank=1)
-        model2 = numqi.entangle.DensityMatrixGMEModel([dimA,dimB], num_ensemble=64, rank=16, CPrank=2)
+        model1 = numqi.entangle.DensityMatrixGMEModel([dimA,dimB], num_ensemble=32, CPrank=1)
+        model2 = numqi.entangle.DensityMatrixGMEModel([dimA,dimB], num_ensemble=64, CPrank=2)
         for alpha_i in tqdm(alpha_list):
             tmp0 = (1-alpha_i) * np.eye(dimA*dimB) / (dimA*dimB) + alpha_i * rho
             model1.set_density_matrix(tmp0)
@@ -134,6 +134,7 @@ def demo_higher_entangled_state():
 
 
 def demo_multipartite():
+    # https://doi.org/10.1103/PhysRevA.78.060301
     datapath = hf_data('fig_multipartite.pkl')
     # (0000 + 0011 + 1100 - 1111)/2
     psi_cluster = np.zeros(16, dtype=np.float64)
@@ -160,7 +161,7 @@ def demo_multipartite():
     ret_dicke = tmp0 * (5*(3*x-1)/16) + (1-tmp0) * (5/18)*(1+2*x-np.sqrt(1+(4-5*x)*x))
 
     if not os.path.exists(datapath):
-        model = numqi.entangle.DensityMatrixGMEModel(dim_list=[2,2,2,2], num_ensemble=32, rank=16)
+        model = numqi.entangle.DensityMatrixGMEModel(dim_list=[2,2,2,2], num_ensemble=32)
         mask_diag = np.eye(rho_cluster.shape[0], dtype=np.float64)
         mask_offdiag = 1-mask_diag
         ret_model = []
