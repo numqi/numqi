@@ -125,6 +125,7 @@ nav:
       - Symmetric-Extension-Criteria: api/entangle_symext.md
       - Entanglement-of-Formation: api/entangle_eof.md
       - Convex-Hull-Approximation: api/entangle_cha.md
+      - Measure: api/entangle_measure.md
       - UPB-BES: api/entangle_upb.md
       - Pure-Bosonic-Extension: api/entangle_pureb.md
     - gate: api/gate.md

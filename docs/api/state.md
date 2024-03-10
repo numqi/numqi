@@ -40,6 +40,10 @@
     options:
       heading_level: 2
 
+::: numqi.state.get_Werner_GME
+    options:
+      heading_level: 2
+
 ::: numqi.state.Isotropic
     options:
       heading_level: 2
@@ -49,6 +53,10 @@
       heading_level: 2
 
 ::: numqi.state.get_Isotropic_eof
+    options:
+      heading_level: 2
+
+::: numqi.state.get_Isotropic_GME
     options:
       heading_level: 2
 
