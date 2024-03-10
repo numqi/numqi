@@ -26,7 +26,7 @@ This package is to support following papers
 2. Quantum variational learning for quantum error-correcting codes [doi-link](https://doi.org/10.22331/q-2022-10-06-828) `numqi.qec`
 3. Tapping into Permutation Symmetry for Improved Detection of k-Symmetric Extensions [doi-link](https://doi.org/10.3390/e25101425) `numqi.entangle` `numqi.group.symext`
 4. Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449) `numqi.query`
-5. A Variational Approach to Unique Determinedness in Pure-state Tomography [arxiv-link](https://arxiv.org/abs/2305.10811) `numqi.unique_determine`
+5. Variational approach to unique determinedness in pure-state tomography [arxiv-link](https://arxiv.org/abs/2305.10811) [doi-link](https://doi.org/10.1103/PhysRevA.109.022425) `numqi.unique_determine`
 6. Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645) `numqi.maximum_entropy`
 7. Simulating Noisy Quantum Circuits with Matrix Product Density Operators [arxiv-link](https://arxiv.org/abs/2004.02388) `numqi.sim`
 8. Quantifying Subspace Entanglement with Geometric Measures [arxiv-link](https://arxiv.org/abs/2311.10353) `numqi.matrix_space`
@@ -98,7 +98,7 @@ model name
 ```text
 MIT License
 
-Copyright (c) 2023 husisy
+Copyright (c) 2024 husisy
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
