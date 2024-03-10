@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+# https://github.com/aarontrowbridge/Piccolo.jl
+
 class GrapeModel(torch.nn.Module):
     def __init__(self, ham_drift, ham_control, tspan, smooth_weight=0.01):
         super().__init__()
