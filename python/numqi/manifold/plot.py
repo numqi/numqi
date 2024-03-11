@@ -59,6 +59,7 @@ def plot_qobject_trivialization_map():
     colorq = cp_tableau[1]
     with _matplotlib_latex_context():
         fig,ax = plt.subplots(figsize=(8,5))
+        # https://stackoverflow.com/a/44528296/7290857 fancy arrow
 
         hf_circle_pos = lambda n: (6*np.cos(np.pi/2+2*np.pi*n/9), 5*np.sin(np.pi/2+2*np.pi*n/9))
         POS = {
