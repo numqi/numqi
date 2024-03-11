@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.linalg
+import opt_einsum
 import torch
 
 import numqi._torch_op
@@ -101,64 +102,64 @@ class EntanglementFormationModel(torch.nn.Module):
 
     Variational characterizations of separability and entanglement of formation
     [doi-link](https://doi.org/10.1103/PhysRevA.64.052304)
-
-    TODO pade approximation to avoid 0*log(0) issue
     '''
-    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None, zero_eps=1e-10):
+    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int|None=None):
         r'''Initialize the model
 
         Parameters:
             dimA (int): the dimension of the first subsystem
             dimB (int): the dimension of the second subsystem
             num_term (int): the number of terms in the variational ansatz, `num_term` is bounded by (dimA*dimB)**2
-            rank (int): the rank of the density matrix
-            zero_eps (float): a small number to avoid log(0)
+            rank (int,None): the rank of the density matrix
         '''
         super().__init__()
+        self.dtype = torch.float64
+        self.cdtype = torch.complex128
         self.dimA = dimA
         self.dimB = dimB
         if rank is None:
             rank = dimA*dimB
         self.num_term = num_term
         assert num_term>=rank
-        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='polar')
-        # TODO sometimes fail when method='qr'
+        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=self.cdtype, method='polar')
         self.rank = rank
-        self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
-        # torch.finfo(torch.float64).eps #TODO
-        self.dm0 = None
-        self.EVL = None
-        self.EVC = None
 
-    def set_density_matrix(self, dm0:np.ndarray, zero_eps:float=1e-10):
+        self._sqrt_rho = None
+        self._eps = torch.tensor(torch.finfo(self.dtype).eps, dtype=self.dtype)
+        self.contract_expr = None
+
+    def set_density_matrix(self, rho:np.ndarray):
         r'''Set the density matrix
 
         Parameters:
-            dm0 (np.ndarray): the density matrix, shape=(dimA*dimB,dimA*dimB)
-            zero_eps (float): a small number to determine the rank
+            rho (np.ndarray): the density matrix, shape=(dimA*dimB,dimA*dimB)
         '''
-        assert dm0.shape == (self.dimA*self.dimB, self.dimA*self.dimB)
-        assert np.abs(dm0 - dm0.T.conj()).max() < zero_eps
-        assert abs(np.trace(dm0) - 1) < zero_eps
-        assert np.linalg.eigvalsh(dm0)[0] > -zero_eps
-        EVL,EVC = np.linalg.eigh(dm0)
-        assert np.all(EVL[:(-self.rank)] < zero_eps), 'rank mismath'
-        self.dm0 = torch.tensor(dm0, dtype=torch.complex128)
-        self.EVL = torch.tensor(np.maximum(EVL[(-self.rank):],0), dtype=torch.float64)
-        self.EVC = torch.tensor(EVC[:,(-self.rank):], dtype=torch.complex128)
+        assert rho.shape == (self.dimA*self.dimB, self.dimA*self.dimB)
+        assert np.abs(rho - rho.T.conj()).max() < 1e-10
+        assert abs(np.trace(rho) - 1) < 1e-10
+        assert np.linalg.eigvalsh(rho)[0] > -1e-10
+        EVL,EVC = np.linalg.eigh(rho)
+        EVL = np.maximum(0, EVL[-self.rank:])
+        assert abs(EVL.sum()-1) < 1e-10
+        EVC = EVC[:,-self.rank:]
+        tmp0 = (EVC * np.sqrt(EVL)).reshape(self.dimA, self.dimB, self.rank)
+        self._sqrt_rho = torch.tensor(tmp0, dtype=self.cdtype)
+        tmp0 = self._sqrt_rho.conj().resolve_conj()
+        if self.dimA<=self.dimB:
+            self.contract_expr = opt_einsum.contract_expression(self._sqrt_rho, [0,3,4], tmp0, [1,3,5],
+                                [self.num_term,self.rank], [2,4], [self.num_term,self.rank], [2,5], [2,0,1], constants=[0,1])
+        else:
+            self.contract_expr = opt_einsum.contract_expression(self._sqrt_rho, [3,0,4], tmp0, [3,1,5],
+                                [self.num_term,self.rank], [2,4], [self.num_term,self.rank], [2,5], [2,0,1], constants=[0,1])
 
     def forward(self):
-        theta1 = self.manifold()
-        prob = (theta1*theta1.conj()).real @ self.EVL
-        psiAB = (theta1 * torch.sqrt(self.EVL)) @ self.EVC.T.conj() / torch.sqrt(prob).reshape(-1,1)
-        tmp1 = psiAB.reshape(-1, self.dimA, self.dimB)
-        if self.dimA <= self.dimB:
-            rdm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,3,2], [0,1,3])
-        else:
-            rdm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,1,3], [0,2,3])
-        EVL = torch.linalg.eigvalsh(rdm)
-        tmp0 = torch.log(torch.maximum(EVL, self.zero_eps))
-        ret = -torch.einsum(prob, [0], EVL, [0,1], tmp0, [0,1])
+        mat_st = self.manifold()
+        rdm_not_normed = self.contract_expr(mat_st, mat_st.conj(), backend='torch')
+        EVL = torch.linalg.eigvalsh(rdm_not_normed)
+        tmp0 = torch.log(torch.maximum(EVL, self._eps))
+        prob = torch.einsum(rdm_not_normed, [0,1,1], [0]).real
+        tmp1 = torch.log(torch.maximum(prob, self._eps))
+        ret = torch.dot(prob,tmp1) - torch.dot(EVL.reshape(-1), tmp0.reshape(-1))
         return ret
 
 
@@ -167,10 +168,8 @@ class ConcurrenceModel(torch.nn.Module):
 
     What is the motivation for the definition of concurrence in quantum information?
     [stackexchange-link](https://physics.stackexchange.com/a/46509/283720)
-
-    TODO use pade approximation to avoid sqrt(0) issue
     '''
-    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None, zero_eps:float=1e-10):
+    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int=None):
         r'''Initialize the model
 
         Parameters:
@@ -181,6 +180,8 @@ class ConcurrenceModel(torch.nn.Module):
             zero_eps (float): a small number to avoid sqrt(0)
         '''
         super().__init__()
+        self.dtype = torch.float64
+        self.cdtype = torch.complex128
         self.dimA = dimA
         self.dimB = dimB
         if rank is None:
@@ -188,39 +189,44 @@ class ConcurrenceModel(torch.nn.Module):
         self.num_term = num_term
         assert num_term>=rank
         self.rank = rank
-        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=torch.complex128, method='polar')
-        self.zero_eps = torch.tensor(zero_eps, dtype=torch.float64)
-        self.dm0 = None
-        self.EVL = None
-        self.EVC = None
+        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=self.cdtype, method='polar')
 
-    def set_density_matrix(self, dm0:np.ndarray, zero_eps:float=1e-10):
+        self._sqrt_rho = None
+        self._eps = torch.tensor(torch.finfo(self.dtype).eps, dtype=self.dtype)
+        self.contract_expr = None
+        self.contract_expr1 = None
+
+    def set_density_matrix(self, rho:np.ndarray):
         r'''Set the density matrix
 
         Parameters:
-            dm0 (np.ndarray): the density matrix, shape=(dimA*dimB,dimA*dimB)
-            zero_eps (float): a small number to determine the rank
+            rho (np.ndarray): the density matrix, shape=(dimA*dimB,dimA*dimB)
         '''
-        assert dm0.shape == (self.dimA*self.dimB, self.dimA*self.dimB)
-        assert np.abs(dm0 - dm0.T.conj()).max() < zero_eps
-        assert abs(np.trace(dm0) - 1) < zero_eps
-        assert np.linalg.eigvalsh(dm0)[0] > -zero_eps
-        EVL,EVC = np.linalg.eigh(dm0)
-        assert np.all(EVL[:(-self.rank)] < zero_eps), 'rank mismath'
-        self.dm0 = torch.tensor(dm0, dtype=torch.complex128)
-        self.EVL = torch.tensor(np.maximum(EVL[(-self.rank):],0), dtype=torch.float64)
-        self.EVC = torch.tensor(EVC[:,(-self.rank):], dtype=torch.complex128)
+        assert rho.shape == (self.dimA*self.dimB, self.dimA*self.dimB)
+        assert np.abs(rho - rho.T.conj()).max() < 1e-10
+        assert abs(np.trace(rho) - 1) < 1e-10
+        assert np.linalg.eigvalsh(rho)[0] > -1e-10
+        EVL,EVC = np.linalg.eigh(rho)
+        EVL = np.maximum(0, EVL[-self.rank:])
+        assert abs(EVL.sum()-1) < 1e-10
+        EVC = EVC[:,-self.rank:]
+        tmp0 = (EVC * np.sqrt(EVL)).reshape(self.dimA, self.dimB, self.rank)
+        self._sqrt_rho = torch.tensor(tmp0, dtype=self.cdtype)
+        tmp0 = self._sqrt_rho.conj().resolve_conj()
+        if self.dimA<=self.dimB:
+            self.contract_expr = opt_einsum.contract_expression(self._sqrt_rho, [0,3,4], tmp0, [1,3,5],
+                                [self.num_term,self.rank], [2,4], [self.num_term,self.rank], [2,5], [2,0,1], constants=[0,1])
+        else:
+            self.contract_expr = opt_einsum.contract_expression(self._sqrt_rho, [3,0,4], tmp0, [3,1,5],
+                                [self.num_term,self.rank], [2,4], [self.num_term,self.rank], [2,5], [2,0,1], constants=[0,1])
+        tmp0 = min(self.dimA, self.dimB)
+        self.contract_expr1 = opt_einsum.contract_expression([self.num_term,tmp0,tmp0], [0,1,2], [self.num_term,tmp0,tmp0], [0,1,2], [0])
 
     def forward(self):
-        theta1 = self.manifold()
-        prob = (theta1*theta1.conj()).real @ self.EVL
-        psiAB = (theta1 * torch.sqrt(self.EVL)) @ self.EVC.T.conj() / torch.sqrt(prob).reshape(-1,1)
-        tmp1 = psiAB.reshape(-1, self.dimA, self.dimB)
-        if self.dimA <= self.dimB:
-            rdm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,3,2], [0,1,3])
-        else:
-            rdm = torch.einsum(tmp1, [0,1,2], tmp1.conj(), [0,1,3], [0,2,3])
-        tmp0 = rdm.reshape(rdm.shape[0], -1)
-        tmp1 = 2-2*torch.einsum(tmp0, [0,1], tmp0.conj(), [0,1], [0]).real
-        ret = torch.dot(prob, torch.sqrt(torch.maximum(tmp1, self.zero_eps)))
-        return ret
+        mat_st = self.manifold()
+        rdm_not_normed = self.contract_expr(mat_st, mat_st.conj(), backend='torch')
+        prob = torch.einsum(rdm_not_normed, [0,1,1], [0]).real
+        purity = self.contract_expr1(rdm_not_normed, rdm_not_normed.conj()).real
+        tmp0 = torch.maximum(self._eps, 2*(prob*prob - purity))
+        loss = torch.sqrt(tmp0).sum()
+        return loss
