@@ -16,10 +16,13 @@ from ._ABk import ABkHermitian, ABk2localHermitian
 
 from ._misc import StiefelManifoldDistanceModel, GrassmannManifoldDistanceModel, TwoHermitianSumModel
 
+from .plot import plot_qobject_trivialization_map
+
 from . import _internal
 from . import _misc
 from . import _compose
 from . import _ABk
+from . import plot
 
 '''
 # used in numpy

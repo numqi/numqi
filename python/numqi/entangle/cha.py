@@ -11,6 +11,7 @@ import numqi.random
 import numqi.utils
 import numqi.optimize
 import numqi.manifold
+from numqi.manifold.plot import plot_cha_trivialization_map
 
 from ._misc import get_density_matrix_boundary, hf_interpolate_dm, _ree_bisection_solve
 
@@ -165,6 +166,7 @@ class CHABoundaryBagging:
         return ret
 
 
+# TODO rename ConvexHullApproximationModel
 class AutodiffCHAREE(torch.nn.Module):
     '''Gradient descent model for convex hull approximation to separable states'''
     def __init__(self, dim:tuple[int], num_state:int|None=None, distance_kind:str='ree'):
