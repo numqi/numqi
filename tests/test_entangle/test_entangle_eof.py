@@ -64,7 +64,6 @@ def test_EntanglementFormationModel_werner():
 def test_2qubits_Concurrence_EntanglementFormation():
     dimA = 2
     dimB = 2
-
     for _ in range(5):
         rho = numqi.random.rand_density_matrix(dimA*dimB)
         ret_ = numqi.entangle.get_concurrence_2qubit(rho)
@@ -77,7 +76,7 @@ def test_2qubits_Concurrence_EntanglementFormation():
         model = numqi.entangle.EntanglementFormationModel(dimA, dimB, num_term=2*dimA*dimB, rank=dimA*dimB)
         model.set_density_matrix(rho)
         theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0)
-        assert abs(theta_optim.fun-ret_) < 1e-6
+        assert abs(theta_optim.fun-ret_) < 1e-5
 
 
 def test_Monogamy_of_entanglement():

@@ -125,7 +125,7 @@ class EntanglementFormationModel(torch.nn.Module):
         self.rank = rank
 
         self._sqrt_rho = None
-        self._eps = torch.tensor(torch.finfo(self.dtype).eps, dtype=self.dtype)
+        self._eps = torch.tensor(torch.finfo(self.dtype).smallest_normal, dtype=self.dtype)
         self.contract_expr = None
 
     def set_density_matrix(self, rho:np.ndarray):
@@ -192,7 +192,7 @@ class ConcurrenceModel(torch.nn.Module):
         self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=self.cdtype, method='polar')
 
         self._sqrt_rho = None
-        self._eps = torch.tensor(torch.finfo(self.dtype).eps, dtype=self.dtype)
+        self._eps = torch.tensor(torch.finfo(self.dtype).smallest_normal, dtype=self.dtype)
         self.contract_expr = None
         self.contract_expr1 = None
 
