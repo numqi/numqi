@@ -29,7 +29,7 @@ def hfline_pos(k0, k1, x0, x1, POS, shift=(0,0)):
     if len(shift)==2: #(x,y):
         ret0 = ret0[0]+shift[0], ret0[1]+shift[0]
         ret1 = ret1[0]+shift[1], ret1[1]+shift[1]
-    else: #TODO bug
+    else:
         assert len(shift)==4 #(x0,y0,x1,y1)
         ret0 = ret0[0]+shift[0],ret0[1]+shift[1]
         ret1 = ret1[0]+shift[2],ret1[1]+shift[3]
@@ -38,7 +38,6 @@ def hfline_pos(k0, k1, x0, x1, POS, shift=(0,0)):
 
 def hf3line_pos(k0, k1, k2, pc, frac, POS):
     p0,p1,p2 = [POS[x] for x in [k0,k1,k2]]
-    # frac = (0.3, 0.35, 0.82)
     line = np.array([
         (p0[0]*(1-frac[0]) + pc[0]*frac[0], p0[1]*(1-frac[0]) + pc[1]*frac[0]),
         pc,
@@ -207,6 +206,74 @@ def plot_cha_trivialization_map(use_latex=True):
     ax.text(5.5, -0.9, tmp0, **text_kw_arrow)
 
     ax.set_xlim(-3.3, 7.1)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    fig.tight_layout()
+    return fig,ax
+
+
+def plot_tensor_rank_sigmar_trivialization_map(use_latex=True):
+    if use_latex:
+        enable_matplotlib_latex()
+    POS = {
+        'Rn': (-1,0),
+        'Sna': (0.7,1.5),
+        'Snb': (0.7,-1.5),
+        'psia': (3,1.5),
+        'psib': (3,-1.5),
+        'p0': (2, 0),
+        'p1': (6, 0),
+        'sigma': (8,0),
+    }
+    hfline = functools.partial(hfline_pos, POS=POS)
+    hf3line = functools.partial(hf3line_pos, POS=POS)
+    text_kw = dict(verticalalignment='center', horizontalalignment='center', fontsize=16)
+    text_kw_arrow = dict(verticalalignment='center', horizontalalignment='center', fontsize=12, color=cp_tableau[0])
+    arrow_kw = dict(arrowstyle="Simple, tail_width=0.5, head_width=4, head_length=8", color=text_kw_arrow['color'])
+
+    fig,ax = plt.subplots(figsize=(8,2.7)) #(6,0.7)
+    ax.text(*POS['Rn'], r'$\mathbb{R}^{(2d_A+2d_B+1)r}$', **text_kw)
+    ax.add_patch(matplotlib.patches.Ellipse(POS['Rn'], width=2.4, height=1.2, facecolor="none", edgecolor="k"))
+    ax.text(*POS['Sna'], r'$S^{(2d_A-1)\times r}$', **text_kw)
+    ax.text(*POS['Snb'], r'$S^{(2d_B-1)\times r}$', **text_kw)
+    ax.text(*POS['psia'], r'$\left\{ |\psi_i^{(A)}\rangle \right\}$', **text_kw)
+    ax.text(*POS['psib'], r'$\left\{ |\psi_i^{(B)}\rangle \right\}$', **text_kw)
+    ax.text(*POS['p0'], r'$\tilde{p}\in\mathbb{R}_+^r$', **text_kw)
+    ax.text(*POS['p1'], r'$p\in\mathbb{R}_+^r$', **text_kw)
+    ax.text(*POS['sigma'], r'$|\psi\rangle\in\sigma_r$', **text_kw)
+
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'Sna', 0.4, 0.8, shift=(0,0,-0.3,0.2)), **arrow_kw))
+    ax.text(-0.3, 1.1, r'$\frac{x}{\| x \|_2}$', **text_kw_arrow, rotation=60)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'Snb', 0.4, 0.8, shift=(0,0,-0.3,-0.2)), **arrow_kw))
+    ax.text(-0.3, -1.15, r'$\frac{x}{\| x \|_2}$', **text_kw_arrow, rotation=-60)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'p0', 0.45, 0.8), **arrow_kw))
+    ax.text(0.85, 0.15, 'SoftPlus', **text_kw_arrow)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Sna', 'psia', 0.28, 0.70), **arrow_kw))
+    ax.text(1.85, 1.7, r'$x_1+ix_2$', **text_kw_arrow)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Snb', 'psib', 0.28, 0.70), **arrow_kw))
+    ax.text(1.85, -1.35, r'$x_1+ix_2$', **text_kw_arrow)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('p0', 'p1', 0.15, 0.85), **arrow_kw))
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('p1', 'sigma', 0.3, 0.7), **arrow_kw))
+    # ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Sna', 'psia', 0.45, 0.8), **arrow_kw))
+    tmp0 = r'$\frac{\tilde{p}}{\| \sum_i \tilde{p}_i |\psi_i^{(A)}\rangle\otimes |\psi_i^{(B)}\rangle \|_2}$'
+    ax.text(4.6, -0.4, tmp0, **text_kw_arrow)
+    tmp0 = r'$|\psi\rangle=\sum_i p_i |\psi_i^{(A)}\rangle\otimes |\psi_i^{(B)}\rangle$'
+    ax.text(7.6, -0.6, tmp0, **text_kw_arrow)
+
+    pc = POS['p0'][0]+0.45*(POS['p1'][0]-POS['p0'][0]), POS['p0'][1]
+    tmp0, tmp1 = hf3line('psia', 'p0', 'p1', pc, (0.3,0.45,0.82))
+    tmp2, _ = hf3line('psib', 'p0', 'p1', pc, (0.3,0.45,0.82))
+    ax.plot(*tmp0, color=text_kw_arrow['color'])
+    ax.plot(*tmp2, color=text_kw_arrow['color'])
+    pc = POS['p1'][0]+0.45*(POS['sigma'][0]-POS['p1'][0]), POS['p1'][1]
+    tmp0, tmp1 = hf3line('psia', 'p1', 'sigma', pc, (0.2,0.55,0.82))
+    tmp0[:,0] += np.array([0,0.25])
+    tmp2, _ = hf3line('psib', 'p1', 'sigma', pc, (0.2,0.55,0.82))
+    tmp2[:,0] += np.array([0,-0.25])
+    ax.plot(*tmp0, color=text_kw_arrow['color'])
+    ax.plot(*tmp2, color=text_kw_arrow['color'])
+
+    ax.set_xlim(-2.3, 8)
     ax.set_aspect('equal')
     ax.axis('off')
     fig.tight_layout()
