@@ -193,7 +193,7 @@ def is_ABk_symmetric_ext(rho, dim, kext, use_ppt=False, use_boson=False, use_tqd
         try:
             prob.solve()
             tmp0 = not np.isinf(prob.value)
-        except cvxpy.error.SolverError: #seems error when fail to solve
+        except cvxpy.error.SolverError: #sometimes error when fail to solve
             tmp0 = False
         if return_info:
             tmp1 = [np.ascontiguousarray(x.value) for x in cvxP_list] if tmp0 else None
