@@ -1,9 +1,12 @@
 import numpy as np
 import torch
 import opt_einsum
+import cvxpy
+from tqdm.auto import tqdm
 
 import numqi.manifold
 
+from .symext import _check_input_rho_SDP
 from .eof import get_concurrence_2qubit
 
 
@@ -118,4 +121,120 @@ class DensityMatrixGMEModel(torch.nn.Module):
             matX,psi_list = self.get_state(tag_grad=True)
             tmp2 = self.contract_expr(matX, *psi_list, backend='torch')
         loss = 1-torch.vdot(tmp2,tmp2).real
+        return loss
+
+
+def get_linear_entropy_entanglement_ppt(rho:np.ndarray, dim:tuple[int], use_tqdm:bool=False, return_info:bool=False):
+    r'''Calculate the linear entropy of entanglement for density matrix using PPT approximation.
+
+    Evaluating Convex Roof Entanglement Measures
+    [doi-link](http://dx.doi.org/10.1103/PhysRevLett.114.160501)
+
+    Parameters:
+        rho (np.ndarray): density matrix. support batch
+        dim (tuple[int]): dimension of the density matrix. must be length 2.
+        use_tqdm (bool): use tqdm for progress bar.
+        return_info (bool): return additional information.
+
+    Returns:
+        ret (float,np.ndarray,list): linear entropy of entanglement.
+    '''
+    rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, dim, use_tqdm)
+    cvx_rho = cvxpy.Parameter((dimA*dimB,dimA*dimB), complex=True)
+    ind_sym = np.arange(dimA*dimB*dimA*dimB, dtype=np.int64).reshape(dimA*dimB,-1).T.reshape(-1)
+    cvxW = cvxpy.Variable((dimA*dimB*dimA*dimB,dimA*dimB*dimA*dimB), hermitian=True)
+    # numqi.group.symext.get_sud_symmetric_irrep_basis() #TODO
+    constraint = [
+        cvxW==cvxW[ind_sym],
+        cvxW>>0,
+        cvxpy.partial_transpose(cvxW, [dimA*dimB,dimA*dimB], 1)>>0,
+        cvxpy.partial_trace(cvxW, [dimA*dimB,dimA*dimB], 1)==cvx_rho,
+        # cvxpy.partial_trace(cvxW, [dimA*dimB,dimA*dimB], 0)==cvx_rho,
+    ]
+    tmp0 = cvxpy.partial_trace(cvxW, [dimA,dimB,dimA,dimB], 3)
+    tmp1 = cvxpy.partial_trace(tmp0, [dimA,dimB,dimA], 1)
+    flip_op = np.eye(dimA*dimA).reshape(dimA,dimA,dimA,dimA).transpose(0,1,3,2)
+    tmp2 = np.ascontiguousarray(flip_op.reshape(dimA*dimA,-1).T)
+    obj = cvxpy.Maximize(cvxpy.real(cvxpy.sum(cvxpy.multiply(tmp1,tmp2))))
+    prob = cvxpy.Problem(obj, constraint)
+    ret = []
+    for rho_i in (tqdm(rho) if use_tqdm else rho):
+        cvx_rho.value = rho_i
+        try:
+            prob.solve()
+            tmp0 = max(0, 1 - prob.value)
+        except cvxpy.error.SolverError: #sometimes error when fail to solve
+            tmp0 = np.nan
+        if return_info:
+            tmp1 = np.ascontiguousarray(cvxW.value) if tmp0 else None
+            ret.append((tmp0,tmp1))
+        else:
+            ret.append(tmp0)
+    if not return_info:
+        ret = np.array(ret)
+    if is_single_item:
+        ret = ret[0]
+    return ret
+
+
+class DensityMatrixLinearEntropyModel(torch.nn.Module):
+    r'''Solve linear entropy of entanglement for density matrix using gradient descent.'''
+    def __init__(self, dim:tuple[int], num_ensemble:int, rank:int=None, kind:str='convex'):
+        r'''Initialize the model.
+
+        Parameters:
+            dim (tuple[int]): dimension of the density matrix. must be length 2.
+            num_ensemble (int): number of ensemble to sample.
+            rank (int): rank of the density matrix, if None, then rank is set to the maximum.
+            kind (str): convex or concave.
+        '''
+        super().__init__()
+        assert kind in {'convex','concave'}
+        self.dtype = torch.float64
+        self.cdtype = torch.complex128
+        dim = tuple(int(x) for x in dim)
+        assert (len(dim)==2) and all(x>=2 for x in dim)
+        self.dim0 = dim[0]
+        self.dim1 = dim[1]
+        self.num_ensemble = int(num_ensemble)
+        if rank is None:
+            rank = dim[0]*dim[1]
+        assert rank<=dim[0]*dim[1]
+        self.rank = int(rank)
+        self.manifold_stiefel = numqi.manifold.Stiefel(num_ensemble, rank, dtype=self.cdtype)
+
+        self._sqrt_rho = None
+        self._eps = torch.tensor(torch.finfo(self.dtype).eps, dtype=self.dtype)
+        self._sign = 1 if (kind=='convex') else -1
+
+    def set_density_matrix(self, rho:np.ndarray):
+        r'''Set the density matrix.
+
+        Parameters:
+            rho (np.ndarray): density matrix.
+        '''
+        assert rho.shape==(self.dim0*self.dim1, self.dim0*self.dim1)
+        assert np.abs(rho-rho.T.conj()).max() < 1e-10
+        EVL,EVC = np.linalg.eigh(rho)
+        EVL = np.maximum(0, EVL[-self.rank:])
+        assert abs(EVL.sum()-1) < 1e-10
+        EVC = EVC[:,-self.rank:]
+        tmp0 = (EVC * np.sqrt(EVL)).reshape(self.dim0, self.dim1, -1)
+        self._sqrt_rho = torch.tensor(tmp0, dtype=self.cdtype)
+        tmp0 = self._sqrt_rho.conj().resolve_conj()
+        if self.dim0<=self.dim1:
+            self.contract_expr = opt_einsum.contract_expression(self._sqrt_rho, [0,3,4], tmp0, [1,3,5],
+                                [self.num_ensemble,self.rank], [2,4], [self.num_ensemble,self.rank], [2,5], [2,0,1], constants=[0,1])
+        else:
+            self.contract_expr = opt_einsum.contract_expression(self._sqrt_rho, [3,0,4], tmp0, [3,1,5],
+                                [self.num_ensemble,self.rank], [2,4], [self.num_ensemble,self.rank], [2,5], [2,0,1], constants=[0,1])
+        tmp0 = min(self.dim0, self.dim1)
+        self.contract_expr1 = opt_einsum.contract_expression([self.num_ensemble,tmp0,tmp0], [0,1,2], [self.num_ensemble,tmp0,tmp0], [0,1,2], [0])
+
+    def forward(self):
+        mat_st = self.manifold_stiefel()
+        tmp0 = self.contract_expr(mat_st, mat_st.conj(), backend='torch')
+        # rdm = tmp0 / torch.einsum(tmp0, [0,1,1], [0]).reshape(-1,1,1)
+        tmp1 = torch.maximum(self._eps, torch.einsum(tmp0, [0,1,1], [0]).real)
+        loss = self._sign * (1 - (self.contract_expr1(tmp0, tmp0.conj()).real / tmp1).sum())
         return loss

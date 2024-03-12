@@ -1,6 +1,13 @@
 import numpy as np
+import torch
 
 import numqi
+
+try:
+    import mosek
+    use_MOSEK = True
+except ImportError:
+    use_MOSEK = False
 
 np_rng = np.random.default_rng()
 
@@ -79,3 +86,71 @@ def test_gme_4qubit():
     ret_model = np.array(ret_model).reshape(4,-1)
 
     assert np.abs(ret_-ret_model).max() < 1e-7
+
+
+def test_flip_op():
+    dimA = 3
+    dimB = 4
+    psi_AB = numqi.random.rand_haar_state(dimA*dimB).reshape(dimA, dimB)
+
+    rdm = psi_AB @ psi_AB.conj().T
+    purity = np.vdot(rdm.reshape(-1), rdm.reshape(-1)).real
+
+    flip_op = np.eye(dimA*dimA).reshape(dimA,dimA,dimA,dimA).transpose(0,1,3,2)
+    z0 = np.einsum(psi_AB, [0,1], psi_AB.conj(), [2,1], psi_AB, [3,4], psi_AB.conj(), [5,4], flip_op, [2,5,0,3], [], optimize=True).real
+    assert abs(purity-z0)<1e-10
+
+def test_get_linear_entropy_entanglement_ppt():
+    dimA = 3
+    dimB = 3
+    rho = numqi.state.get_bes3x3_Horodecki1997(np_rng.uniform(0,1))
+    ret,matW = numqi.entangle.get_linear_entropy_entanglement_ppt(rho, (3,3), return_info=True)
+
+    eps = 1e-7 if use_MOSEK else 1e-4 # solver=SCS is less accurate
+    assert np.abs(matW - matW.T.conj()).max() < eps
+    assert abs(np.trace(matW) - 1) < eps
+    assert np.linalg.eigvalsh(matW)[0] > -eps
+    tmp0 = matW.reshape(dimA*dimB,dimA*dimB,-1).transpose(1,0,2).reshape(dimA*dimB*dimA*dimB,-1)
+    assert np.abs(tmp0 - matW).max() < eps
+    tmp0 = matW.reshape(dimA*dimB,dimA*dimB,dimA*dimB,dimA*dimB)
+    tmp1 = np.einsum(tmp0,[0,1,2,1],[0,2],optimize=True)
+    assert np.abs(tmp1-rho).max() < eps
+    tmp1 = np.einsum(tmp0,[0,1,0,2],[1,2],optimize=True)
+    assert np.abs(tmp1-rho).max() < eps
+    assert np.linalg.eigvalsh(tmp0.transpose(0,3,2,1).reshape(dimA*dimB*dimA*dimB,-1))[0]>-eps
+    tmp0 = matW.reshape(dimA,dimB,dimA,dimB,dimA,dimB,dimA,dimB)
+    tmp1 = np.einsum(tmp0, [0,1,2,3,4,1,6,3], [0,2,4,6], optimize=True).reshape(dimA*dimA,-1)
+    flip_op = np.eye(dimA*dimA).reshape(dimA,dimA,dimA,dimA).transpose(0,1,3,2)
+    tmp2 = 1-np.trace((flip_op.reshape(dimA*dimA,-1) @ tmp1)).real
+    assert abs(tmp2-ret) < eps
+
+
+def test_linear_entropy_tensor_network():
+    dim0 = 3
+    dim1 = 4
+
+    rho = numqi.random.rand_density_matrix(dim0*dim1)
+    EVL,EVC = np.linalg.eigh(rho)
+    assert np.abs(rho - (EVC*EVL) @ EVC.T.conj()).max() < 1e-10
+
+    manifold = numqi.manifold.Stiefel(2*dim0*dim1, rank=dim0*dim1, dtype=torch.complex128)
+    mat_st = manifold().detach().numpy()
+
+    z0 = (EVC*np.sqrt(EVL)) @ mat_st.T
+    plist = np.linalg.norm(z0, ord=2, axis=0)**2
+    psilist = (z0 / np.sqrt(plist)).T
+    z1 = np.einsum(plist, [0], psilist, [0,1], psilist.conj(), [0,2], [1,2], optimize=True)
+    assert np.abs(z1 - rho).max() < 1e-10
+    tmp0 = psilist.reshape(-1, dim0, dim1)
+    rdm = np.einsum(tmp0, [0,1,2], tmp0.conj(), [0,3,2], [0,1,3], optimize=True)
+    tmp1 = np.linalg.norm(rdm, ord='fro', axis=(1,2))**2
+    ret_ = np.dot(plist, tmp1)
+
+    tmp0 = (EVC * np.sqrt(EVL)).reshape(dim0, dim1, -1)
+    tmp1 = np.einsum(tmp0, [0,3,4], tmp0.conj(), [1,3,5], mat_st, [2,4], mat_st.conj(), [2,5], [2,0,1], optimize=True)
+    rdm1 = tmp1 / np.trace(tmp1, axis1=1, axis2=2).reshape(-1,1,1)
+    assert np.abs(rdm1 - rdm).max() < 1e-10
+    tmp2 = np.linalg.norm(tmp1, ord='fro', axis=(1,2))**2
+    ret0 = (tmp2 / np.trace(tmp1, axis1=1, axis2=2)).sum()
+    # ret0 = np.dot(plist, tmp2)
+    assert abs(ret_ - ret0) < 1e-10
