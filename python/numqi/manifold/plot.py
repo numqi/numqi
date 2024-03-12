@@ -278,3 +278,115 @@ def plot_tensor_rank_sigmar_trivialization_map(use_latex=True):
     ax.axis('off')
     fig.tight_layout()
     return fig,ax
+
+
+def plot_pureb_trivialization_map(use_latex=True):
+    if use_latex:
+        enable_matplotlib_latex()
+    POS = {
+        'Rn': (-2.5,0),
+        'Sn': (0,0),
+        'psi': (2.5,0),
+        'pureb': (5.5,0),
+    }
+    hfline = functools.partial(hfline_pos, POS=POS)
+    text_kw = dict(verticalalignment='center', horizontalalignment='center', fontsize=16)
+    text_kw_arrow = dict(verticalalignment='center', horizontalalignment='center', fontsize=13, color=cp_tableau[0])
+    arrow_kw = dict(arrowstyle="Simple, tail_width=0.5, head_width=4, head_length=8", color=text_kw_arrow['color'])
+
+    fig,ax = plt.subplots(figsize=(6.4,1.6))
+    ax.text(*POS['Rn'], r'$\mathbb{R}^{2d_Ad_k}$', **text_kw)
+    ax.add_patch(matplotlib.patches.Ellipse(POS['Rn'], width=1.2, height=0.8, facecolor="none", edgecolor="k"))
+    ax.text(*POS['Sn'], r'$S^{2d_Ad_k-1}$', **text_kw)
+    ax.text(*POS['psi'], r'$|\psi_{AB_1\cdots B_k}\rangle$', **text_kw)
+    ax.text(*POS['pureb'], r'$\mathrm{PureB}(k)$', **text_kw)
+
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'Sn', 0.3, 0.75), **arrow_kw))
+    ax.text(-1.3, 0.23, r'$\frac{x}{\| x \|_2}$', **text_kw_arrow)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Sn', 'psi', 0.24, 0.72), **arrow_kw))
+    ax.text(1.15, 0.23, r'$x_1+ix_2$', **text_kw_arrow)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('psi', 'pureb', 0.26, 0.75), **arrow_kw))
+    ax.text(4, 0.23, 'partial trace', **text_kw_arrow)
+
+    ax.set_xlim(-3.3, 6)
+    ax.set_ylim(-1,1)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    fig.tight_layout()
+    return fig,ax
+
+
+def plot_uda_trivialization_map(use_latex=True):
+    if use_latex:
+        enable_matplotlib_latex()
+    POS = {
+        'Rn': (-2.5,0),
+        'lambda': (0,1),
+        'su': (0,-1),
+        'uda': (4,0),
+    }
+    hfline = functools.partial(hfline_pos, POS=POS)
+    hf3line = functools.partial(hf3line_pos, POS=POS)
+    text_kw = dict(verticalalignment='center', horizontalalignment='center', fontsize=16)
+    text_kw_arrow = dict(verticalalignment='center', horizontalalignment='center', fontsize=13, color=cp_tableau[0])
+    arrow_kw = dict(arrowstyle="Simple, tail_width=0.5, head_width=4, head_length=8", color=text_kw_arrow['color'])
+
+    fig,ax = plt.subplots(figsize=(6.4,2.1)) #(6,0.7)
+    ax.text(*POS['Rn'], r'$\mathbb{R}^{d^2+d-2}$', **text_kw)
+    ax.add_patch(matplotlib.patches.Ellipse(POS['Rn'], width=1.4, height=0.8, facecolor="none", edgecolor="k"))
+    ax.text(*POS['lambda'], r'$\lambda\in \Lambda_{d-2}$', **text_kw)
+    ax.text(*POS['su'], r'$\{|\psi_{i}\rangle\}\in \mathrm{SU}(d)$', **text_kw)
+    ax.text(*POS['uda'], r'$K_{\mathrm{UDA}}$', **text_kw)
+
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'lambda', 0.24, 0.8, shift=(0.1,-0.15,-0.3,0.2)), **arrow_kw))
+    ax.text(-1.45, 0.6, 'SoftPlus', **text_kw_arrow, rotation=42)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'su', 0.24, 0.8, shift=(0.1,0.15,-0.55,-0.2)), **arrow_kw))
+    ax.text(-1.55, -0.6, 'exp', **text_kw_arrow, rotation=-50)
+
+    pc = POS['lambda'][0]+0.5*(POS['uda'][0]-POS['lambda'][0]), POS['uda'][1]
+    tmp0, tmp1 = hf3line('lambda', 'su', 'uda', pc, (0.4,0.44,0.82))
+    tmp0[:,0] += np.array([0, 0.3])
+    tmp0[:,3] += np.array([0.15, -0.5])
+    ax.plot(*tmp0, color=text_kw_arrow['color'])
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*tmp1, **arrow_kw))
+    tmp0 = r'$-\lambda_d|\psi_d\rangle\langle \psi_d| +\sum_{i=1}^{d-1}\lambda_i |\psi_i\rangle\langle\psi_i| $'
+    ax.text(2.8, 0.7, tmp0, **text_kw_arrow)
+
+    ax.set_xlim(-3.3, 4.5)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    fig.tight_layout()
+    return fig,ax
+
+
+def plot_udp_trivialization_map(use_latex=True):
+    if use_latex:
+        enable_matplotlib_latex()
+    POS = {
+        'Rn': (-2.5,0),
+        'st': (0,0),
+        'udp': (4,0),
+    }
+    hfline = functools.partial(hfline_pos, POS=POS)
+    text_kw = dict(verticalalignment='center', horizontalalignment='center', fontsize=16)
+    text_kw_arrow = dict(verticalalignment='center', horizontalalignment='center', fontsize=13, color=cp_tableau[0])
+    arrow_kw = dict(arrowstyle="Simple, tail_width=0.5, head_width=4, head_length=8", color=text_kw_arrow['color'])
+
+    fig,ax = plt.subplots(figsize=(6.4,1.2)) #(6,0.7)
+    ax.text(*POS['Rn'], r'$\mathbb{R}^{4d}$', **text_kw)
+    ax.add_patch(matplotlib.patches.Ellipse(POS['Rn'], width=1, height=0.6, facecolor="none", edgecolor="k"))
+    ax.text(*POS['st'], r'$\mathrm{St}(d,2)$', **text_kw)
+    ax.text(*POS['udp'], r'$K_{\mathrm{UDP}}$', **text_kw)
+
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('Rn', 'st', 0.24, 0.78), **arrow_kw))
+    ax.text(-1.2, 0.2, 'QR', **text_kw_arrow)
+    ax.add_patch(matplotlib.patches.FancyArrowPatch(*hfline('st', 'udp', 0.13, 0.87), **arrow_kw))
+    tmp0 = r'$\frac{1}{\sqrt{2}}|\psi_1\rangle\langle \psi_1| -\frac{1}{\sqrt{2}}|\psi_2\rangle\langle\psi_2| $'
+    ax.text(2, 0.2, tmp0, **text_kw_arrow)
+
+    ax.set_xlim(-3.3, 4.5)
+    ax.set_ylim(-0.5,0.5)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    fig.tight_layout()
+    return fig,ax
