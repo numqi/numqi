@@ -119,3 +119,28 @@ ax.set_ylabel('linear entropy')
 ax.set_title(f'Werner({dim})')
 fig.tight_layout()
 fig.savefig('tbd00.png', dpi=200)
+
+
+##
+alist = np.linspace(0, 1, 30)
+plist = np.linspace(0.92, 1, 30)
+
+ret = []
+model = DensityMatrixLinearEntropyModel([3,3], num_ensemble=27, kind='convex')
+tmp0 = [(a,p) for a in alist for p in plist]
+for a,p in tqdm(tmp0):
+    rho = numqi.state.get_bes3x3_Horodecki1997(a)
+    model.set_density_matrix(numqi.entangle.hf_interpolate_dm(rho, alpha=p))
+    ret.append(numqi.optimize.minimize(model, num_repeat=3, tol=1e-10, print_every_round=0).fun)
+ret = np.array(ret).reshape(len(alist), len(plist))
+
+
+fig,ax = plt.subplots()
+tmp0 = np.log(np.maximum(1e-7, ret))
+hcontourf = ax.contourf(alist, plist, tmp0.T, levels=10)
+cbar = fig.colorbar(hcontourf)
+ax.set_xlabel('a')
+ax.set_ylabel('p')
+ax.set_title('manifold-opt')
+fig.tight_layout()
+fig.savefig('tbd00.png', dpi=200)
