@@ -196,10 +196,13 @@ def to_unitary_representation(np0:np.ndarray, return_matP:bool=False):
     '''
     assert np0.ndim==3
     tmp0 = np0.reshape(-1,np0.shape[2])
-    matP = scipy.linalg.sqrtm(tmp0.T.conj() @ tmp0)
-    if matP.dtype.name=='complex256':
-        # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
-        matP = matP.astype(np.complex128)
+    # scipy.linalg.sqrtm is not precise and also slow, so replace it with eigendecomposition
+    # matP = scipy.linalg.sqrtm(tmp0.T.conj() @ tmp0)
+    # if matP.dtype.name=='complex256':
+    #     # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
+    #     matP = matP.astype(np.complex128)
+    EVL,EVC = np.linalg.eigh(tmp0.T.conj() @ tmp0)
+    matP = (EVC * np.sqrt(np.maximum(0,EVL))) @ EVC.T.conj()
     np1 = matP @ np0 @ np.linalg.inv(matP)
     ret = (np1,matP) if return_matP else np1
     return ret

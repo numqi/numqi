@@ -168,7 +168,9 @@ def rand_choi_op(dim_in:int, dim_out:int, rank:int=None, seed=None):
     np0 = tmp0 @ tmp0.T.conj()
     tmp1 = np.einsum(np0.reshape(dim_in, dim_out, dim_in, dim_out), [0,1,2,1], [0,2], optimize=True)
     # matrix square root should be the same
-    tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
+    EVL,EVC = np.linalg.eigh(tmp1)
+    tmp2 = (EVC * (1/np.sqrt(np.maximum(0,EVL)))) @ EVC.T.conj()
+    # tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1).astype(tmp1.dtype))
     # TODO .astype(xxx.dtype) scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
     # tmp2 = np.linalg.inv(scipy.linalg.cholesky(tmp1))
     ret = np.einsum(np0.reshape(dim_in,dim_out,dim_in,dim_out), [0,1,2,3],
@@ -190,7 +192,9 @@ def rand_povm(dim:int, num_term:int, seed=None):
     np_rng = get_numpy_rng(seed)
     tmp0 = np_rng.normal(size=(num_term,dim,dim)) + 1j*np_rng.normal(size=(num_term,dim,dim))
     tmp1 = tmp0 @ tmp0.transpose(0,2,1).conj()
-    tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1.sum(axis=0)).astype(tmp1.dtype))
+    EVL,EVC = np.linalg.eigh(tmp1.sum(axis=0))
+    tmp2 = (EVC * (1/np.sqrt(np.maximum(0,EVL)))) @ EVC.T.conj()
+    # tmp2 = np.linalg.inv(scipy.linalg.sqrtm(tmp1.sum(axis=0)).astype(tmp1.dtype))
     ret = tmp2 @ tmp1 @ tmp2
     return ret
 

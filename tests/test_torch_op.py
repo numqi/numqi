@@ -19,7 +19,13 @@ def test_PSDMatrixSqrtm():
     loss.backward()
     ret0 = torch0_r.grad.numpy() + 1j*torch0_i.grad.numpy()
 
-    hf0 = lambda x: (scipy.linalg.sqrtm(x @ x.T.conj())*np1).real.sum()
+    def hf0(x):
+        tmp0 = x @ x.T.conj()
+        EVL,EVC = np.linalg.eigh(tmp0)
+        sqrt_x = (EVC * np.sqrt(np.maximum(0,EVL))) @ EVC.T.conj()
+        ret = (sqrt_x*np1).real.sum()
+        return ret
+    # hf0 = lambda x: (scipy.linalg.sqrtm(x @ x.T.conj())*np1).real.sum()
     ret_ = numqi.optimize.finite_difference_central(hf0, np0, zero_eps=1e-4)
     assert np.abs(ret_-ret0).max() < 1e-6
 
