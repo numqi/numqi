@@ -88,6 +88,7 @@ def get_confidence_ellipse_matrix(hessian, loss, num_data, confidence_fraction=0
     covariance_matrix = np.linalg.inv(((num_data - num_parameter) / (2*loss))*hessian)
     tmp0 = scipy.special.betaincinv((num_data-num_parameter)/2, num_parameter/2, 1-confidence_fraction)
     tmp1 = (num_data - num_parameter) / num_parameter * (1 / tmp0 - 1)
+    # TODO replace scipy.linalg.sqrtm with eigen-decomposition
     ret = np.sqrt(num_parameter * tmp1) * scipy.linalg.sqrtm(covariance_matrix)
     return ret
 
