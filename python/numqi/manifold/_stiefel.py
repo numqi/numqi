@@ -35,6 +35,7 @@ class Stiefel(torch.nn.Module):
         assert (batch_size is None) or (batch_size>0)
         assert isinstance(device, torch.device)
         # choleskyL is really bad
+        assert method!='euler', '[TODO] euler is not correctly implemented' #TODO
         assert method in {'choleskyL','qr','so-exp','so-cayley','polar','euler'}
         if method in {'qr','polar'}:
             tmp0 = dim*rank if (dtype in {torch.float32,torch.float64}) else 2*dim*rank
@@ -64,6 +65,8 @@ class Stiefel(torch.nn.Module):
             ret = to_special_orthogonal_exp(self.theta, self.dim)[...,:self.rank]
         elif self.method=='so-cayley':
             ret = to_special_orthogonal_cayley(self.theta, self.dim)[...,:self.rank]
+        else: #euler
+            ret = to_stiefel_euler(self.theta, self.dim, self.rank)
         return ret
 
 def to_stiefel_polar(theta, dim:int, rank:int):
@@ -270,6 +273,8 @@ def _to_stiefel_euler_real(theta, dim, rank):
     return ret
 
 def _to_stiefel_euler_complex(theta, dim, rank):
+    # TODO add phase
+    # TODO manually backward
     batch = theta.shape[0]
     theta = theta.reshape(batch, -1, 2)
     tmp0 = np.cumsum(np.arange(dim-rank, dim)).tolist()

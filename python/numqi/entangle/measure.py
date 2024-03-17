@@ -179,7 +179,7 @@ def get_linear_entropy_entanglement_ppt(rho:np.ndarray, dim:tuple[int], use_tqdm
 
 class DensityMatrixLinearEntropyModel(torch.nn.Module):
     r'''Solve linear entropy of entanglement for density matrix using gradient descent.'''
-    def __init__(self, dim:tuple[int], num_ensemble:int, rank:int=None, kind:str='convex'):
+    def __init__(self, dim:tuple[int], num_ensemble:int, rank:int=None, kind:str='convex', method:str='polar'):
         r'''Initialize the model.
 
         Parameters:
@@ -187,6 +187,7 @@ class DensityMatrixLinearEntropyModel(torch.nn.Module):
             num_ensemble (int): number of ensemble to sample.
             rank (int): rank of the density matrix, if None, then rank is set to the maximum.
             kind (str): convex or concave.
+            method (str): parameterization method for Stiefel manifold.
         '''
         super().__init__()
         assert kind in {'convex','concave'}
@@ -201,7 +202,7 @@ class DensityMatrixLinearEntropyModel(torch.nn.Module):
             rank = dim[0]*dim[1]
         assert rank<=dim[0]*dim[1]
         self.rank = int(rank)
-        self.manifold_stiefel = numqi.manifold.Stiefel(num_ensemble, rank, dtype=self.cdtype)
+        self.manifold_stiefel = numqi.manifold.Stiefel(num_ensemble, rank, dtype=self.cdtype, method=method)
 
         self._sqrt_rho = None
         self._eps = torch.tensor(torch.finfo(self.dtype).eps, dtype=self.dtype)
