@@ -97,12 +97,12 @@ def apply_kraus_op(op, rho):
 def apply_choi_op(op, rho):
     assert (rho.ndim==2) and (rho.shape[0]==rho.shape[1])
     assert (op.ndim==2) and (op.shape[0]==op.shape[1]) and (op.shape[0]%rho.shape[0]==0)
-    dim0 = rho.shape[0]
-    dim1 = op.shape[0]//dim0
+    din = rho.shape[0]
+    dout = op.shape[0]//din
     if isinstance(op, torch.Tensor):
-        ret = torch.einsum(op.reshape(dim0,dim1,dim0,dim1), [0,1,2,3], rho, [0,2], [1,3])
+        ret = torch.einsum(op.reshape(din,dout,din,dout), [0,1,2,3], rho, [0,2], [1,3])
     else:
-        ret = np.einsum(op.reshape(dim0,dim1,dim0,dim1), [0,1,2,3], rho, [0,2], [1,3], optimize=True)
+        ret = np.einsum(op.reshape(din,dout,din,dout), [0,1,2,3], rho, [0,2], [1,3], optimize=True)
     return ret
 
 def apply_super_op(op, rho):
