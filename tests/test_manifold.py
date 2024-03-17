@@ -300,3 +300,22 @@ def test_QuantumChannel():
     EVL = np.linalg.eigvalsh(choi.reshape(dim_out*dim_in,-1))
     assert np.all(EVL+1e-10 > 0)
     assert np.sum(EVL>1e-10)==rank
+
+
+def test_stiefel_euler():
+    dim = 7
+    rank = 3
+    example_list = [
+        numqi.manifold.to_stiefel_polar(np_rng.uniform(-1,1,size=dim*rank), dim, rank),
+        np.eye(dim)[:,:rank],
+        numqi.manifold.to_stiefel_polar(np_rng.uniform(-1,1,size=2*dim*rank), dim, rank),
+    ]
+    for np0 in example_list:
+        theta1, phase = numqi.manifold.from_stiefel_euler(np0)
+        np1 = numqi.manifold.to_stiefel_euler(theta1, dim, rank)
+        assert np.abs(np0-np1*np.exp(1j*phase)).max() < 1e-10
+        torch1 = numqi.manifold.to_stiefel_euler(torch.tensor(theta1,dtype=torch.float32), dim, rank)
+        torch2 = numqi.manifold.to_stiefel_euler(torch.tensor(theta1,dtype=torch.float64), dim, rank)
+        assert (torch1.dtype==torch.float32) or (torch1.dtype==torch.complex64)
+        assert np.abs(np1-torch1.numpy()).max() < 1e-5
+        assert np.abs(np1-torch2.numpy()).max() < 1e-10

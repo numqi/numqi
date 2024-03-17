@@ -1,7 +1,8 @@
 import numpy as np
 import torch
 
-from ._internal import DiscreteProbability, Trace1PSD, Sphere, SpecialOrthogonal, Stiefel
+from ._internal import DiscreteProbability, Trace1PSD, Sphere, SpecialOrthogonal
+from ._stiefel import Stiefel
 
 _CPU = torch.device('cpu')
 
