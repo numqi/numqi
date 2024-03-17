@@ -154,3 +154,12 @@ def test_linear_entropy_tensor_network():
     ret0 = (tmp2 / np.trace(tmp1, axis1=1, axis2=2)).sum()
     # ret0 = np.dot(plist, tmp2)
     assert abs(ret_ - ret0) < 1e-10
+
+
+def test_2qubits_linear_entropy_entanglement():
+    for _ in range(10):
+        rho = numqi.random.rand_density_matrix(4)
+        concurrence = numqi.entangle.get_concurrence_2qubit(rho)
+        ret_ = concurrence**2 / 2 #by fitting, no found reference
+        ret0 = numqi.entangle.get_linear_entropy_entanglement_ppt(rho, (2,2))
+        assert abs(ret_-ret0)<(1e-7 if use_MOSEK else 1e-4)

@@ -22,11 +22,14 @@ def get_concurrence_2qubit(rho:np.ndarray):
     # tmp0 = np.kron(numqi.gate.Y, numqi.gate.Y).real
     # z0_ = tmp0 @ rho.conj() @ tmp0
     # assert np.abs(z0_-z0).max() < 1e-10
-    tmp0 = scipy.linalg.sqrtm(rho) #TODO sqrtm is slow, replace it with eigendecomposition
-    if tmp0.dtype.name=='complex256':
-        # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
-        tmp0 = tmp0.astype(np.complex128)
-    EVL = np.sqrt(np.maximum(0, np.linalg.eigvalsh(tmp0 @ z0 @ tmp0)))
+    # scipy.linalg.sqrtm is not precise and also slow, so replace it with eigendecomposition
+    # tmp0 = scipy.linalg.sqrtm(rho)
+    # if tmp0.dtype.name=='complex256':
+    #     # scipy-v1.10 bug https://github.com/scipy/scipy/issues/18250
+    #     tmp0 = tmp0.astype(np.complex128)
+    EVL,EVC = np.linalg.eigh(rho)
+    sqrt_rho = (EVC * np.sqrt(np.maximum(0,EVL))) @ EVC.T.conj()
+    EVL = np.sqrt(np.maximum(0, np.linalg.eigvalsh(sqrt_rho @ z0 @ sqrt_rho)))
     ret = np.maximum(2*EVL[-1]-EVL.sum(), 0)
     return ret
 
@@ -81,6 +84,9 @@ def get_eof_pure(psi:np.ndarray, eps:float=1e-10):
 def get_eof_2qubit(rho:np.ndarray):
     r'''get the entanglement of formation (EOF) of a 2-qubit density matrix
     [wiki-link](https://en.wikipedia.org/wiki/Entanglement_of_formation)
+
+    Entanglement of Formation of an Arbitrary State of Two Qubits, William K. Wootters
+    [doi-link](https://doi.org/10.1103/PhysRevLett.80.2245)
 
     Parameters:
         rho (np.ndarray): a 2-qubit density matrix, shape=(4,4)
