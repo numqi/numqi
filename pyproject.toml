@@ -10,7 +10,7 @@ authors = [
 description = "quantum information toolbox implemented in numpy"
 readme = "README.md"
 keywords = ["quantum information"]
-license = { text = "MIT" }
+license = { text = "GNU Affero General Public License v3.0" }
 classifiers = [
     "Programming Language :: Python :: 3",
 ]
