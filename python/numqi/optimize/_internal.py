@@ -78,7 +78,7 @@ class MinimizeCallback:
         self._need_grad = 'grad_norm' in extra_key #if True, the callback function will be called with tag_grad=True
         self.state = None
         self.history_state = []
-        self.reset()
+        self.reset(save_history=False)
 
     def to_callable(self, hf_fval):
         def hf0(theta):
@@ -106,8 +106,8 @@ class MinimizeCallback:
                 print(f'[step={step}][time={t1-t0:.3f} seconds] loss={fval}')
         self.state['step'] += 1
 
-    def reset(self):
-        if (self.state is not None) and (self.state['step']>0):
+    def reset(self, save_history:bool=False):
+        if save_history:
             self.history_state.append(self.state)
         tmp0 = {'step':0, 'fval':[], 'time':[]}
         if 'grad_norm' in self.extra_key:
@@ -249,7 +249,7 @@ def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L
         if (print_every_round>0) and (ind0%print_every_round==0):
             print(f'[round={ind0}] min(f)={theta_optim_best.fun}, current(f)={theta_optim.fun}')
         if callback is not None:
-            callback.reset()
+            callback.reset(save_history=True)
         if (early_stop_threshold is not None) and (theta_optim_best.fun<=early_stop_threshold):
             break
     hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property
