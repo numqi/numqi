@@ -3,9 +3,11 @@ name: mkdocs-github-page
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
-  # # only run it when unittest passed https://stackoverflow.com/a/64733705/7290857
+  ## disable run docs at pull-request, it will be rerun at the merge stage (end of pull request)
+  # pull_request:
+  #   branches: [main]
+
+  ## only run it when unittest passed https://stackoverflow.com/a/64733705/7290857
   # workflow_run:
   #   workflows: ["unittest"]
   #   types:
