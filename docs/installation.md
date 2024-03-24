@@ -1,20 +1,9 @@
 # Installation
 
-(TODO, when the repo `numqi` is public available) The following command should be okay for `win/mac/linux`
+The following command should be okay for `win/mac/linux`
 
 ```bash
 pip install numqi
-# TODO upload the package to pypi
-```
-
-Since `numqi` is still not public available right now, please download the source code and install it manually.
-
-```bash
-# install numqi first
-git clone git@github.com:husisy/numqi.git
-# TODO add numqi dependency
-cd numqi
-pip install .
 ```
 
 test whether succuessfully installed (run it in `python/ipython` REPL)
@@ -42,9 +31,9 @@ brew install openblas
 OPENBLAS="$(brew --prefix openblas)" pip install scs
 ```
 
-a complete fresh new conda environments [miniconda-documentation](https://docs.conda.io/en/latest/miniconda.html)
+## Conda environment
 
-> conda can create isolated Python environment to install package. If you have any problems install `numqi` using the above `pip install` command, please try following conda commands
+conda can create isolated Python environment to install package. If you have any problems install `numqi` using the above `pip install` command, please try following conda commands [miniconda-documentation](https://docs.conda.io/en/latest/miniconda.html)
 
 ```bash
 # for linux users without naivdia-GPU (this should also works for windows user)
@@ -72,11 +61,11 @@ OPENBLAS="$(brew --prefix openblas)" pip install scs
 pip install numqi
 ```
 
-(PS) notice some weird problems if installed `conda-forge/numpy` on ubuntu, then use `pip install numpy` instead.
+(PS) notice some weird problems if installed `conda-forge/numpy` on ubuntu, then use `pip install --force-reinstall numpy` instead.
 
-## for developer
+## Guide for contributors
 
-Personally i use `conda/miniconda/mamba/micromamba` to create a virtual environment. You can use any familiar tools `poetry/rye/etc.` to create a virtual environment.
+Personally i use `conda/miniconda/mamba/micromamba` to create a virtual environment.
 
 ```bash
 conda create -n env-numqi python
@@ -89,14 +78,13 @@ install `numqi`
 git clone git@github.com:husisy/numqi.git
 cd numqi
 pip install -e ".[dev]"
-# pip install -e .
 ```
 
 run the unittest
 
 ```bash
 # "OMP_NUM_THREADS=1" usually runs faster (some unnecessay threads are disabled)
-OMP_NUM_THREADS=1 pytest --cov=python/numqi
+OMP_NUM_THREADS=1 pytest --durations=10 --cov=python/numqi
 
 # if you have a multi-core CPU, you can run the unittest in parallel (take about 120 seconds on my laptop)
 OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi

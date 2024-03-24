@@ -1,10 +1,53 @@
 # NumQI
 
-**WARNING**: the package is still under development, the documentation page is for preview only.
+**WARNING**: no backward compatiblity until version `1.0.0` (TODO roadmap). Right now, feel free to ask questions on GitHub issue page.
 
-**WARNING**: no backward compatiblity until version `1.0.0` (TODO roadmap). Right now, feel free to ask questions on GitHub issue page (TODO to be public).
+`numqi` (pronounce: num-q-i) is a numpy-based quantum information package that makes quantum computing more accessible and fun for everyone. Whether you're just getting started or you're already deep into quantum computing, numqi has something for you. It's like a Swiss Army knife for quantum computing, packed with tools and features that help you simulate quantum systems, play around with quantum gates, and even tackle complex quantum information challenges. From creating and manipulating quantum states to exploring the mysteries of entanglement and beyond, numqi is your go-to resource for diving into the quantum world. And the best part? You don't need to be a quantum physicist to get started. So, let's embark on this quantum journey together with numqi at your side!
 
-`numqi` (pronouce: num(-py)-q-i) a numpy-based quantum information package.
+## Quickstart
+
+```bash
+pip install numqi
+```
+
+Detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangled or not using positive partial transpose (PPT) criteria.
+
+```python
+import numqi
+bell_state = numqi.state.Werner(d=2, alpha=1)
+print(bell_state)
+# [[ 0.   0.   0.   0. ]
+#  [ 0.   0.5 -0.5  0. ]
+#  [ 0.  -0.5  0.5  0. ]
+#  [ 0.   0.   0.   0. ]]
+print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable, False if entangled
+# False
+```
+
+Let's try a "non-trival" quantum circuit (Five-qubit error correcting code)
+
+```python
+import numpy as np
+import numqi
+circ = numqi.sim.Circuit()
+for x in range(4):
+    circ.H(x)
+circ.cz(3, 4)
+circ.cy(2, 3)
+circ.cz(2, 4)
+circ.cx(1, 2)
+circ.cz(1, 3)
+circ.cx(1, 4)
+circ.cy(0, 2)
+circ.cx(0, 3)
+circ.cx(0, 4)
+
+q0 = np.zeros(2**5, dtype=np.complex128)
+q0[0] = 1
+q1 = circ.apply_state(q0)
+```
+
+## Module structure
 
 ![project-structure](data/project-structure.png)
 
@@ -47,52 +90,6 @@ Application modules
     * Gradient ascent pulse engineering algorithm (GRAPE) (gradient ascent pulse engineering)
 
 Generally, the application modules are implemented based on the core modules. For example, the `numqi.entangle` module use quite a lots of the module `numqi.group` and `numqi.optimize`. For those who are more interested in quantum information problems, you may directly dive into these specific modules. For those who are more interested in the underlying algorithms or math concepts, you may start from the core modules.
-
-*PS*: Stay relaxing if none of these terminologies make sense, I will (try to) explain these words in the following pages.
-
-## Quickstart
-
-```bash
-pip install numqi
-# TODO upload to pypi.org
-```
-
-Detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangled or not using positive partial transpose (PPT) criteria.
-
-```python
-import numqi
-bell_state = numqi.state.Werner(d=2, alpha=1)
-print(bell_state)
-# [[ 0.   0.   0.   0. ]
-#  [ 0.   0.5 -0.5  0. ]
-#  [ 0.  -0.5  0.5  0. ]
-#  [ 0.   0.   0.   0. ]]
-print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable, False if entangled
-# False
-```
-
-Let's try a "non-trival" quantum circuit (Five-qubit error correcting code)
-
-```python
-import numpy as np
-import numqi
-circ = numqi.sim.Circuit()
-for x in range(4):
-    circ.H(x)
-circ.cz(3, 4)
-circ.cy(2, 3)
-circ.cz(2, 4)
-circ.cx(1, 2)
-circ.cz(1, 3)
-circ.cx(1, 4)
-circ.cy(0, 2)
-circ.cx(0, 3)
-circ.cx(0, 4)
-
-q0 = np.zeros(2**5, dtype=np.complex128)
-q0[0] = 1
-q1 = circ.apply_state(q0)
-```
 
 ## Related Packages
 
