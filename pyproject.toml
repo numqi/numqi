@@ -7,7 +7,7 @@ name = "numqi"
 authors = [
     { name = "husisy", email = "donot@mail.me" },
 ]
-description = "quantum information toolbox implemented in numpy"
+description = "a numpy-based quantum information toolbox"
 readme = "README.md"
 keywords = ["quantum information"]
 license = { text = "GNU Affero General Public License v3.0" }

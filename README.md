@@ -1,4 +1,4 @@
-# numqi: a quantum information package based on numpy
+# numqi: a numpy-based quantum information package
 
 [![codecov](https://codecov.io/gh/husisy/numqi/graph/badge.svg?token=50YC4KD4M1)](https://codecov.io/gh/husisy/numqi)
 
@@ -6,7 +6,29 @@ WARNING: no backward compatibility guarantee until version `1.0.0`
 
 keyword: quantum information, numpy, pytorch, manifold optimization, trivialization
 
-module structure
+## Quickstart
+
+more detailed installation instructions see [docs/installation](./docs/installation.md)
+
+```bash
+pip install numqi
+```
+
+A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangle or not using positive partial transpose (PPT) criteria.
+
+```Python
+import numqi
+bell_state = numqi.state.Werner(d=2, alpha=1)
+print(bell_state) #a numpy array
+# [[ 0.   0.   0.   0. ]
+#  [ 0.   0.5 -0.5  0. ]
+#  [ 0.  -0.5  0.5  0. ]
+#  [ 0.   0.   0.   0. ]]
+print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable, False if entangled
+# False
+```
+
+## Module structure
 
 ```mermaid
 mindmap
@@ -84,30 +106,7 @@ application modules
 6. `numqi.optimal_control`: optimal control for quantum system, e.g. finding the optimal control pulse to implement a quantum gate
    * Gradient ascent pulse engineering algorithm (GRAPE) (gradient ascent pulse engineering)
 
-## quickstart
-
-more detailed installation instructions see [docs/installation](./docs/installation.md)
-
-```bash
-# TODO upload to pypi.org
-pip install numqi
-```
-
-A simple example to detect whether Bell state [wiki](https://en.wikipedia.org/wiki/Bell_state) is entangle or not using positive partial transpose (PPT) criteria.
-
-```Python
-import numqi
-bell_state = numqi.state.Werner(d=2, alpha=1)
-print(bell_state) #a numpy array
-# [[ 0.   0.   0.   0. ]
-#  [ 0.   0.5 -0.5  0. ]
-#  [ 0.  -0.5  0.5  0. ]
-#  [ 0.   0.   0.   0. ]]
-print(numqi.entangle.is_ppt(bell_state, (2,2))) #True if seperable, False if entangled
-# False
-```
-
-folder structure
+## Folder structure
 
 1. `python/numqi/`: source code
 2. `docs/`: kinds of markdown files for generating website
@@ -123,7 +122,7 @@ folder structure
 
 ## How to contribute
 
-see [docs/installation/for-developer](./docs/installation.md/#for-developer)
+see [docs/installation](./docs/installation.md) "Guide-for-contributors" section
 
 ## mermaid diagram
 
