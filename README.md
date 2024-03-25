@@ -1,5 +1,6 @@
 # numqi: a numpy-based quantum information package
 
+[![DOI](https://zenodo.org/badge/568701845.svg)](https://zenodo.org/doi/10.5281/zenodo.10867067)
 [![codecov](https://codecov.io/gh/husisy/numqi/graph/badge.svg?token=50YC4KD4M1)](https://codecov.io/gh/husisy/numqi)
 
 WARNING: no backward compatibility guarantee until version `1.0.0`
