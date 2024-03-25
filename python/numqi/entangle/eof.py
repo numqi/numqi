@@ -183,7 +183,6 @@ class ConcurrenceModel(torch.nn.Module):
             dimB (int): the dimension of the second subsystem
             num_term (int): the number of terms in the variational ansatz, `num_term` is bounded by (dimA*dimB)**2
             rank (int): the rank of the density matrix
-            zero_eps (float): a small number to avoid sqrt(0)
         '''
         super().__init__()
         self.dtype = torch.float64
