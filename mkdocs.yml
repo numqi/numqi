@@ -1,5 +1,7 @@
 site_name: numqi
 site_url: https://husisy.github.io/numqi/
+repo_url: https://github.com/husisy/numqi
+edit_uri: edit/main/docs/
 theme:
   name: material
   features:
@@ -9,6 +11,7 @@ theme:
     - search.share
     - search.suggest
     - content.code.copy
+    - content.action.edit
   palette:
     - scheme: default
       toggle:
@@ -20,6 +23,8 @@ theme:
         name: Switch to light mode
 plugins:
   search:
+  git-revision-date-localized:
+    enable_creation_date: true
   mkdocs-jupyter:
     include: ["foundation/**/*.ipynb", "application/**/*.ipynb"] # Default: ["*.py", "*.ipynb"]
     execute: true

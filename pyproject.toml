@@ -28,7 +28,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 dev = [
-    "twine",
+    # below for testing
     "pytest",
     "pytest-cov",
     "pytest-xdist",
@@ -40,6 +40,7 @@ dev = [
     "mkdocs-jupyter",
     "pymdown-extensions",
     "mkdocstrings[python]",
+    "mkdocs-git-revision-date-localized-plugin",
     # below for building pypi package
     "build",
     "twine",
