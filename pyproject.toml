@@ -41,6 +41,8 @@ dev = [
     "pymdown-extensions",
     "mkdocstrings[python]",
     "mkdocs-git-revision-date-localized-plugin",
+    "mkdocs-git-authors-plugin",
+    "pyyaml",
     # below for building pypi package
     "build",
     "twine",
