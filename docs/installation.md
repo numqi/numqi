@@ -65,14 +65,14 @@ pip install numqi
 
 ## Guide for contributors
 
-Personally i use `conda/miniconda/mamba/micromamba` to create a virtual environment.
+It is recommended to install `numqi` in a virtual environment.  You may use `conda/miniconda/mamba/micromamba` to create a virtual environment.
 
 ```bash
 conda create -n env-numqi python
 conda activate env-numqi
 ```
 
-install `numqi`
+Then you should install `numqi` as developer
 
 ```bash
 git clone git@github.com:husisy/numqi.git
@@ -80,7 +80,9 @@ cd numqi
 pip install -e ".[dev]"
 ```
 
-run the unittest
+### Unittest
+
+You can now run the unittest
 
 ```bash
 # "OMP_NUM_THREADS=1" usually runs faster (some unnecessay threads are disabled)
@@ -90,11 +92,13 @@ OMP_NUM_THREADS=1 pytest --durations=10 --cov=python/numqi
 OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
 ```
 
-build and Serve the documentation locally, then brower the website `127.0.0.1:8000`
+### Documentation
+You can now build the documentation locally.
 
 ```bash
 mkdocs serve
 ```
+then browse the website `127.0.0.1:8000`
 
 1. **WARNING**: second indentaion must be 4 spaces, not 3 spaces (necessary for `mkdoc`)
 2. api style: [griffe/usage](https://mkdocstrings.github.io/griffe/docstrings/)
@@ -108,17 +112,3 @@ mkdocs serve
    * `._internal.py`: private to submodules. E.g., `numqi.A._internal` should only be imported in `numqi.A.xxx`
    * `._public.py`: library public functions. E.g., `numqi.A._public` can be imported by `numqi.B`
 5. strip the jupyter notebook output before commit
-
-Recommended courses
-
-TODO add quantum stuff
-
-1. point-set topology
-    * [youtube-link](https://youtube.com/playlist?list=PLd8NbPjkXPliJunBhtDNMuFsnZPeHpm-0&si=Y5-wnge2rWO1HNVb) Marius Furter
-2. smooth manifold
-    * [youtube-link](https://www.youtube.com/playlist?list=PLBh2i93oe2qvRGAtgkTszX7szZDVd6jh1) The Bright Side of Mathematics
-    * [youtube-link](https://www.youtube.com/playlist?list=PLD2r7XEOtm-AGjr3ynbljbx3oWHdus9Xb) qncubed3
-3. Riemannian manifold
-4. Differential geometry
-5. algebraic topology
-    * [youtube-link](https://www.youtube.com/playlist?list=PLOROtRhtegr7DmeMyFxfKxsljAVsAn_X4) Presented by Dr. Anthony Bosman.

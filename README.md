@@ -156,3 +156,15 @@ flowchart TD
    id7 -.->|large loss| id3
    id5 -->|zero loss| id2
 ```
+
+## Recommended courses
+
+1. point-set topology
+    * [youtube-link](https://youtube.com/playlist?list=PLd8NbPjkXPliJunBhtDNMuFsnZPeHpm-0&si=Y5-wnge2rWO1HNVb) Marius Furter
+2. smooth manifold
+    * [youtube-link](https://www.youtube.com/playlist?list=PLBh2i93oe2qvRGAtgkTszX7szZDVd6jh1) The Bright Side of Mathematics
+    * [youtube-link](https://www.youtube.com/playlist?list=PLD2r7XEOtm-AGjr3ynbljbx3oWHdus9Xb) qncubed3
+3. Riemannian manifold
+4. Differential geometry
+5. algebraic topology
+    * [youtube-link](https://www.youtube.com/playlist?list=PLOROtRhtegr7DmeMyFxfKxsljAVsAn_X4) Presented by Dr. Anthony Bosman.
