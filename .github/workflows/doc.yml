@@ -36,6 +36,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+        with:
+          fetch-depth: 0
+          # see https://github.com/actions/checkout and https://github.com/timvink/mkdocs-git-revision-date-localized-plugin for this parameter
+
       - name: Setup Python
         uses: actions/setup-python@v4
 
@@ -52,7 +56,11 @@ jobs:
       - name: install numqi
         run: python3 -m pip install -e .[dev]
 
-      - run: OMP_NUM_THREADS=1 mkdocs build
+      - name: set parameters in mkdocs.yml
+        run: python3 scripts/draft_action_mkdocs.py
+
+      - name: run mkdocs
+        run: OMP_NUM_THREADS=1 mkdocs build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1

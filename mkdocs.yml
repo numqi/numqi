@@ -23,11 +23,12 @@ theme:
         name: Switch to light mode
 plugins:
   search:
+  git-authors:
   git-revision-date-localized:
     enable_creation_date: true
   mkdocs-jupyter:
     include: ["foundation/**/*.ipynb", "application/**/*.ipynb"] # Default: ["*.py", "*.ipynb"]
-    execute: true
+    execute: false
   mkdocstrings:
     default_handler: python
     handlers:
