@@ -449,7 +449,7 @@ class Sphere(torch.nn.Module):
         r'''sphere manifold
 
         Parameters:
-            dim (int): dimension of the sphere.
+            dim (int): size of point in Euclidean space, must be at least 2.
             batch_size (int,None): batch size.
             method (str): method to map real vector to a point on the sphere.
                 'quotient': quotient map.

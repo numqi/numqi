@@ -56,10 +56,10 @@ def hf_complex_to_real(x):
     $$ A\in\mathbb{C}^{m\times n}\mapsto\begin{bmatrix} \Re[A] & -\Im[A]\\ \Im[A] & \Re[A] \end{bmatrix}\in\mathbb{R}^{2m\times2n} $$
 
     Parameters:
-        x (np.ndarray,torch.Tensor): a complex matrix, shape=(...,dim0,dim1), support batch
+        x (np.ndarray,torch.Tensor): a complex matrix, shape=(...,m,n), support batch
 
     Returns:
-        ret (np.ndarray,torch.Tensor): a real matrix, shape=(...,2*dim0,2*dim1)
+        ret (np.ndarray,torch.Tensor): a real matrix, shape=(...,2m,2n)
     '''
     dim0,dim1 = x.shape[-2:]
     shape = x.shape[:-2]
