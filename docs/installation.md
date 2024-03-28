@@ -1,5 +1,13 @@
 # Installation
 
+Try without installing anything: `application/get-started` in colab
+
+<a target="_blank" href="https://colab.research.google.com/github/husisy/numqi/blob/main/docs/application/get_started/quantum_state.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
+## pip installation
+
 The following command should be okay for `win/mac/linux`
 
 ```bash
@@ -25,8 +33,7 @@ conda install -n <xxx> -c MOSEK MOSEK
 For macOS user, you might need to install `openblas` first and then install `scs` as below.
 
 ```bash
-# macOS m1/m2 user (Apple silicon M series)
-# also see https://www.cvxgrp.org/scs/install/python.html
+# macOS m1/m2 user (Apple silicon M series), see https://www.cvxgrp.org/scs/install/python.html
 brew install openblas
 OPENBLAS="$(brew --prefix openblas)" pip install scs
 ```
@@ -36,22 +43,19 @@ OPENBLAS="$(brew --prefix openblas)" pip install scs
 conda can create isolated Python environment to install package. If you have any problems install `numqi` using the above `pip install` command, please try following conda commands [miniconda-documentation](https://docs.conda.io/en/latest/miniconda.html)
 
 ```bash
-# for linux users without naivdia-GPU (this should also works for windows user)
-# nocuda is the environment name (you can change it what you like)
+# for win/linux users without naivdia-GPU, nocuda is the environment name (you can change it what you like)
 conda create -y -n nocuda
 conda install -y -n nocuda -c conda-forge pytorch ipython pytest matplotlib scipy tqdm cvxpy
 conda activate nocuda
 pip install numqi
 
-# for linux users with nvidia-GPU (this should also works for windows user)
-# cuda118 is the environment name (you can change it what you like)
+# for win/linux users with nvidia-GPU, cuda118 is the environment name
 conda create -y -n cuda118
 conda install -y -n cuda118 -c conda-forge pytorch ipython pytest matplotlib scipy tqdm cvxpy
 conda activate cuda118
 pip install numqi
 
-# for mac user
-# metal is the environment name (you can change it what you like)
+# for macOS user, metal is the environment name
 conda create -y -n metal
 conda install -y -n metal -c conda-forge ipython pytest matplotlib scipy requests tqdm cvxpy
 conda activate metal
@@ -64,6 +68,12 @@ pip install numqi
 (PS) notice some weird problems if installed `conda-forge/numpy` on ubuntu, then use `pip install --force-reinstall numpy` instead.
 
 ## Guide for contributors
+
+Quick start for contributors: open this project in GitHub Codespaces
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/husisy/numqi)
+
+### local development environment
 
 It is recommended to install `numqi` in a virtual environment.  You may use `conda/miniconda/mamba/micromamba` to create a virtual environment.
 
