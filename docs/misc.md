@@ -22,14 +22,13 @@ Initially, this package is named `numpyqi`, later it's shortened to be `numqi` (
 
 This package is to support following papers
 
-1. detecting entanglement by pure bosonic extension [arxiv-link](https://arxiv.org/abs/2209.10934) `numqi.entangle`
-2. Quantum variational learning for quantum error-correcting codes [doi-link](https://doi.org/10.22331/q-2022-10-06-828) `numqi.qec`
-3. Tapping into Permutation Symmetry for Improved Detection of k-Symmetric Extensions [doi-link](https://doi.org/10.3390/e25101425) `numqi.entangle` `numqi.group.symext`
-4. Variational learning algorithms for quantum query complexity [arxiv-link](https://arxiv.org/abs/2205.07449) `numqi.query`
-5. Variational approach to unique determinedness in pure-state tomography [arxiv-link](https://arxiv.org/abs/2305.10811) [doi-link](https://doi.org/10.1103/PhysRevA.109.022425) `numqi.unique_determine`
-6. Maximum entropy methods for quantum state compatibility problems [arxiv-link](https://arxiv.org/abs/2207.11645) `numqi.maximum_entropy`
-7. Simulating Noisy Quantum Circuits with Matrix Product Density Operators [arxiv-link](https://arxiv.org/abs/2004.02388) `numqi.sim`
-8. Quantifying Subspace Entanglement with Geometric Measures [arxiv-link](https://arxiv.org/abs/2311.10353) `numqi.matrix_space`
+1. [doi-link](https://doi.org/10.1103/PhysRevResearch.6.013249) [arxiv-link](https://arxiv.org/abs/2209.10934) `numqi.entangle` Detecting entanglement by pure bosonic extension
+2. [doi-link](https://doi.org/10.22331/q-2022-10-06-828) [arxiv-link](https://arxiv.org/abs/2204.03560) `numqi.qec` Quantum variational learning for quantum error-correcting codes
+3. [doi-link](https://doi.org/10.3390/e25101425) [arxiv-link](https://arxiv.org/abs/2309.04144) `numqi.entangle` `numqi.group.symext` Tapping into Permutation Symmetry for Improved Detection of k-Symmetric Extensions
+4. [doi-link](https://doi.org/10.1088/1367-2630/ad309c) [arxiv-link](https://arxiv.org/abs/2205.07449) `numqi.query` Variational learning algorithms for quantum query complexity
+5. [doi-link](https://doi.org/10.1103/PhysRevA.109.022425) [arxiv-link](https://arxiv.org/abs/2305.10811) `numqi.unique_determine` Variational approach to unique determinedness in pure-state tomography
+6. [arxiv-link](https://arxiv.org/abs/2207.11645) `numqi.maximum_entropy` Maximum entropy methods for quantum state compatibility problems
+7. [arxiv-link](https://arxiv.org/abs/2311.10353) `numqi.matrix_space` Quantifying Subspace Entanglement with Geometric Measures
 
 ## Acknowledgement
 
@@ -62,7 +61,7 @@ model name
 
 1. `pureb`: pure bosonic extension
 2. `symext`: symmetric extension
-3. `varqecc`: variational quantum
+3. `varqecc`: variational quantum error correction code
 
 ## license
 

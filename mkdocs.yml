@@ -1,4 +1,4 @@
-site_name: numqi
+site_name: NumQI
 site_url: https://husisy.github.io/numqi/
 repo_url: https://github.com/husisy/numqi
 edit_uri: edit/main/docs/
@@ -60,6 +60,7 @@ nav:
   - Home: index.md
   - Installation: installation.md
   - Foundation:
+    - foundation/get_started/get_started.ipynb
     - Group:
       - foundation/group/basic.ipynb
       - foundation/group/young-tableaux.ipynb
