@@ -51,17 +51,20 @@ pip install numqi
 
 # for win/linux users with nvidia-GPU, cuda118 is the environment name
 conda create -y -n cuda118
-conda install -y -n cuda118 -c conda-forge pytorch ipython pytest matplotlib scipy tqdm cvxpy
+conda install -y -n cuda118 -c conda-forge ipython pytest matplotlib scipy tqdm cvxpy
+conda install -y -n cuda118 -c pytorch pytorch
 conda activate cuda118
 pip install numqi
 
 # for macOS user, metal is the environment name
 conda create -y -n metal
 conda install -y -n metal -c conda-forge ipython pytest matplotlib scipy requests tqdm cvxpy
+conda install -y -n metal -c pytorch pytorch torchvision torchaudio
+# conda-forge/macos/pytorch is broken https://github.com/conda-forge/pytorch-cpu-feedstock/issues/180
 conda activate metal
-pip install torch #conda-forge/macos/pytorch is broken https://github.com/conda-forge/pytorch-cpu-feedstock/issues/180
-brew install openblas
-OPENBLAS="$(brew --prefix openblas)" pip install scs
+## scs-macos issue, see https://www.cvxgrp.org/scs/install/python.html
+# brew install openblas
+# OPENBLAS="$(brew --prefix openblas)" pip install scs
 pip install numqi
 ```
 
@@ -69,7 +72,8 @@ pip install numqi
 
 ## Guide for contributors
 
-Quick start for contributors: open this project in GitHub Codespaces
+
+Quick start for contributors: open this project in GitHub Codespaces and then `pip install -e ".[dev]"`
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/husisy/numqi)
 
@@ -103,6 +107,7 @@ OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
 ```
 
 ### Documentation
+
 You can now build the documentation locally.
 
 ```bash
