@@ -6,7 +6,7 @@ import numqi.channel
 import numqi.sim.state
 from numqi.utils import hf_tuple_of_int, hf_tuple_of_any
 
-from ._internal import Gate, ParameterGate
+from ._internal import Gate, ParameterGate, _ParameterHolder
 from ._torch_utils import CircuitTorchWrapper
 
 CANONICAL_GATE_KIND = {'unitary','control','measure'}
@@ -67,10 +67,11 @@ def _unitary_parameter_gate(name_, hf0, num_index, num_parameter):
     def hf1(self, index, args=None, name=name_, requires_grad=None):
         if requires_grad is None:
             requires_grad = self.default_requires_grad
-        if args is None:
-            args = (0.,)*num_parameter #initialize to zero
-        else:
-            args = hf_tuple_of_any(args, type_=float) #convert float/int into tuple
+        if not isinstance(args, _ParameterHolder): #_ParameterHolder is handled in ParameterGate
+            if args is None:
+                args = (0.,)*num_parameter #initialize to zero
+            else:
+                args = hf_tuple_of_any(args, type_=float) #convert float/int into tuple
         gate = ParameterGate('unitary', hf0, args, name=name, requires_grad=requires_grad)
         index = hf_tuple_of_int(index)
         assert len(index)==num_index
@@ -114,6 +115,23 @@ class Circuit:
         '''
         self.gate_index_list = []
         self.default_requires_grad = default_requires_grad
+        self._P:dict = dict()
+        self.P:_ParameterHolder = _ParameterHolder(self._P) #parameter placeholder
+
+    def setP(self, *args, **kwargs):
+        if len(args)>0:
+            assert len(args)==1
+            self._P[''] = args[0]
+        for k,v in kwargs.items():
+            self._P[k] = v
+        for gate,_ in self.gate_index_list:
+            if hasattr(gate, 'args') and isinstance(gate.args, _ParameterHolder):
+                tmp0 = gate.args.resolve()
+                if hasattr(tmp0, '__len__'):
+                    array = gate.hf0(*tmp0)
+                else:
+                    array = gate.hf0(tmp0)
+                gate.set_args(tmp0, array)
 
     def append_gate(self, gate:Gate, index:int|tuple[int]):
         r'''append a gate to the circuit. Trainable parameters are re-used.
@@ -476,6 +494,8 @@ class Circuit:
         Returns:
             ret (np.ndarray): the quantum state after the circuit, `shape=(2**num_qubit,)`
         '''
+        if any(hasattr(x,'args') and isinstance(x.args, _ParameterHolder) and (x.array is None) for x,_ in self.gate_index_list):
+            raise ValueError('Parameterized gate with placeholder is used, call "circ.setP" to initialize those gates first')
         for gate,index in self.gate_index_list:
             if gate.kind=='unitary':
                 q0 = numqi.sim.state.apply_gate(q0, gate.array, index)
