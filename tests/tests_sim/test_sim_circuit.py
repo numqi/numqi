@@ -52,6 +52,59 @@ def test_dummy_circuit():
     numqi.optimize.check_model_gradient(model)
 
 
+def build_dummy_circuit_holder(num_depth, num_qubit, seed=None):
+    np_rng = numqi.random.get_numpy_rng(seed)
+    circ = numqi.sim.Circuit(default_requires_grad=True)
+    for ind0 in range(num_depth):
+        tmp0 = list(range(0, num_qubit-1, 2)) + list(range(1, num_qubit-1, 2))
+        for ind1 in tmp0:
+            circ.ry(ind1, circ.P['ry'][ind0,ind1])
+            circ.ry(ind1+1, circ.P['ry'][ind0,ind1+1])
+            circ.rz(ind1, circ.P['rz'][ind0,ind1])
+            circ.rz(ind1+1, circ.P['rz'][ind0,ind1+1])
+            circ.rzz((ind1, ind1+1), circ.P['rzz'][ind0,ind1//2])
+            circ.cnot(ind1, ind1+1)
+            tmp0 = numqi.random.rand_special_orthogonal_matrix(2, tag_complex=True, seed=np_rng)
+            circ.controlled_single_qubit_gate(tmp0, (ind1+1,(ind1-1)%num_qubit), ind1)
+            circ.double_qubit_gate(numqi.random.rand_special_orthogonal_matrix(4, tag_complex=True, seed=np_rng), ind1, ind1+1)
+    return circ
+
+
+class DummyHolderQNNModel(torch.nn.Module):
+    def __init__(self, circuit, num_depth):
+        super().__init__()
+        self.circuit_torch = numqi.sim.CircuitTorchWrapper(circuit)
+        self.num_qubit = circuit.num_qubit
+        np_rng = np.random.default_rng()
+        tmp0 = np_rng.normal(size=2**self.num_qubit) + 1j*np_rng.normal(size=2**self.num_qubit)
+        self.target_state = torch.tensor(tmp0 / np.linalg.norm(tmp0), dtype=torch.complex128)
+        hf0 = lambda *x: torch.nn.Parameter(torch.tensor(np_rng.uniform(0, 2*np.pi, size=x), dtype=torch.float64))
+        tmp0 = { #not all parameters are used
+            'ry': hf0(num_depth, self.num_qubit),
+            'rz': hf0(num_depth, self.num_qubit),
+            'rzz': hf0(num_depth, self.num_qubit//2+1),
+        }
+        self.theta = torch.nn.ParameterDict(tmp0)
+        self.q0 = torch.empty(2**self.num_qubit, dtype=torch.complex128, requires_grad=False)
+
+    def forward(self):
+        self.q0[:] = 0
+        self.q0[0] = 1
+        self.circuit_torch.setP(ry=self.theta['ry'], rz=self.theta['rz'], rzz=self.theta['rzz'])
+        q0 = self.circuit_torch(self.q0)
+        tmp0 = torch.vdot(self.target_state, q0)
+        loss = (tmp0*tmp0.conj()).real
+        return loss
+
+
+def test_DummyHolderQNNModel():
+    num_qubit = 5
+    num_depth = 2
+    circuit = build_dummy_circuit_holder(num_depth, num_qubit)
+    model = DummyHolderQNNModel(circuit, num_depth)
+    numqi.optimize.check_model_gradient(model)
+
+
 def test_circuit_to_unitary():
     num_qubit = 5
     num_depth = 3
@@ -249,3 +302,23 @@ def test_build_graph_state():
         # https://math.stackexchange.com/q/353053
         # https://www.graphclasses.org/smallgraphs.html
         # 1 1 2 4 11 34 156 1044 12346 274668
+
+
+def test_circuit_ParameterHolder():
+    parameter = np_rng.uniform(0, 2*np.pi, size=3)
+    tmp0 = np_rng.normal(size=8) + 1j*np_rng.normal(size=8)
+    q0 = tmp0 / np.linalg.norm(tmp0)
+
+    circ0 = numqi.sim.Circuit()
+    circ0.rx(0, parameter[0])
+    circ0.ry(1, parameter[1])
+    circ0.rz(2, parameter[2])
+    ret_ = circ0.apply_state(q0)
+
+    circ = numqi.sim.Circuit()
+    circ.rx(0, circ.P[0])
+    circ.ry(1, circ.P['ry'])
+    circ.rz(2, circ.P['rz'][0])
+    circ.setP([parameter[0]], ry=parameter[1], rz=[parameter[2]])
+    ret0 = circ.apply_state(q0)
+    assert np.abs(ret_-ret0).max() < 1e-10
