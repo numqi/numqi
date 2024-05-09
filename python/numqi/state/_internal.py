@@ -420,3 +420,21 @@ def get_bes3x3_Horodecki1997(a:float):
     return ret
 
 
+def maximally_coherent_state(d:int, return_dm:bool=False):
+    r'''get the maximally coherent state
+
+    reference: [arxiv-link](https://arxiv.org/abs/1503.07103)
+
+    Parameters:
+        d (int): the dimension of the Hilbert space
+        return_dm (bool): whether to return the density matrix
+
+    Returns:
+        ret (np.ndarray): the maximally coherent state, `ret.ndim=1` or `ret.ndim=2`
+    '''
+    assert d>=1
+    if return_dm:
+        ret = np.eye(d, dtype=np.float64) / d
+    else:
+        ret = np.ones(d, dtype=np.float64) / np.sqrt(d)
+    return ret

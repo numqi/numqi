@@ -35,7 +35,8 @@ class Stiefel(torch.nn.Module):
         assert (batch_size is None) or (batch_size>0)
         assert isinstance(device, torch.device)
         # choleskyL is really bad
-        assert method!='euler', '[TODO] euler is not correctly implemented' #TODO
+        if method=='euler':
+            print('[WARNING] numqi.manifold.Stiefel(method=euler) is not correctly implemented') #TODO
         assert method in {'choleskyL','qr','so-exp','so-cayley','polar','euler'}
         if method in {'qr','polar'}:
             tmp0 = dim*rank if (dtype in {torch.float32,torch.float64}) else 2*dim*rank

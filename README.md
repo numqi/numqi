@@ -116,7 +116,7 @@ application modules
 5. `project/`: some projects based on `numqi`, whether finished or not
 6. misc
    * `README.md`: this file
-   * `pyproject.toml`: to make a pip-instalable package
+   * `pyproject.toml`: to make a pip-installable package
    * `mkdocs.yml`: to generate website
    * `LICENSE`
    * `.gitignore`

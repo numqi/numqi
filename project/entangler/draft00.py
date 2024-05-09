@@ -57,9 +57,24 @@ def demo00():
 
 def hf_dummy_232(theta_u, kwargs_model, kwargs_optim):
     dimA,dimB = kwargs_model['dim']
+    if 'last_psiAB' in kwargs_model:
+        last_psiAB = kwargs_model['last_psiAB']
+        del kwargs_model['last_psiAB']
+    else:
+        last_psiAB = None
     matU = numqi.manifold.to_special_orthogonal_exp(theta_u, dimA*dimB)
     model = DummyModel(matU, **kwargs_model)
-    fval = -numqi.optimize.minimize(model, **kwargs_optim).fun
+    theta_optim = numqi.optimize.minimize(model, **kwargs_optim)
+    fval = -theta_optim.fun
+    if last_psiAB is not None:
+        tmp0 = dict(**kwargs_optim)
+        tmp0['theta0'] = last_psiAB
+        tmp0['num_repeat'] = 1
+        tmp1 = numqi.optimize.minimize(model, **tmp0)
+        if tmp1.fun < theta_optim.fun:
+            theta_optim = tmp1
+    fval = -theta_optim.fun
+    kwargs_model['last_psiAB'] = theta_optim.x
     return fval
 
 def hf_dummy_233(theta_u, tag_grad, kwargs_model, kwargs_optim, zero_eps=1e-9, num_worker=18):
@@ -110,7 +125,7 @@ if __name__=='__main__':
         average_time = total_time / (ind_round+1)
         eta_time = total_time*num_round / (ind_round+1) - total_time
         to_pickle(theta_optim_u=theta_optim.x)
-        print(f'[{ind_round+1}/{num_round}][{average_time:.0f}s / {eta_time:.0f}s / {total_time:.0f}s] loss={theta_optim.fun:.6f}')
+        print(f'[{ind_round+1}/{num_round}][{average_time:.0f}s / {eta_time:.0f}s / {total_time:.0f}s] loss={-theta_optim.fun:.6f}')
         loss_list.append(theta_optim.fun)
     for x in loss_list:
         print(x)
@@ -124,3 +139,24 @@ if __name__=='__main__':
     # hf_dummy_233(theta_optim_u, True, dict(dim=(dimA,dimB), loss='eigen'), kwargs_optim, zero_eps=1e-9, num_worker=16)
 
 # https://www.sciencedirect.com/science/article/pii/S037596011401216X
+
+# import os
+# import numqi
+# import pickle
+# from zzz233 import to_pickle,from_pickle
+# from utils import matU_to_reduce_su, get_unitary_fidelity
+
+# def hf0(z0, dimA, dimB):
+#     matU = numqi.manifold.to_special_orthogonal_exp(z0, dimA*dimB)
+#     z1 = matU_to_reduce_su(matU, return_coeff=True)
+#     matU1 = numqi.manifold.to_special_orthogonal_exp(z1, dimA*dimB)
+#     fidelity = get_unitary_fidelity(matU, matU1)
+#     print(f'norm0={np.linalg.norm(z0)}, norm1={np.linalg.norm(z1)}, fidelity={fidelity}')
+#     return z1
+
+# with open(os.path.expanduser('~/project/numqi/project/entangler/tbd00.pkl'), 'rb') as fid:
+#     z0 = pickle.load(fid)['theta_optim_u']
+# dimA = 3
+# dimB = 4
+# z1 = hf0(z0, dimA=3, dimB=4)
+# to_pickle(theta_optim_u=z1)
