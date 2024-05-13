@@ -102,8 +102,8 @@ def u3(theta, phi, lambda_):
 
 def get_quditX(d):
     # Weyl–Heisenberg matrices https://en.wikipedia.org/wiki/Generalizations_of_Pauli_matrices
-    ret = np.diag(np.ones(d-1), 1)
-    ret[-1,0] = 1
+    ret = np.diag(np.ones(d-1), -1)
+    ret[0,-1] = 1
     return ret
 
 
@@ -124,7 +124,7 @@ def get_quditZ(d):
 def _get_quditX_eigen(d:int, is_torch:bool):
     tmp0 = np.arange(d) - (np.arange(d)>(d/2))*d
     EVL_log = tmp0 * (2*np.pi / d)
-    EVC = get_quditH(d)
+    EVC = get_quditH(d).T.conj().copy()
     if is_torch:
         EVL_log_torch = torch.tensor(EVL_log, dtype=torch.complex128)
         EVC_torch = torch.tensor(EVC, dtype=torch.complex128)

@@ -68,7 +68,7 @@ def test_quditXZH():
         X = numqi.gate.get_quditX(d)
         Z = numqi.gate.get_quditZ(d)
         H = numqi.gate.get_quditH(d)
-        assert np.abs(X - H @ Z @ H.T.conj()).max() < 1e-10
+        assert np.abs(X - H.T.conj() @ Z @ H).max() < 1e-10
 
 def test_rx_qudit():
     theta = np_rng.uniform(0, 1, size=23)
@@ -98,7 +98,7 @@ def test_rz_qudit():
         z0 = numqi.gate.rx(theta, d)
         H = numqi.gate.get_quditH(d)
         z1 = numqi.gate.rz(theta, d, diag_only=False)
-        assert np.abs(z0 - H @ z1 @ H.T.conj()).max() < 1e-10
+        assert np.abs(z0 - H.T.conj() @ z1 @ H).max() < 1e-10
 
         z2 = numqi.gate.rz(torch.tensor(theta, dtype=torch.float64), d, diag_only=False).numpy()
         assert np.abs(z1-z2).max() < 1e-10
