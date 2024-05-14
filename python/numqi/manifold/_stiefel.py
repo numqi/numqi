@@ -7,7 +7,7 @@ import numqi._torch_op
 
 
 class Stiefel(torch.nn.Module):
-    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method:str='polar',
+    def __init__(self, dim:int, rank:int, batch_size:(int|None)=None, method:str='polar', euler_with_phase:bool=False,
                 requires_grad:bool=True, dtype:torch.dtype=torch.float64, device:torch.device=_CPU):
         r'''Stiefel manifold
 
@@ -22,6 +22,7 @@ class Stiefel(torch.nn.Module):
                 'polar': square root of a matrix.
                 'so-exp': exponential map of special orthogonal group.
                 'so-cayley': Cayley transform of special orthogonal group.
+            euler_with_phase(bool): whether to append phase for `method='euler'`.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters
                 torch.float32 / torch.float64: real Stiefel matrix
@@ -45,10 +46,14 @@ class Stiefel(torch.nn.Module):
         elif method in {'so-exp','so-cayley'}: #special orthogonal (SO)
             tmp0 = ((dim*(dim-1))//2) if (dtype in {torch.float32,torch.float64}) else (dim*dim-1)
         else: #euler
-            tmp0 = (dim*rank-rank*(rank+1)//2) if (dtype in {torch.float32,torch.float64}) else (2*dim*rank-rank*(rank+1))
+            if dtype in {torch.float32,torch.float64}:
+                tmp0 = dim*rank-rank*(rank+1)//2
+            else:
+                tmp0 = 2*dim*rank-rank*rank if euler_with_phase else 2*dim*rank-rank*(rank+1)
         tmp1 = (tmp0,) if (batch_size is None) else (batch_size, tmp0)
         tmp2 = torch.float32 if (dtype in {torch.float32,torch.complex64}) else torch.float64
         self.theta = _hf_para(tmp2, requires_grad, *tmp1).to(device)
+        self.euler_with_phase = bool(euler_with_phase)
         self.dim = int(dim)
         self.rank = int(rank)
         self.dtype = dtype
@@ -67,7 +72,7 @@ class Stiefel(torch.nn.Module):
         elif self.method=='so-cayley':
             ret = to_special_orthogonal_cayley(self.theta, self.dim)[...,:self.rank]
         else: #euler
-            ret = to_stiefel_euler(self.theta, self.dim, self.rank)
+            ret = to_stiefel_euler(self.theta, self.dim, self.rank, self.euler_with_phase)
         return ret
 
 def to_stiefel_polar(theta, dim:int, rank:int):
@@ -273,11 +278,14 @@ def _to_stiefel_euler_real(theta, dim, rank):
                 ret = np.concatenate([rowJ, np.stack(zi, axis=1)], axis=2)
     return ret
 
-def _to_stiefel_euler_complex(theta, dim, rank):
-    # TODO add phase
+def _to_stiefel_euler_complex(theta, dim, rank, with_phase):
     # TODO manually backward
     batch = theta.shape[0]
-    theta = theta.reshape(batch, -1, 2)
+    if with_phase:
+        theta_phase = theta[:,(-rank):]
+        theta = theta[:,:(-rank)].reshape(batch, -1, 2)
+    else:
+        theta = theta.reshape(batch, -1, 2)
     tmp0 = np.cumsum(np.arange(dim-rank, dim)).tolist()
     theta_list = [(theta[:,x:y,0],theta[:,x:y,1]) for x,y in zip([0]+tmp0,tmp0)]
     ret = None
@@ -304,6 +312,8 @@ def _to_stiefel_euler_complex(theta, dim, rank):
                     else:
                         zi.append(tmp1)
                 ret = torch.concat([rowJ, torch.stack(zi, dim=1)], dim=2)
+        if with_phase:
+            ret = ret * torch.exp(1j*theta_phase).reshape(batch,1,rank)
     else:
         for theta_i,phi_i in theta_list:
             N0 = theta_i.shape[1]
@@ -327,9 +337,12 @@ def _to_stiefel_euler_complex(theta, dim, rank):
                     else:
                         zi.append(tmp1)
                 ret = np.concatenate([rowJ, np.stack(zi, axis=1)], axis=2)
+        if with_phase:
+            ret = ret * np.exp(1j*theta_phase).reshape(batch,1,rank)
     return ret
 
-def to_stiefel_euler(theta:np.ndarray|torch.Tensor, dim:int, rank:int):
+
+def to_stiefel_euler(theta:np.ndarray|torch.Tensor, dim:int, rank:int, with_phase:bool=False):
     r'''map real vector to a Stiefel manifold via Euler-Hurwitz angles
 
     Numerical evaluation of convex-roof entanglement measures with applications to spin rings
@@ -344,6 +357,7 @@ def to_stiefel_euler(theta:np.ndarray|torch.Tensor, dim:int, rank:int):
                 and the rest dimensions will be batch dimensions.
         dim (int): dimension of the matrix.
         rank (int): rank of the matrix.
+        with_phase (bool): whether phase is appended in theta
 
     Returns:
         ret (np.ndarray,torch.Tensor): array of shape `theta.shape[:-1]+(dim,rank)`
@@ -355,16 +369,16 @@ def to_stiefel_euler(theta:np.ndarray|torch.Tensor, dim:int, rank:int):
     else:
         theta = theta.reshape(-1, theta.shape[-1])
     N0 = dim*rank - rank*(rank+1)//2
-    assert (theta.shape[1]==N0) or (theta.shape[1]==2*N0)
+    assert (theta.shape[1]==N0) or (theta.shape[1]==((2*N0+rank) if with_phase else 2*N0))
     if theta.shape[1]==N0:
         ret = _to_stiefel_euler_real(theta, dim, rank)
     else:
-        ret = _to_stiefel_euler_complex(theta, dim, rank)
+        ret = _to_stiefel_euler_complex(theta, dim, rank, with_phase)
     ret = ret.reshape(shape[:-1] + (dim,rank))
     return ret
 
 
-def from_stiefel_euler(np0:np.ndarray, zero_eps:float=1e-10):
+def from_stiefel_euler(np0:np.ndarray, append_phase:bool=False, zero_eps:float=1e-10):
     r'''map a Stiefel manifold to real vector via Euler-Hurwitz angles
 
     Numerical evaluation of convex-roof entanglement measures with applications to spin rings
@@ -374,11 +388,13 @@ def from_stiefel_euler(np0:np.ndarray, zero_eps:float=1e-10):
 
     Parameters:
         np0 (np.ndarray): array of shape (dim,rank)
+        append_phase (bool): whether to append phase to the output.
         zero_eps (float): small number to avoid division by zero.
 
     Returns:
         ret (np.ndarray): array of shape (N0,) where N0=dim*rank-rank*(rank+1)//2 for real Stiefel,
-            and N0=2*dim*rank-rank*(rank+1) for complex Stiefel.
+            and N0=2*dim*rank-rank*(rank+1) for complex Stiefel (if `append_phase=True`, N0+rank).
+        phase (np.ndarray): real array of shape (rank,)
     '''
     assert isinstance(np0, np.ndarray) and (np0.ndim==2)
     dim,rank = np0.shape
@@ -418,4 +434,6 @@ def from_stiefel_euler(np0:np.ndarray, zero_eps:float=1e-10):
     # sign = np.sign(np.diag(np1))
     # for real Stiefel, seems sign are always 1, we don't see negative sign
     phase = np.angle(np.diag(np1))
+    if (not isreal) and append_phase:
+        ret = np.concatenate([ret,phase])
     return ret,phase

@@ -116,7 +116,7 @@ def quantum_gate(dim:int, batch_size:(int|None)=None, method:str='exp', cayley_o
 
 class QuantumChannel(torch.nn.Module):
     def __init__(self, dim_in:int, dim_out:int, choi_rank:(int|None)=None, batch_size:(int|None)=None, method:str='qr',
-                return_kind:str='kraus', requires_grad:bool=True, dtype:torch.dtype=torch.complex128, device:torch.device=_CPU):
+                euler_with_phase:bool=False, return_kind:str='kraus', requires_grad:bool=True, dtype:torch.dtype=torch.complex128, device:torch.device=_CPU):
         r'''manifold of quantum channel, wrapper of numqi.manifold.Stiefel
 
         Parameters:
@@ -125,6 +125,7 @@ class QuantumChannel(torch.nn.Module):
             choi_rank (int|None): rank of the Choi matrix
             batch_size (int|None): batch size of quantum channel
             method (str): method to represent quantum channel, choleskyL / qr / polar / so-exp / so-cayley
+            euler_with_phase (bool): whether to use Euler angles with phase
             return_kind (str): return kind of quantum channel, 'kraus' or 'choi'
             requires_grad (bool): whether to require gradient
             dtype (torch.dtype): data type of quantum channel
@@ -136,7 +137,8 @@ class QuantumChannel(torch.nn.Module):
             choi_rank = dim_in*dim_out
         assert dtype in {torch.complex64,torch.complex128}
         assert return_kind in {'kraus','choi'}
-        self.manifold = Stiefel(choi_rank*dim_out, dim_in, batch_size, method, requires_grad, dtype, device)
+        self.manifold = Stiefel(choi_rank*dim_out, dim_in, batch_size, method=method, euler_with_phase=euler_with_phase,
+                                requires_grad=requires_grad, dtype=dtype, device=device)
         self.dim_in = dim_in
         self.dim_out = dim_out
         self.choi_rank = choi_rank

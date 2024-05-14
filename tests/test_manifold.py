@@ -319,3 +319,11 @@ def test_stiefel_euler():
         assert (torch1.dtype==torch.float32) or (torch1.dtype==torch.complex64)
         assert np.abs(np1-torch1.numpy()).max() < 1e-5
         assert np.abs(np1-torch2.numpy()).max() < 1e-10
+
+        theta1, phase = numqi.manifold.from_stiefel_euler(np0, append_phase=True)
+        np1 = numqi.manifold.to_stiefel_euler(theta1, dim, rank, with_phase=True)
+        torch1 = numqi.manifold.to_stiefel_euler(torch.tensor(theta1,dtype=torch.float32), dim, rank, with_phase=True)
+        torch2 = numqi.manifold.to_stiefel_euler(torch.tensor(theta1,dtype=torch.float64), dim, rank, with_phase=True)
+        assert (torch1.dtype==torch.float32) or (torch1.dtype==torch.complex64)
+        assert np.abs(np1-torch1.numpy()).max() < 1e-5
+        assert np.abs(np1-torch2.numpy()).max() < 1e-10
