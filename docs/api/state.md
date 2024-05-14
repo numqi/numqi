@@ -64,6 +64,10 @@
     options:
       heading_level: 2
 
+::: numqi.state.maximally_coherent_state
+    options:
+      heading_level: 2
+
 ::: numqi.state.get_2qutrit_Antoine2022
     options:
       heading_level: 2
