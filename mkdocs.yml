@@ -1,6 +1,6 @@
 site_name: NumQI
-site_url: https://husisy.github.io/numqi/
-repo_url: https://github.com/husisy/numqi
+site_url: https://numqi.github.io/numqi/
+repo_url: https://github.com/numqi/numqi
 edit_uri: edit/main/docs/
 theme:
   name: material

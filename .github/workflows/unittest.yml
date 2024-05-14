@@ -36,9 +36,9 @@ jobs:
         run: OMP_NUM_THREADS=1 python3 -m pytest -n auto --cov=python/numqi --durations=10 tests/
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          uses: codecov/codecov-action@v4.0.1
+          with:
+            token: ${{ secrets.CODECOV_TOKEN }}
 
       # TODO
       # - name: Upload coverage report

@@ -2,7 +2,7 @@
 
 Try without installing anything: `application/get-started` in colab
 
-<a target="_blank" href="https://colab.research.google.com/github/husisy/numqi/blob/main/docs/application/get_started/quantum_state.ipynb">
+<a target="_blank" href="https://colab.research.google.com/github/numqi/numqi/blob/main/docs/application/get_started/quantum_state.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
@@ -75,7 +75,7 @@ pip install numqi
 
 Quick start for contributors: open this project in GitHub Codespaces and then `pip install -e ".[dev]"`
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/husisy/numqi)
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/numqi/numqi)
 
 ### local development environment
 
@@ -89,7 +89,7 @@ conda activate env-numqi
 Then you should install `numqi` as developer
 
 ```bash
-git clone git@github.com:husisy/numqi.git
+git clone git@github.com:numqi/numqi.git
 cd numqi
 pip install -e ".[dev]"
 ```

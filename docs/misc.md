@@ -65,4 +65,4 @@ model name
 
 ## license
 
-GNU Affero General Public License v3.0, see [github-repo/LICENSE](https://github.com/husisy/numqi/blob/main/LICENSE)
+GNU Affero General Public License v3.0, see [github-repo/LICENSE](https://github.com/numqi/numqi/blob/main/LICENSE)

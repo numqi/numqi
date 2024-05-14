@@ -50,9 +50,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/husisy/numqi/"
-Documentation = "https://husisy.github.io/numqi/"
-Issues = "https://github.com/husisy/numqi/issues"
+Homepage = "https://github.com/numqi/numqi/"
+Documentation = "https://numqi.github.io/numqi/"
+Issues = "https://github.com/numqi/numqi/issues"
 
 [tool.setuptools.packages.find]
 where = ["python"]
