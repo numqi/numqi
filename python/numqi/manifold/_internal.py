@@ -265,6 +265,35 @@ def to_trace1_psd_cholesky(theta, dim:int, rank:(int|None)=None):
     return ret
 
 
+def from_trace1_psd_cholesky(np0:np.ndarray, rank:int, zero_eps:float=1e-10):
+    r'''map a positive semi-definite (PSD) matrix with trace 1 of rank `rank` to a real vector using Cholesky decomposition
+
+    Parameters:
+        np0 (np.ndarray): array of shape `(dim,dim)`.
+        rank (int): rank of the matrix.
+        zero_eps (float): zero threshold.
+
+    Returns:
+        theta (np.ndarray): array of shape `(dim*(2*dim-rank+1))//2` for real case or `(2*dim*(dim-rank))` for complex case.
+    '''
+    assert isinstance(np0, np.ndarray) and (np0.ndim==2) and (np0.shape[0]==np0.shape[1])
+    assert np.abs(np0 - np0.T.conj()).max() < zero_eps
+    EVL,EVC = np.linalg.eigh(np0)
+    EVL = np.maximum(0,EVL[(-rank):])
+    assert abs(EVL.sum()-1) < zero_eps
+    tmp0 = EVC[:,(-rank):]*np.sqrt(EVL)
+    tmp1 = np.linalg.qr(tmp0.T)[1].T
+    cholesky = tmp1 * np.sign(np.diag(tmp1))
+    indexL = np.tril_indices(cholesky.shape[0], -1, cholesky.shape[1])
+    tmp0 = cholesky[indexL[0],indexL[1]]
+    tmp1 = np.log(np.exp(np.diag(cholesky).real) - 1)
+    if np.iscomplexobj(np0):
+        theta = np.concatenate([tmp1, tmp0.real, tmp0.imag], axis=0)
+    else:
+        theta = np.concatenate([tmp1, tmp0], axis=0)
+    return theta
+
+
 # TODO is_skew
 class SymmetricMatrix(torch.nn.Module):
     def __init__(self, dim:int, batch_size:(int|None)=None, is_trace0=False, is_norm1=False,

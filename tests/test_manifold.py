@@ -67,6 +67,23 @@ def test_Trace1PSD():
                 assert np.abs(x0 - x1).max() < 1e-10
 
 
+def test_from_trace1_psd_cholesky():
+    for dim,rank in [(4,1), (4,2), (4,3), (4,4), (5,3)]:
+        tmp0 = np_rng.normal(size=(dim,rank)) + 1j*np_rng.normal(size=(dim,rank))
+        tmp1 = tmp0 @ tmp0.T.conj()
+        rho_ = tmp1 / np.trace(tmp1)
+        theta = numqi.manifold.from_trace1_psd_cholesky(rho_, rank)
+        rho0 = numqi.manifold.to_trace1_psd_cholesky(theta, dim, rank)
+        assert np.abs(rho0-rho_).max() < 1e-10
+
+        tmp0 = np_rng.normal(size=(dim,rank))
+        tmp1 = tmp0 @ tmp0.T.conj()
+        rho_ = tmp1 / np.trace(tmp1)
+        theta = numqi.manifold.from_trace1_psd_cholesky(rho_, rank)
+        rho0 = numqi.manifold.to_trace1_psd_cholesky(theta, dim, rank)
+        assert np.abs(rho0-rho_).max() < 1e-10
+
+
 class DummyModel00(torch.nn.Module):
     def __init__(self, dm0):
         super().__init__()
