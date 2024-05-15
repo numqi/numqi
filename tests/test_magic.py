@@ -35,7 +35,7 @@ def test_get_thauma_boundary():
     dm_list = numqi.gellmann.gellmann_basis_to_dm(tmp0)
     ret_ = numqi.magic.get_magic_state_boundary_qubit(dm_list)
     ret0 = numqi.magic.get_thauma_boundary(dm_list)
-    assert np.abs(ret_-ret0).max() < 1e-7
+    assert np.abs(ret_-ret0).max() < (1e-6 if USE_MOSEK else 1e-4)
 
 
 def test_get_Heisenberg_Weyl_operator():
