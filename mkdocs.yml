@@ -144,6 +144,7 @@ nav:
       - Symmetric group: api/group_sym.md
       - Symmetric-Extension: api/group_symext.md
       - GF2 Symplectic Group: api/group_spf2.md
+    - magic: api/magic.md
     - manifold: api/manifold.md
     - matrix-space: api/matrix_space.md
     - random: api/random.md
