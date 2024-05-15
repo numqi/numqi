@@ -32,6 +32,10 @@
     options:
       heading_level: 2
 
+::: numqi.manifold.from_trace1_psd_cholesky
+    options:
+      heading_level: 2
+
 ::: numqi.manifold.SymmetricMatrix
     options:
       heading_level: 2
