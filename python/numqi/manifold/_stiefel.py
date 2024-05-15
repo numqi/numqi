@@ -22,7 +22,7 @@ class Stiefel(torch.nn.Module):
                 'polar': square root of a matrix.
                 'so-exp': exponential map of special orthogonal group.
                 'so-cayley': Cayley transform of special orthogonal group.
-            euler_with_phase(bool): whether to append phase for `method='euler'`.
+            euler_with_phase (bool): whether to append phase for `method='euler'`.
             requires_grad (bool): whether to track the gradients of the parameters.
             dtype (torch.dtype): data type of the parameters
                 torch.float32 / torch.float64: real Stiefel matrix
