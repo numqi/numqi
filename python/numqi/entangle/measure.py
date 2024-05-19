@@ -10,6 +10,39 @@ from .symext import _check_input_rho_SDP
 from .eof import get_concurrence_2qubit
 
 
+def get_relative_entropy_of_entanglement_pure(psi:np.ndarray, dimA:int, dimB:int, return_SEP:bool=False, zero_eps:float=1e-10)->float:
+    r'''get the relative entropy of entanglement of pure state
+
+    reference: Closest separable state when measured by a quasi-relative entropy
+    [arxiv-link](https://arxiv.org/abs/2009.04982)
+
+    Parameters:
+        psi (np.ndarray): the pure state of shape (dimA*dimB,)
+        dimA (int): the dimension of subsystem A
+        dimB (int): the dimension of subsystem B
+        return_SEP (bool): return the separable state or not
+        zero_eps (float): the zero threshold
+
+    Returns:
+        ret (float): the relative entropy of entanglement
+        sigma (np.ndarray): the separable state, if `return_SEP=True`
+    '''
+    psi = psi.reshape(dimA, dimB)
+    if dimA<=dimB:
+        rdm = psi @ psi.T.conj()
+    else:
+        rdm = psi.T.conj() @ psi
+    EVL = np.maximum(np.linalg.eigvalsh(rdm), 0)
+    assert abs(np.sum(EVL)-1) < (zero_eps*1e3)
+    tmp0 = EVL[EVL>zero_eps]
+    ret = -np.dot(tmp0, np.log(tmp0))
+    if return_SEP:
+        U,S,V = np.linalg.svd(psi.reshape(dimA, dimB), full_matrices=False)
+        sigma = np.einsum(U, [1,0], U.conj(), [2,0], S**2, [0], V, [0,3], V.conj(), [0,4], [1,3,2,4], optimize=True).reshape(dimA*dimB, dimA*dimB)
+        ret = ret,sigma
+    return ret
+
+
 def get_gme_2qubit(rho:np.ndarray):
     r'''Calculate the geometric measure of entanglement (GME) for 2-qubit density matrix.
 

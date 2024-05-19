@@ -163,3 +163,11 @@ def test_2qubits_linear_entropy_entanglement():
         ret_ = concurrence**2 / 2 #by fitting, no found reference
         ret0 = numqi.entangle.get_linear_entropy_entanglement_ppt(rho, (2,2))
         assert abs(ret_-ret0)<(1e-7 if use_MOSEK else 1e-4)
+
+
+def test_get_relative_entropy_of_entanglement_pure():
+    for dimA,dimB in [(2,5),(5,2),(4,4)]:
+        psiAB = numqi.random.rand_haar_state(dimA*dimB)
+        ree_, sigma = numqi.entangle.get_relative_entropy_of_entanglement_pure(psiAB, dimA, dimB, return_SEP=True)
+        ree0 = numqi.utils.get_relative_entropy(psiAB.reshape(-1,1)*psiAB.conj(), sigma)
+        assert abs(ree_-ree0) < 1e-7
