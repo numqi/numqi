@@ -125,16 +125,14 @@ def plot_qubit_magic_state_3d():
         fig (matplotlib.figure.Figure): the figure object
         ax (mpl_toolkits.mplot3d.Axes3D): the axis object
     '''
-    cp_tableau = ['#006BA4', '#FF800E', '#ABABAB', '#595959', '#5F9ED1', '#C85200', '#898989', '#A2C8EC', '#FFBC79', '#CFCFCF']
-    point_list = np.array([[0,0,1],[1,0,0],[0,1,0],[-1,0,0],[0,-1,0],[0,0,-1]])
-    face_index_list = np.array([[0,1,2],[0,2,3],[0,3,4],[0,4,1],[1,2,5],[2,3,5],[3,4,5],[4,1,5]])
-    color_list = [cp_tableau[x] for x in [0,1,2,4,2,4,0,1]]
-
+    np_rng = np.random.default_rng()
     fig = plt.figure()
     ax = mpl_toolkits.mplot3d.Axes3D(fig, auto_add_to_figure=False)
     fig.add_axes(ax)
-    for (i0,i1,i2),color_i in zip(face_index_list, color_list):
-        ax.add_collection3d(mpl_toolkits.mplot3d.art3d.Poly3DCollection([point_list[[i0,i1,i2]]], facecolors=color_i, edgecolors='none'))
+    tmp0 = np.array([[0,0,1],[1,0,0],[0,1,0],[-1,0,0],[0,-1,0],[0,0,-1]])
+    point_list = tmp0[np.array([[0,1,2],[0,2,3],[0,3,4],[0,4,1],[1,2,5],[2,3,5],[3,4,5],[4,1,5]])]
+    for x in point_list:
+        ax.add_collection3d(mpl_toolkits.mplot3d.art3d.Poly3DCollection([x], facecolors=np_rng.uniform(0,1,3), edgecolors='none'))
     for x in 'xyz':
         getattr(ax, f'set_{x}label')(f'{x} axis')
         getattr(ax, f'set_{x}lim')([-1.2, 1.2])

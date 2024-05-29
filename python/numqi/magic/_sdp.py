@@ -3,6 +3,7 @@ import cvxpy
 from tqdm.auto import tqdm
 
 from ..entangle.ppt import cvx_matrix_mlogx
+from ..gellmann import matrix_to_gellmann_basis
 
 from ._internal import get_Heisenberg_Weyl_operator
 
@@ -138,3 +139,47 @@ def get_thauma_boundary(rho:np.ndarray, use_tqdm:bool=False):
         ret.append(prob.value)
     ret = np.array(ret)
     return ret
+
+
+def plot_qubit_thauma_set_3d():
+    r'''plot the thauma set (tetrahedron) of qubit
+
+    Parameters:
+
+    Returns:
+        fig (matplotlib.figure.Figure): the figure object
+        ax (mpl_toolkits.mplot3d.Axes3D): the axis object
+    '''
+    import scipy.spatial
+    import itertools
+    import mpl_toolkits.mplot3d
+    import matplotlib.pyplot as plt
+    np_rng = np.random.default_rng()
+    zero_eps = 1e-10
+    tmp0 = np.array([(a,b,c,d) for a in [1,-1] for b in [1,-1] for c in [1,-1] for d in [1,-1]])
+    tmp1 = matrix_to_gellmann_basis(get_Heisenberg_Weyl_operator(2)[1].reshape(-1,2,2)).real
+    matAb = np.stack([x@tmp1 for x in tmp0]) * np.array([1,1,1,0.5]) - np.array([0,0,0,1])
+
+    ind_list = np.array(list(itertools.combinations(range(16), 3)))
+    tmp0 = np.linalg.eigvalsh(np.stack([matAb[x,:3] @ matAb[x,:3].T for x in ind_list]))
+    ind_list = ind_list[tmp0[:,0] > zero_eps]
+    vertex_list = np.stack([np.linalg.solve(matAb[x,:3], -matAb[x,3]) for x in ind_list])
+    tmp0 = np.concatenate([vertex_list, np.ones([vertex_list.shape[0],1])],axis=1)
+    vertex_list = vertex_list[np.einsum(matAb, [0,1], tmp0, [2,1], [0,2], optimize=True).max(axis=0) < zero_eps]
+
+    fig = plt.figure()
+    ax = mpl_toolkits.mplot3d.Axes3D(fig, auto_add_to_figure=False)
+    fig.add_axes(ax)
+    point_list = 2*vertex_list[scipy.spatial.ConvexHull(vertex_list).simplices]
+    for x in point_list:
+        ax.add_collection3d(mpl_toolkits.mplot3d.art3d.Poly3DCollection([x], facecolors=np_rng.uniform(0,1,3), alpha=0.3, edgecolors='none'))
+    tmp0 = np.array([[0,0,1],[1,0,0],[0,1,0],[-1,0,0],[0,-1,0],[0,0,-1]])
+    point_list = tmp0[np.array([[0,1,2],[0,2,3],[0,3,4],[0,4,1],[1,2,5],[2,3,5],[3,4,5],[4,1,5]])]
+    for x in point_list:
+        ax.add_collection3d(mpl_toolkits.mplot3d.art3d.Poly3DCollection([x], facecolors=np_rng.uniform(0,1,3), edgecolors='none'))
+    for x in 'xyz':
+        getattr(ax, f'set_{x}label')(f'{x} axis')
+        getattr(ax, f'set_{x}lim')([-1.2, 1.2])
+        getattr(ax, f'set_{x}ticks')([-1, 0, 1])
+    ax.set_aspect('equal')
+    return fig,ax
