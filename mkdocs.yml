@@ -96,6 +96,7 @@ nav:
       - application/entangle/bipartite.ipynb
       - application/entangle/multipartite.ipynb
       - application/entangle/measure.ipynb
+      - application/entangle/entanglement_cost.ipynb
       - Detection method:
         - application/entangle/overview_method.ipynb
         - application/entangle/cha.ipynb
@@ -136,6 +137,7 @@ nav:
       - Measure: api/entangle_measure.md
       - UPB-BES: api/entangle_upb.md
       - Pure-Bosonic-Extension: api/entangle_pureb.md
+      - Distillation: api/entangle_distillation.md
     - gate: api/gate.md
     - gellmann: api/gellmann.md
     - group:
