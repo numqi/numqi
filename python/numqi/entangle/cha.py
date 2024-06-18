@@ -54,7 +54,7 @@ class CHABoundaryBagging:
     Separability-entanglement classifier via machine learning
     [doi-link](https://doi.org/10.1103/PhysRevA.98.012315)
     '''
-    def __init__(self, dim:tuple[int], num_state:int|None=None):
+    def __init__(self, dim:tuple[int], num_state:int|None=None, solver:str|None=None):
         r'''initialize the model
 
         Parameters:
@@ -71,13 +71,12 @@ class CHABoundaryBagging:
 
         self.cvx_beta = cvxpy.Variable(name='beta')
         self.cvx_lambda = cvxpy.Variable(num_state, name='lambda')
-        self.cvx_A_r = cvxpy.Parameter((num_state,dimA*dimB*dimA*dimB))
-        self.cvx_A_i = cvxpy.Parameter((num_state,dimA*dimB*dimA*dimB))
+        self.cvx_A = cvxpy.Parameter((num_state,dimA*dimB*dimA*dimB-1))
         self.cvx_obj = cvxpy.Maximize(self.cvx_beta)
         self.cvx_problem = None
-        self.dm_target = None
         self.ketA = None
         self.ketB = None
+        self.cvx_solver = solver
 
     def _rand_init_state(self, np_rng, max_retry):
         assert max_retry>0
@@ -100,10 +99,8 @@ class CHABoundaryBagging:
     def _cvxpy_solve(self):
         N0 = self.dimA*self.dimB
         tmp0 = np.einsum(self.ketA,[0,1],self.ketA.conj(),[0,3],self.ketB,[0,2],self.ketB.conj(),[0,4],[0,1,2,3,4],optimize=True)
-        tmp0 = (tmp0.reshape(-1,N0,N0) - np.eye(N0)/N0).reshape(-1,N0*N0)
-        self.cvx_A_r.value = tmp0.real
-        self.cvx_A_i.value = tmp0.imag
-        ret = self.cvx_problem.solve(ignore_dpp=True) #ECOS solver
+        self.cvx_A.value = numqi.gellmann.dm_to_gellmann_basis(tmp0.reshape(-1,N0,N0))
+        ret = self.cvx_problem.solve(ignore_dpp=True, solver=self.cvx_solver) # 
         # ret and self.cvx_lambda.value could be None if num_state is too small
         return ret
 
@@ -131,11 +128,10 @@ class CHABoundaryBagging:
         assert (dm.shape==(N0,N0))
         assert abs(np.trace(dm)-1) < 1e-10
         assert np.abs(dm-dm.T.conj()).max() < 1e-10
-        self.dm_target = dm.copy() #maybe not necessary
-        dm_normed = (dm - np.eye(N0)/N0).reshape(-1) / numqi.gellmann.dm_to_gellmann_norm(dm)
+        tmp0 = numqi.gellmann.dm_to_gellmann_basis(dm)
+        dm_vec_normed = tmp0 / np.linalg.norm(tmp0)
         cvx_constrants = [
-            self.cvx_beta*dm_normed.real==self.cvx_lambda @ self.cvx_A_r,
-            self.cvx_beta*dm_normed.imag==self.cvx_lambda @ self.cvx_A_i,
+            self.cvx_beta*dm_vec_normed==self.cvx_lambda @ self.cvx_A,
             self.cvx_lambda>=0,
             cvxpy.sum(self.cvx_lambda)==1,
         ]
