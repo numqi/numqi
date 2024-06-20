@@ -84,6 +84,10 @@
     options:
       heading_level: 2
 
+::: numqi.manifold.from_stiefel_polar
+    options:
+      heading_level: 2
+
 ::: numqi.manifold.to_stiefel_choleskyL
     options:
       heading_level: 2
