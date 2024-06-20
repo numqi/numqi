@@ -5,7 +5,7 @@ import scipy.linalg
 
 
 from numqi.gellmann import gellmann_basis_to_matrix
-from numqi.manifold import to_special_orthogonal_exp
+from numqi.manifold import to_special_orthogonal_exp, to_stiefel_polar
 
 from ._public import get_numpy_rng
 
@@ -46,8 +46,8 @@ def rand_haar_unitary(dim:int, seed:None|int|np.random.RandomState=None):
     r'''Return a random unitary matrix from the Haar measure on the unitary group $U(N)$.
 
     also see
-        http://www.qetlab.com/RandomUnitary
-        https://pennylane.ai/qml/demos/tutorial_haar_measure.html
+        [qetlab-link](http://www.qetlab.com/RandomUnitary)
+        [pennylane-docs](https://pennylane.ai/qml/demos/tutorial_haar_measure.html)
 
     Parameters:
         dim (int): the column (row) of matrix
@@ -448,7 +448,7 @@ def rand_adjacent_matrix(dim:int, seed=None):
 def rand_n_sphere(dim:int, size=None, seed=None):
     r'''Generate random vector from n-sphere
 
-    wiki-link: https://en.wikipedia.org/wiki/N-sphere
+    [wiki-link](https://en.wikipedia.org/wiki/N-sphere)
 
     Parameters:
         dim (int): dimension of the vector
@@ -480,11 +480,11 @@ def rand_n_sphere(dim:int, size=None, seed=None):
 def rand_n_ball(dim:int, size=None, seed=None):
     r'''Generate random vector from n-ball
 
-    wiki-link: https://en.wikipedia.org/wiki/Ball_(mathematics)
+    Ball [wiki-link](https://en.wikipedia.org/wiki/Ball_(mathematics))
 
-    Box-Muller transform: https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
+    Box-Muller transform: [wiki-link](https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform)
 
-    stackexchange-link: https://stats.stackexchange.com/a/481716
+    [stackexchange-link](https://stats.stackexchange.com/a/481716)
 
     Parameters:
         dim (int): dimension of the vector
@@ -510,4 +510,30 @@ def rand_n_ball(dim:int, size=None, seed=None):
         ret = tmp2[0]
     else:
         ret = tmp2.reshape(size+(dim,))
+    return ret
+
+
+def rand_Stiefel_matrix(dim:int, rank:int, iscomplex:bool=False, batch_size:None|int=None, seed=None):
+    r'''Generate random Stiefel matrix
+
+    [wiki-link](https://en.wikipedia.org/wiki/Stiefel_manifold)
+
+    Parameters:
+        dim (int): dimension of the matrix
+        rank (int): rank of the matrix
+        iscomplex (bool): If True, `ret` is a complex Stiefel matrix. If False, `ret` is a real Stiefel matrix.
+        batch_size (None, int): If None, return a single matrix. If int, return a batch of matrices.
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=(`batch_size`,`dim`,`rank`), dtype=np.float64 if `iscomplex=False` else np.complex128
+    '''
+    isone = (batch_size is None)
+    if isone:
+        batch_size = 1
+    np_rng = get_numpy_rng(seed)
+    theta = np_rng.normal(size=(batch_size, (2*dim*rank if iscomplex else dim*rank)))
+    ret = to_stiefel_polar(theta, dim, rank)
+    if isone:
+        ret = ret[0]
     return ret
