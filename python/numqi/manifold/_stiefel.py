@@ -127,6 +127,25 @@ def to_stiefel_polar(theta, dim:int, rank:int):
     ret = ret.reshape(*shape[:-1], dim, rank)
     return ret
 
+
+def from_stiefel_polar(np0:np.ndarray):
+    r'''map a Stiefel manifold to real vector via polar decomposition
+
+    Parameters:
+        np0 (np.ndarray): array of shape (dim,rank)
+
+    Returns:
+        ret (np.ndarray): array of shape (dim*rank) for real Stiefel, and (2*dim*rank) for complex Stiefel.
+    '''
+    assert isinstance(np0, np.ndarray) and (np0.ndim==2)
+    isreal = not np.iscomplexobj(np0)
+    if isreal:
+        ret = np0.reshape(-1)
+    else:
+        ret = np.stack([np0.real, np0.imag], axis=0).reshape(-1)
+    return ret
+
+
 def to_stiefel_choleskyL(theta, dim:int, rank:int):
     r'''map real vector to a Stiefel manifold via Cholesky decomposition
 

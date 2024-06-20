@@ -7,7 +7,8 @@ from ._internal import Sphere, to_sphere_quotient, to_sphere_coordinate
 from ._internal import DiscreteProbability, to_discrete_probability_sphere, to_discrete_probability_softmax
 from ._internal import SpecialOrthogonal, to_special_orthogonal_exp, to_special_orthogonal_cayley
 from ._internal import symmetric_matrix_to_trace1PSD
-from ._stiefel import Stiefel, to_stiefel_choleskyL, to_stiefel_qr, to_stiefel_polar, to_stiefel_euler, from_stiefel_euler
+from ._stiefel import (Stiefel, to_stiefel_choleskyL, to_stiefel_qr, to_stiefel_polar, from_stiefel_polar,
+                    to_stiefel_euler, from_stiefel_euler)
 
 from ._compose import quantum_state, density_matrix, SeparableDensityMatrix, quantum_gate, QuantumChannel
 

@@ -196,6 +196,26 @@ def test_Stiefel():
                     x1 = numqi.manifold.to_stiefel_polar(tmp0, dim, rank)
                     assert np.abs(x0-x1).max() < 1e-10
 
+
+def test_from_stiefel_polar():
+    dim = 7
+    rank = 3
+
+    # real
+    theta = np_rng.normal(size=dim*rank)
+    np0 = numqi.manifold.to_stiefel_polar(theta, dim, rank)
+    tmp0 = numqi.manifold.from_stiefel_polar(np0)
+    np1 = numqi.manifold.to_stiefel_polar(tmp0, dim, rank)
+    assert np.abs(np0-np1).max() < 1e-10
+
+    # complex
+    theta = np_rng.normal(size=2*dim*rank)
+    np0 = numqi.manifold.to_stiefel_polar(theta, dim, rank)
+    tmp0 = numqi.manifold.from_stiefel_polar(np0)
+    np1 = numqi.manifold.to_stiefel_polar(tmp0, dim, rank)
+    assert np.abs(np0-np1).max() < 1e-10
+
+
 def test_SpecialOrthogonal():
     batch_size = 3
     dim = 7
