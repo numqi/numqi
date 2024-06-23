@@ -96,6 +96,7 @@ nav:
       - application/entangle/bipartite.ipynb
       - application/entangle/multipartite.ipynb
       - application/entangle/measure.ipynb
+      - application/entangle/gme_seesaw.ipynb
       - application/entangle/entanglement_cost.ipynb
       - Detection method:
         - application/entangle/overview_method.ipynb
