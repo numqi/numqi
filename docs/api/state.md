@@ -79,3 +79,7 @@
 ::: numqi.state.get_bes3x3_Horodecki1997
     options:
       heading_level: 2
+
+::: numqi.state.get_4qubit_special_state_gme
+    options:
+      heading_level: 2
