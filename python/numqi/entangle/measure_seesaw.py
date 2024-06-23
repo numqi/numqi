@@ -198,7 +198,7 @@ def get_GME_seesaw(rho:np.ndarray, dim_list:tuple[int], maxiter:int=1000, init_c
         assert len(init_phi_list)==len(dim_list)
         assert all(x.shape[1]==y for x,y in zip(init_phi_list,dim_list))
     if num_state is None:
-        num_state = 2*dim_total
+        num_state = 3*dim_total
     assert num_state >= rank
 
     EVL_sqrt = np.sqrt(np.maximum(EVL,0))
