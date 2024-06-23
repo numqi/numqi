@@ -3,7 +3,6 @@ import itertools
 
 import numqi
 
-
 np_rng = np.random.default_rng()
 
 def test_rand_quantum_channel_matrix_subspace():
@@ -72,3 +71,18 @@ def test_rand_povm():
     assert np.abs(povm - povm.transpose(0,2,1).conj()).max() < 1e-10
     assert np.abs(povm.sum(axis=0) - np.eye(dim)).max() < 1e-10
     assert np.linalg.eigvalsh(povm).min() >= -1e-7
+
+
+def test_rand_Stiefel_matrix():
+    dim = 7
+    rank = 3
+
+    np0 = numqi.random.rand_Stiefel_matrix(dim, rank, iscomplex=False)
+    assert np0.shape==(dim,rank)
+    assert np.abs(np0.T @ np0 - np.eye(rank)).max() < 1e-7
+
+    batch_size = 5
+    np0 = numqi.random.rand_Stiefel_matrix(dim, rank, iscomplex=True, batch_size=batch_size)
+    assert np0.shape==(batch_size,dim,rank)
+    tmp0 = np.einsum(np0, [0,1,2], np0.conj(), [0,1,3], [0,2,3], optimize=True)
+    assert np.abs(tmp0-np.eye(rank)).max() < 1e-7

@@ -40,6 +40,10 @@ This module use random seed widely, most likely you will get different results. 
     options:
       heading_level: 3
 
+::: numqi.random.rand_Stiefel_matrix
+    options:
+      heading_level: 3
+
 ## quantum channel
 
 ::: numqi.random.rand_kraus_op
