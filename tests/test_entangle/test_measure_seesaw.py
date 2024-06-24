@@ -87,14 +87,14 @@ def test_get_GME_subspace_seesaw_vs_GD():
     case_list = [(2,2,2), (2,2,4),(2,2,6),(2,3,4),(2,3,6),(2,3,8),(3,3,6)]
     # ,(3,3,8),(3,4,7),(4,4,7),(4,5,10)
     kwargs_gd = dict(theta0='uniform', num_repeat=5, tol=1e-12, print_every_round=0)
-    kwargs_seesaw = dict(converge_eps=1e-12, num_repeat=5, maxiter=2000)
+    kwargs_seesaw = dict(converge_eps=1e-12, num_repeat=10, maxiter=2000)
     for dimA,dimB,dimC in case_list:
         np_list = numqi.matrix_space.get_completed_entangled_subspace((dimA, dimB, dimC), kind='quant-ph/0409032')[0]
         model = numqi.matrix_space.DetectCanonicalPolyadicRankModel((dimA, dimB, dimC), rank=1)
         model.set_target(np_list)
         theta_optim = numqi.optimize.minimize(model, **kwargs_gd)
         gme = numqi.entangle.get_GME_subspace_seesaw(np_list, **kwargs_seesaw)[0]
-        assert abs(theta_optim.fun-gme) < 1e-7
+        assert abs(theta_optim.fun-gme) < 1e-7, f'{dimA},{dimB},{dimC}: {theta_optim.fun} vs {gme}'
 
 
 
