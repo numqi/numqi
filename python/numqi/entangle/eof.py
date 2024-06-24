@@ -109,7 +109,7 @@ class EntanglementFormationModel(torch.nn.Module):
     Variational characterizations of separability and entanglement of formation
     [doi-link](https://doi.org/10.1103/PhysRevA.64.052304)
     '''
-    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int|None=None):
+    def __init__(self, dimA:int, dimB:int, num_term:int, rank:int|None=None, method:str='polar', euler_with_phase:bool=False):
         r'''Initialize the model
 
         Parameters:
@@ -117,6 +117,8 @@ class EntanglementFormationModel(torch.nn.Module):
             dimB (int): the dimension of the second subsystem
             num_term (int): the number of terms in the variational ansatz, `num_term` is bounded by (dimA*dimB)**2
             rank (int,None): the rank of the density matrix
+            method (str): the method to parameterize the manifold
+            euler_with_phase (bool): whether to include the phase in the Euler angles   
         '''
         super().__init__()
         self.dtype = torch.float64
@@ -127,7 +129,7 @@ class EntanglementFormationModel(torch.nn.Module):
             rank = dimA*dimB
         self.num_term = num_term
         assert num_term>=rank
-        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=self.cdtype, method='polar')
+        self.manifold = numqi.manifold.Stiefel(num_term, rank, dtype=self.cdtype, method=method, euler_with_phase=euler_with_phase)
         self.rank = rank
 
         self._sqrt_rho = None
