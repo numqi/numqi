@@ -59,14 +59,14 @@ class CHABoundaryBagging:
 
         Parameters:
             dim (tuple[int]): dimension of the bipartite system, len(dim) must be 2
-            num_state (int): number of states in the convex hull, default to 3*(dim[0]*dim[1])**2
+            num_state (int): number of states in the convex hull, default to 2*(dim[0]*dim[1])**2
         '''
         assert len(dim)==2
         dimA,dimB = dim
-        num_state = 3*(dimA*dimB)**2 if (num_state is None) else num_state
+        num_state = 2*(dimA*dimB)**2 if (num_state is None) else num_state
         self.dimA = dim[0]
         self.dimB = dim[1]
-        # 3*dimA*dimB*dimA*dimB looks good for 3x3 bipartite system
+        # 2*dimA*dimB*dimA*dimB looks good for 3x3 bipartite system
         self.num_state = num_state
 
         self.cvx_beta = cvxpy.Variable(name='beta')
@@ -100,7 +100,7 @@ class CHABoundaryBagging:
         N0 = self.dimA*self.dimB
         tmp0 = np.einsum(self.ketA,[0,1],self.ketA.conj(),[0,3],self.ketB,[0,2],self.ketB.conj(),[0,4],[0,1,2,3,4],optimize=True)
         self.cvx_A.value = numqi.gellmann.dm_to_gellmann_basis(tmp0.reshape(-1,N0,N0))
-        ret = self.cvx_problem.solve(ignore_dpp=True, solver=self.cvx_solver) # 
+        ret = self.cvx_problem.solve(ignore_dpp=True, solver=self.cvx_solver) #
         # ret and self.cvx_lambda.value could be None if num_state is too small
         return ret
 
@@ -177,7 +177,7 @@ class AutodiffCHAREE(torch.nn.Module):
         assert len(dim)==2
         dim0 = int(dim[0])
         dim1 = int(dim[1])
-        # [2*dA*dB,3*dA*dB] seems to be good enough
+        # 2*dA*dB seems to be good enough
         num_state = (2*dim0*dim1) if (num_state is None) else num_state
         distance_kind = distance_kind.lower()
         assert distance_kind in {'gellmann', 'ree'}
