@@ -438,3 +438,52 @@ def maximally_coherent_state(d:int, return_dm:bool=False):
     else:
         ret = np.ones(d, dtype=np.float64) / np.sqrt(d)
     return ret
+
+
+def get_4qubit_special_state_gme(key:str, plist:float|np.ndarray):
+    r'''get the geometric measure of entanglement (GME) for some special 4-qubit states
+
+    reference: Multiparticle entanglement under the influence of decoherence
+    [doi-link](https://doi.org/10.1103/PhysRevA.78.060301)
+
+    Parameters:
+        key (str): the type of the special state, one of {'cluster','ghz','w','dicke'}
+        plist (float,np.ndarray): the decoherence parameter, $p\in[0,1]$. For $p=0$, the state is incoherent (diagonal only)
+
+    Returns:
+        rho (np.ndarray): the density matrix of the special state, shape=(16,16), or (n,16,16) if `plist.ndim=1`
+        gme (float,np.ndarray): GME of the special state, or (n,) if `plist.ndim=1`
+    '''
+    assert key in {'cluster','ghz','w','dicke'}
+    plist = np.asarray(plist)
+    assert plist.ndim in {0,1}
+    isone = (plist.ndim==0)
+    plist = plist.reshape(-1)
+    assert np.all(plist >= 0) and np.all(plist <= 1)
+    if key == 'cluster':
+        # (0000 + 0011 + 1100 - 1111)/2
+        psi_cluster = np.zeros(16, dtype=np.float64)
+        psi_cluster[[0, 3, 12, 15]] = np.array([1,1,1,-1])/2
+        rho = psi_cluster.reshape(-1,1) * psi_cluster.conj()
+        gme = (3/8)*(1 + plist - np.sqrt(1+(2-3*plist)*plist))
+    elif key == 'ghz':
+        # (0000 + 1111)/sqrt(2)
+        psi_ghz = numqi.state.GHZ(4)
+        rho = psi_ghz.reshape(-1,1) * psi_ghz.conj()
+        gme = (1/2)*(1-np.sqrt(1-plist*plist))
+    elif key == 'w':
+        psi_W = numqi.state.W(4)
+        rho = psi_W.reshape(-1,1) * psi_W.conj()
+        tmp0 = plist>(2183/2667)
+        gme = tmp0 * (37*(81*plist-37)/2816) + (1-tmp0) * (3/8)*(1+plist-np.sqrt(1+(2-3*plist)*plist))
+    elif key == 'dicke':
+        psi_dicke = numqi.state.Dicke(2, 2)
+        rho = psi_dicke.reshape(-1,1) * psi_dicke.conj()
+        tmp0 = (plist > 5/7)
+        gme = tmp0 * (5*(3*plist-1)/16) + (1-tmp0) * (5/18)*(1+2*plist-np.sqrt(1+(4-5*plist)*plist))
+    # dim_list = (2,2,2,2)
+    mask_diag = np.eye(rho.shape[0], dtype=np.float64)
+    mask_offdiag = 1-mask_diag
+    rho_list = rho*mask_diag + (rho*mask_offdiag)*plist.reshape(-1,1,1)
+    ret = (rho_list[0], gme[0]) if isone else (rho_list, gme)
+    return ret

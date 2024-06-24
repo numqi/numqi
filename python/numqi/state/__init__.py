@@ -4,6 +4,6 @@ from ._internal import (W, Wtype, GHZ, Bell, get_qubit_dicke_state_GME, maximall
                         maximally_coherent_state)
 from ._internal import Werner, get_Werner_ree, get_Werner_GME, get_Werner_eof
 from ._internal import Isotropic, get_Isotropic_ree, get_Isotropic_GME, get_Isotropic_eof
-from ._internal import get_2qutrit_Antoine2022
+from ._internal import get_2qutrit_Antoine2022, get_4qubit_special_state_gme
 
 from . import _internal

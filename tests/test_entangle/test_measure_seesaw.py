@@ -124,6 +124,7 @@ def test_get_GME_seesaw_random():
         ret2 = np.dot(coeffp**2, gme_psi_i)
         assert abs(ret2-ret0) < 1e-4
 
+
 def test_get_GME_seesaw_isotropic():
     dim = 3
     alpha_list = np_rng.uniform(0, 1, 10)
@@ -133,6 +134,7 @@ def test_get_GME_seesaw_isotropic():
         ret0 = numqi.entangle.get_GME_seesaw(rho, **kwargs)
         ret_ = numqi.state.get_Isotropic_GME(dim, alpha_i)
         assert np.abs(ret_-ret0) < 1e-7
+
 
 def test_get_GME_seesaw_GHZ():
     tmp0 = numqi.state.GHZ(3)
@@ -147,3 +149,14 @@ def test_get_GME_seesaw_GHZ():
     plist = np_rng.uniform(0.2+zero_eps, 1, 5)
     ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.entangle.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
     assert np.abs(ret_seesaw).max() > 1e-7
+
+
+def test_get_GME_seesaw_GHZ():
+    key_list = ['cluster','ghz','w','dicke']
+    plist = np_rng.uniform(0, 1, 5)
+    dim_list = (2,2,2,2)
+    kwargs = dict(dim_list=dim_list, maxiter=2000, converge_eps=1e-10, num_repeat=3)
+    for key in key_list:
+        rho,gme = numqi.state.get_4qubit_special_state_gme(key, plist)
+        ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(x, **kwargs) for x in rho])
+        assert np.abs(ret_seesaw-gme).max() < 1e-7
