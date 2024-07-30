@@ -8,10 +8,15 @@ import numqi.manifold
 class ChannelCapacity1InfModel(torch.nn.Module):
     '''
     Capacities of Quantum Channels and How to Find Them
-
-    http://arxiv.org/abs/quant-ph/0304102v1
+    [arxiv-link](http://arxiv.org/abs/quant-ph/0304102v1)
     '''
     def __init__(self, dim_in:int, num_state:int):
+        r'''initiate model
+
+        Parameters:
+            dim_in (int): input dim
+            num_state (int): number of states
+        '''
         super().__init__()
         self.manifold_prob = numqi.manifold.DiscreteProbability(num_state, dtype=torch.float64)
         self.manifold_psi = numqi.manifold.Sphere(dim_in, batch_size=num_state, dtype=torch.complex128)
@@ -20,7 +25,12 @@ class ChannelCapacity1InfModel(torch.nn.Module):
         self.contract0 = None
         self.contract1 = None
 
-    def set_channel_kraus_op(self, kop):
+    def set_channel_kraus_op(self, kop:np.ndarray):
+        r'''set channel kraus op
+
+        Parameters:
+            kop (np.ndarray): (rank, dim_out, dim_in)
+        '''
         num_state = self.manifold_psi.batch_size
         dim_in = self.manifold_psi.dim
         assert (kop.ndim==3) and (kop.shape[2]==dim_in)

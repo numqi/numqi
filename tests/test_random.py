@@ -86,3 +86,13 @@ def test_rand_Stiefel_matrix():
     assert np0.shape==(batch_size,dim,rank)
     tmp0 = np.einsum(np0, [0,1,2], np0.conj(), [0,1,3], [0,2,3], optimize=True)
     assert np.abs(tmp0-np.eye(rank)).max() < 1e-7
+
+
+def test_rand_haar_unitary():
+    dim = 5
+    matU = numqi.random.rand_haar_unitary(dim)
+    assert np.abs(matU @ matU.T.conj() - np.eye(dim)).max() < 1e-10
+
+    batch_size = 3
+    matU = numqi.random.rand_haar_unitary(dim, batch_size=batch_size)
+    assert np.abs(matU @ matU.transpose(0,2,1).conj() - np.eye(dim)).max() < 1e-10

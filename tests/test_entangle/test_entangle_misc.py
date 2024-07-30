@@ -28,7 +28,7 @@ def test_isotropic_state():
     for d in range(2,10):
         alpha = np_rng.uniform(-(1/(d**2-1)), 1)
         rho = numqi.state.Isotropic(d, alpha)
-        u0 = numqi.random.rand_haar_unitary(d, np_rng)
+        u0 = numqi.random.rand_haar_unitary(d, seed=np_rng)
         tmp0 = np.kron(u0, u0.conj())
         assert np.abs(tmp0 @ rho @ tmp0.T.conj() - rho).max() < 1e-7
     for d in range(2, 10):
@@ -45,7 +45,7 @@ def test_werner_state():
     for d in range(2, 10):
         alpha = np_rng.uniform(-1, 1)
         rho = numqi.state.Werner(d, alpha)
-        u0 = numqi.random.rand_haar_unitary(d, np_rng)
+        u0 = numqi.random.rand_haar_unitary(d, seed=np_rng)
         tmp0 = np.kron(u0, u0)
         assert np.abs(tmp0 @ rho @ tmp0.T.conj() - rho).max() < 1e-7
     zero_eps = 1e-4 # for numerical stability
