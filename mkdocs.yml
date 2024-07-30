@@ -129,6 +129,7 @@ nav:
     - application/misc/query_grover.ipynb
   - API:
     - dicke: api/dicke.md
+    - channel: api/channel.md
     - entangle:
       - core: api/entangle.md
       - PPT-criteria: api/entangle_ppt.md
