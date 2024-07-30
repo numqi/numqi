@@ -42,7 +42,7 @@ def rand_haar_state(dim, tag_complex=True, seed=None):
     return ret
 
 
-def rand_haar_unitary(dim:int, seed:None|int|np.random.RandomState=None):
+def rand_haar_unitary(dim:int, batch_size:int|None=None, seed:None|int|np.random.RandomState=None):
     r'''Return a random unitary matrix from the Haar measure on the unitary group $U(N)$.
 
     also see
@@ -51,16 +51,20 @@ def rand_haar_unitary(dim:int, seed:None|int|np.random.RandomState=None):
 
     Parameters:
         dim (int): the column (row) of matrix
+        batch_size (int,None): If None, return a single matrix. If int, return a batch of matrices.
         seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
 
     Returns:
         ret (numpy.ndarray): shape=(`dim`,`dim`), dtype=np.complex128
     '''
-    ginibre_ensemble = _random_complex(dim, dim, seed=seed)
+    N0 = 1 if (batch_size is None) else batch_size
+    ginibre_ensemble = _random_complex(N0, dim, dim, seed=seed)
     Q,R = np.linalg.qr(ginibre_ensemble)
-    tmp0 = np.sign(np.diag(R).real)
+    tmp0 = np.sign(np.diagonal(R, axis1=1, axis2=2).real)
     tmp0[tmp0==0] = 1
-    ret = Q * tmp0
+    ret = Q * tmp0[:,np.newaxis]
+    if batch_size is None:
+        ret = ret[0]
     return ret
 
 
