@@ -106,6 +106,9 @@ nav:
         - application/entangle/pureb.ipynb
         - application/entangle/gme_subspace.ipynb
         - application/entangle/boundary_method.ipynb
+    - Quantum coherence:
+      - application/coherence/cof.ipynb
+      - application/coherence/gmc.ipynb
     - Quantum error correction:
       - application/qecc/basic.md
       - application/qecc/varqecc.ipynb
