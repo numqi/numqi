@@ -15,6 +15,14 @@ def test_eof_A_B():
     assert abs(ret0-ret1) < 1e-10
 
 
+## buggy
+# def test_concurrence_2qubit_pure():
+#     # http://dx.doi.org/10.1103/PhysRevA.86.042302
+#     psi = numqi.random.rand_haar_state(4)
+#     z0 = numqi.entangle.get_concurrence_pure(psi.reshape(2,2))
+#     assert abs(np.vdot(psi, np.kron(numqi.gate.Y, numqi.gate.Y) @ psi.conj())) < 1e-10
+
+
 def test_EntanglementFormationModel_separable():
     num_sample = 5
     for dimA,dimB in [(2,2),(3,4),(4,3)]:
