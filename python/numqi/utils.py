@@ -4,6 +4,7 @@ import numpy as np
 import torch
 
 import numqi._torch_op
+import numqi.gellmann
 
 @functools.lru_cache(maxsize=128)
 def _hf_num_state_to_num_qubit_hf0(num_state:int, kind:str):
@@ -397,4 +398,29 @@ def is_positive_semi_definite(np0:np.ndarray, shift:float=0.0, hermitian_eps:flo
         ret = True
     except np.linalg.LinAlgError:
         ret = False
+    return ret
+
+
+# TODO change all to numqi.utils.hf_interpolate_dm
+def hf_interpolate_dm(rho:np.ndarray, alpha:float|None=None, beta:float|None=None, dm_norm:float|None=None):
+    r'''interpolate the density matrix between `rho` and the maximally mixed state
+
+    Parameters:
+        rho (np.ndarray): density matrix, `ndim=2`
+        alpha (float,None): `rho0*(1-alpha) + rho*alpha`, return `rho` itself if `alpha=1`, and maximally mixed state if `alpha=0`,
+                     if None, then use `beta`
+        beta (float,None): `rho0 + beta*unit(rho0)`, `beta` reflects the vector length in Gell-Mann basis, if None, then use `alpha`
+        dm_norm (float,None): norm of the density matrix. if None, then calculate it internally
+
+    Returns:
+        ret (np.ndarray): interpolated density matrix, `ndim=2`
+    '''
+    assert (alpha is not None) or (beta is not None)
+    N0 = rho.shape[0]
+    rhoI = np.eye(N0)/N0
+    if beta is not None:
+        if dm_norm is None:
+            dm_norm = numqi.gellmann.dm_to_gellmann_norm(rho)
+        alpha = beta / dm_norm
+    ret = alpha*rho + (1-alpha)*rhoI
     return ret
