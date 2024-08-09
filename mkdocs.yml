@@ -110,6 +110,8 @@ nav:
     - Quantum coherence:
       - application/coherence/cof.ipynb
       - application/coherence/gmc.ipynb
+    - Quantum magic:
+      - application/magic/stabilizer_purity.ipynb
     - Quantum error correction:
       - application/qecc/basic.md
       - application/qecc/varqecc.ipynb

@@ -73,3 +73,22 @@ def test_qutrit_thauma_sdp():
     assert np.abs(ret_-ret0).max() < (1e-6 if USE_MOSEK else 1e-4)
     assert np.abs(ret_-ret1).max() < (1e-6 if USE_MOSEK else 1e-4)
     assert np.abs(ret_-ret2).max() < (1e-6 if USE_MOSEK else 1e-4)
+
+
+def test_MagicStabilizerEntropyModel():
+    num_qubit = 2
+    rho = numqi.random.rand_density_matrix(2**num_qubit)
+    alpha = 2
+    model = numqi.magic.MagicStabilizerEntropyModel(alpha, num_qubit, num_term=4*(2**num_qubit))
+    model.set_density_matrix(rho)
+    ret0 = model().item()
+    mat_st = model.manifold().detach()
+    psi_tilde = (mat_st @ model._sqrt_rho_Tconj).numpy().copy().conj()
+    plist = np.linalg.norm(psi_tilde, axis=1, ord=2)**2
+    assert abs(plist.sum()-1) < 1e-10
+    psi_list = psi_tilde / np.sqrt(plist[:,None])
+    pauli_mat = numqi.gate.get_pauli_group(num_qubit)
+    z0 = np.einsum(psi_list.conj(), [0,1], pauli_mat, [3,1,2], psi_list, [0,2], [0,3], optimize=True)
+    assert np.abs(z0.imag).max() < 1e-12
+    ret_ = np.dot(plist, ((z0.real**2)**alpha).sum(axis=1)) / (2**num_qubit)
+    assert abs(ret0+ret_) < 1e-10
