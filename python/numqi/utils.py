@@ -401,7 +401,6 @@ def is_positive_semi_definite(np0:np.ndarray, shift:float=0.0, hermitian_eps:flo
     return ret
 
 
-# TODO change all to numqi.utils.hf_interpolate_dm
 def hf_interpolate_dm(rho:np.ndarray, alpha:float|None=None, beta:float|None=None, dm_norm:float|None=None):
     r'''interpolate the density matrix between `rho` and the maximally mixed state
 

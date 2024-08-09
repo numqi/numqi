@@ -144,11 +144,11 @@ def test_get_GME_seesaw_GHZ():
     kwargs = dict(dim_list=(2,2,2), maxiter=2000, converge_eps=1e-10, num_repeat=3, seed=np_rng)
 
     plist = np_rng.uniform(0, 0.2-zero_eps, 5)
-    ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.entangle.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
+    ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.utils.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
     assert np.abs(ret_seesaw).max() < 1e-7
 
     plist = np_rng.uniform(0.2+zero_eps, 1, 5)
-    ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.entangle.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
+    ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.utils.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
     assert np.abs(ret_seesaw).min() > 1e-7
 
 
