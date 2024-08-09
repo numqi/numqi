@@ -63,7 +63,7 @@ def get_gme_2qubit(rho:np.ndarray):
 
 class DensityMatrixGMEModel(torch.nn.Module):
     r'''Solve geometric measure of entanglement (GME) for density matrix using gradient descent.'''
-    def __init__(self, dim_list:tuple[int], num_ensemble:int, rank:int|None=None, CPrank:int=1, dtype:str='float64'):
+    def __init__(self, dim_list:tuple[int,...], num_ensemble:int, rank:int|None=None, CPrank:int=1, dtype:str='float64'):
         r'''Initialize the model.
 
         Parameters:
@@ -212,7 +212,7 @@ def get_linear_entropy_entanglement_ppt(rho:np.ndarray, dim:tuple[int], use_tqdm
 
 class DensityMatrixLinearEntropyModel(torch.nn.Module):
     r'''Solve linear entropy of entanglement for density matrix using gradient descent.'''
-    def __init__(self, dim:tuple[int], num_ensemble:int, rank:int=None, kind:str='convex', method:str='polar'):
+    def __init__(self, dim:tuple[int,...], num_ensemble:int, rank:int|None=None, kind:str='convex', method:str='polar'):
         r'''Initialize the model.
 
         Parameters:

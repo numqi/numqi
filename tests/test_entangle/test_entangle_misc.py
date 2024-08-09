@@ -10,8 +10,8 @@ def test_get_density_matrix_boundary():
             beta_l,beta_u = numqi.entangle.get_density_matrix_boundary(dm0, dm_norm=x0)
             assert beta_l<0
             assert beta_u>0
-            assert np.linalg.eigvalsh(numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l, dm_norm=x0))[0] > -1e-7
-            assert np.linalg.eigvalsh(numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u, dm_norm=x0))[0] > -1e-7
+            assert np.linalg.eigvalsh(numqi.utils.hf_interpolate_dm(dm0, beta=beta_l, dm_norm=x0))[0] > -1e-7
+            assert np.linalg.eigvalsh(numqi.utils.hf_interpolate_dm(dm0, beta=beta_u, dm_norm=x0))[0] > -1e-7
 
 
 def test_entangle_check_swap_witness():

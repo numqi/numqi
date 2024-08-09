@@ -6,6 +6,8 @@
     options:
       heading_level: 2
 
+WARNING: rename to `numqi.utils.hf_interpolate_dm`
+
 ::: numqi.entangle.get_dm_numerical_range
     options:
       heading_level: 2

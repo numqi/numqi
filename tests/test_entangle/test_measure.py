@@ -40,11 +40,12 @@ def test_isotropic_gme():
 
 
 def test_2qubit_gme():
+    np_rng = np.random.default_rng(seed=233) #fix seed for reproducibility
     model = numqi.entangle.DensityMatrixGMEModel(dim_list=[2,2], num_ensemble=12)
     for _ in range(10):
-        rho = numqi.random.rand_density_matrix(4)
+        rho = numqi.random.rand_density_matrix(4, seed=np_rng)
         model.set_density_matrix(rho)
-        ret = numqi.optimize.minimize(model, num_repeat=3, tol=1e-10, print_every_round=0).fun
+        ret = numqi.optimize.minimize(model, num_repeat=3, tol=1e-10, print_every_round=0, seed=np_rng).fun
         ret_ = numqi.entangle.get_gme_2qubit(rho)
         assert abs(ret-ret_) < 1e-7
 

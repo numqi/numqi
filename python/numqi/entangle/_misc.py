@@ -10,6 +10,9 @@ import numqi.utils
 
 # TODO rename _density_matrix to _dm
 
+# TODO deprecated
+from numqi.utils import hf_interpolate_dm
+
 def _ree_bisection_solve(hf0, x0, x1, xtol, threshold, use_tqdm):
     # function must be increasing, otherwise the result is not correct
     # the REE function is okay
@@ -55,30 +58,6 @@ def _sdp_ree_solve(rho, use_tqdm, cvx_rho, cvxP, prob, obj, return_info, is_sing
     else:
         if not return_info:
             ret = np.array(ret)
-    return ret
-
-
-def hf_interpolate_dm(rho:np.ndarray, alpha:float|None=None, beta:float|None=None, dm_norm:float|None=None):
-    r'''interpolate the density matrix between `rho` and the maximally mixed state
-
-    Parameters:
-        rho (np.ndarray): density matrix, `ndim=2`
-        alpha (float,None): `rho0*(1-alpha) + rho*alpha`, return `rho` itself if `alpha=1`, and maximally mixed state if `alpha=0`,
-                     if None, then use `beta`
-        beta (float,None): `rho0 + beta*unit(rho0)`, `beta` reflects the vector length in Gell-Mann basis, if None, then use `alpha`
-        dm_norm (float,None): norm of the density matrix. if None, then calculate it internally
-
-    Returns:
-        ret (np.ndarray): interpolated density matrix, `ndim=2`
-    '''
-    assert (alpha is not None) or (beta is not None)
-    N0 = rho.shape[0]
-    rhoI = np.eye(N0)/N0
-    if beta is not None:
-        if dm_norm is None:
-            dm_norm = numqi.gellmann.dm_to_gellmann_norm(rho)
-        alpha = beta / dm_norm
-    ret = alpha*rho + (1-alpha)*rhoI
     return ret
 
 

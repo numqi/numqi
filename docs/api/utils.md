@@ -51,3 +51,7 @@
 ::: numqi.utils.is_positive_semi_definite
     options:
       heading_level: 2
+
+::: numqi.utils.hf_interpolate_dm
+    options:
+      heading_level: 2
