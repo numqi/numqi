@@ -98,6 +98,7 @@ nav:
       - application/entangle/measure.ipynb
       - application/entangle/gme_seesaw.ipynb
       - application/entangle/entanglement_cost.ipynb
+      - application/entangle/linear_entropy_entanglement.ipynb
       - application/entangle/3tangle.ipynb
       - Detection method:
         - application/entangle/overview_method.ipynb
