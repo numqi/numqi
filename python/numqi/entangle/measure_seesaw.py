@@ -4,6 +4,7 @@ import opt_einsum
 
 import numqi.matrix_space
 import numqi.manifold
+import numqi.random
 
 def _get_GME_pure_seesaw_contract_expr(np0, dim_list):
     N0 = len(dim_list)
@@ -68,7 +69,7 @@ def get_GME_pure_seesaw(np0:np.ndarray, converge_eps:float=1e-7, num_repeat:int=
             assert len(psi_list)==N0
             assert all(x.shape==(y,) for x,y in zip(psi_list, dim_list)), "Inconsistent shape"
         ret_repeat_list = []
-        np_rng = np.random.default_rng(seed)
+        np_rng = numqi.random.get_numpy_rng(seed)
         for _ in range(num_repeat):
             if (num_repeat>1) or (psi_list is None):
                 psi_list = []
@@ -118,7 +119,7 @@ def get_GME_subspace_seesaw(np0:np.ndarray, converge_eps:float=1e-7, num_repeat:
         ret_repeat_list = []
         for _ in range(num_repeat):
             if (num_repeat>1) or (psi_list is None):
-                np_rng = np.random.default_rng(seed)
+                np_rng = numqi.random.get_numpy_rng(seed)
                 psi_list = []
                 for ind0 in range(N0):
                     tmp0 = np_rng.normal(size=dim_list[ind0]) + 1j * np_rng.normal(size=dim_list[ind0])
@@ -140,7 +141,7 @@ def get_GME_subspace_seesaw(np0:np.ndarray, converge_eps:float=1e-7, num_repeat:
     return ret
 
 
-def get_GME_seesaw(rho:np.ndarray, dim_list:tuple[int], maxiter:int=1000, init_coeffq:np.ndarray|None=None,
+def get_GME_seesaw(rho:np.ndarray, dim_list:tuple[int,...], maxiter:int=1000, init_coeffq:np.ndarray|None=None,
                 init_phi_list:list|None=None, num_state:int|None=None, converge_eps:float=1e-10,
                 num_repeat:int=1, maxiter_inner:int=100, converge_eps_inner:float=1e-7, zero_eps:float=1e-10,
                 return_info:bool=False, seed:int|None=None):
@@ -172,7 +173,7 @@ def get_GME_seesaw(rho:np.ndarray, dim_list:tuple[int], maxiter:int=1000, init_c
     if num_repeat>1:
         assert (init_coeffq is None) and (init_phi_list is None)
     if (init_coeffq is None) or (init_phi_list is None):
-        np_rng = np.random.default_rng(seed)
+        np_rng = numqi.random.get_numpy_rng(seed)
     else:
         np_rng = None
     dim_list = tuple(dim_list)

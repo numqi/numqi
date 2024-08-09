@@ -137,10 +137,11 @@ def test_get_GME_seesaw_isotropic():
 
 
 def test_get_GME_seesaw_GHZ():
+    np_rng = np.random.default_rng(seed=233) # fix seed for reproducibility
     tmp0 = numqi.state.GHZ(3)
     zero_eps = 1e-4
     rho_ghz = tmp0.reshape(-1,1)*tmp0.conj()
-    kwargs = dict(dim_list=(2,2,2), maxiter=2000, converge_eps=1e-10, num_repeat=3)
+    kwargs = dict(dim_list=(2,2,2), maxiter=2000, converge_eps=1e-10, num_repeat=3, seed=np_rng)
 
     plist = np_rng.uniform(0, 0.2-zero_eps, 5)
     ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.entangle.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
@@ -148,14 +149,15 @@ def test_get_GME_seesaw_GHZ():
 
     plist = np_rng.uniform(0.2+zero_eps, 1, 5)
     ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(numqi.entangle.hf_interpolate_dm(rho_ghz, alpha=x), **kwargs) for x in plist])
-    assert np.abs(ret_seesaw).max() > 1e-7
+    assert np.abs(ret_seesaw).min() > 1e-7
 
 
-def test_get_GME_seesaw_GHZ():
+def test_get_GME_seesaw_rho():
+    np_rng = np.random.default_rng(seed=233) # fix seed for reproducibility
     key_list = ['cluster','ghz','w','dicke']
     plist = np_rng.uniform(0, 1, 5)
     dim_list = (2,2,2,2)
-    kwargs = dict(dim_list=dim_list, maxiter=2000, converge_eps=1e-10, num_repeat=3)
+    kwargs = dict(dim_list=dim_list, maxiter=2000, converge_eps=1e-10, num_repeat=3, seed=np_rng)
     for key in key_list:
         rho,gme = numqi.state.get_4qubit_special_state_gme(key, plist)
         ret_seesaw = np.array([numqi.entangle.get_GME_seesaw(x, **kwargs) for x in rho])
