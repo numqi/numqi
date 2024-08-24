@@ -97,6 +97,7 @@ def degeneracy(code_i):
 
 
 def quantum_weight_enumerator(code, use_tqdm=False):
+    # https://arxiv.org/abs/quant-ph/9610040
     assert code.ndim==2
     num_qubit = numqi.utils.hf_num_state_to_num_qubit(code.shape[1], kind='exact')
     num_logical_dim = code.shape[0]
@@ -105,8 +106,8 @@ def quantum_weight_enumerator(code, use_tqdm=False):
         code = np.pad(code, [(0,2**num_logical_qubit-num_logical_dim),(0,0)], mode='constant', constant_values=0)
     code_conj = code.conj()
     op_list = [numqi.gate.X, numqi.gate.Y, numqi.gate.Z]
-    retA = np.zeros(num_qubit, dtype=np.float64)
-    retB = np.zeros(num_qubit, dtype=np.float64)
+    retA = np.array([num_logical_dim**2]+[0]*num_qubit, dtype=np.float64)
+    retB = np.array([num_logical_dim]+[0]*num_qubit, dtype=np.float64)
     for ind0 in range(num_qubit):
         weight = ind0 + 1
         tmp0 = itertools.combinations(range(num_qubit), r=weight)
@@ -120,8 +121,8 @@ def quantum_weight_enumerator(code, use_tqdm=False):
             for ind_op,op_i in gate_list:
                 q0 = numqi.sim.state.apply_gate(q0, op_i, ind_op)
             tmp0 = code_conj.reshape(-1, 2**num_qubit) @ q0.reshape(-1, 2**num_qubit).T
-            retA[ind0] += abs(np.trace(tmp0).item())**2
-            retB[ind0] += np.vdot(tmp0.reshape(-1), tmp0.reshape(-1)).real.item()
+            retA[ind0+1] += abs(np.trace(tmp0).item())**2
+            retB[ind0+1] += np.vdot(tmp0.reshape(-1), tmp0.reshape(-1)).real.item()
     retA /= num_logical_dim**2
     retB /= num_logical_dim
     return retA, retB

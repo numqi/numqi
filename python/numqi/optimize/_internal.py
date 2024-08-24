@@ -106,8 +106,11 @@ class MinimizeCallback:
                 print(f'[step={step}][time={t1-t0:.3f} seconds] loss={fval}')
         self.state['step'] += 1
 
-    def reset(self, save_history:bool=False):
+    def reset(self, save_history:bool=False, theta_optim=None):
         if save_history:
+            if theta_optim is not None:
+                self.state['optim_x'] = theta_optim.x.copy()
+                self.state['optim_fval'] = float(theta_optim.fun)
             self.history_state.append(self.state)
         tmp0 = {'step':0, 'fval':[], 'time':[]}
         if 'grad_norm' in self.extra_key:
@@ -249,7 +252,7 @@ def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L
         if (print_every_round>0) and (ind0%print_every_round==0):
             print(f'[round={ind0}] min(f)={theta_optim_best.fun}, current(f)={theta_optim.fun}')
         if callback is not None:
-            callback.reset(save_history=True)
+            callback.reset(save_history=True, theta_optim=theta_optim)
         if (early_stop_threshold is not None) and (theta_optim_best.fun<=early_stop_threshold):
             break
     hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property
