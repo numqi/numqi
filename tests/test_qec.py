@@ -44,8 +44,8 @@ def test_code523():
     assert np.abs(numqi.qec.degeneracy(code_np[0]) - np.ones(16)).max() < 1e-7
     assert np.abs(numqi.qec.degeneracy(code_np[1]) - np.ones(16)).max() < 1e-7
     qweA,qweB = numqi.qec.quantum_weight_enumerator(code_np)
-    assert np.abs(qweA - np.array([0,0,0,15,0])).max() < 1e-7
-    assert np.abs(qweB - np.array([0,0,30,15,18])).max() < 1e-7
+    assert np.abs(qweA - np.array([1,0,0,0,15,0])).max() < 1e-7
+    assert np.abs(qweB - np.array([1,0,0,30,15,18])).max() < 1e-7
 
     z0 = numqi.qec.check_stabilizer(code['stabilizer'], code_np)
     assert np.abs(z0-1).max() < 1e-7
