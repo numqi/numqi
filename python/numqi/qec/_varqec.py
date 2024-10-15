@@ -46,7 +46,8 @@ class QECCEqualModel(torch.nn.Module):
         for ind0 in range(self.num_qubit):
             tmp0 = code0.reshape(N0*(2**ind0), 2, 2**(self.num_qubit-ind0-1))
             code0 = torch.einsum(tmp0, [0,1,2], unitary[ind0], [1,3], [0,3,2]).reshape(N0, -1)
-        loss = torch.sum(1-torch.linalg.norm(code0.conj() @ self.code1.T, dim=1)**2)
+        tmp0 = (code0.conj() @ self.code1.T).reshape(-1)
+        loss = N0 - torch.vdot(tmp0, tmp0).real
         return loss
 
 class VarQECUnitary(torch.nn.Module):
