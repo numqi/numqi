@@ -36,15 +36,44 @@ def set_model_flat_parameter(model, theta, index01=None):
         parameter_sorted[ind0].data.copy_(tmp0)
 
 
-def hf_model_wrapper(model):
+def _get_constraint_square(x0):
+    x0 = x0.reshape(-1)
+    ret = torch.vdot(x0, x0).real if torch.is_complex(x0) else torch.dot(x0, x0)
+    return ret
+
+def hf_model_wrapper(model, constraint_penalty:None|float=None, constraint_p:None|float=None):
     parameter_sorted = _get_sorted_parameter(model)
     tmp0 = np.cumsum(np.array([0] + [x.numel() for x in parameter_sorted])).tolist()
     index01 = list(zip(tmp0[:-1],tmp0[1:]))
-    def hf0(theta, tag_grad=True):
-        # tag_grad=False, return fval only, not (fval,None)
+    def hf0(theta, tag_grad:bool=True, return_constraint:bool=False):
+        '''
+        if (tag_grad,return_constraint), return
+            (False,False): loss
+            (False,True): loss,constraint_squared
+            (True,False): loss,grad
+            (True,True): loss,grad,constraint_squared
+
+        no matter `return_constraint` is True or False, penalty contribution is always added to the loss
+        '''
+        if return_constraint:
+            assert constraint_penalty is not None
         set_model_flat_parameter(model, theta, index01)
+        with torch.set_grad_enabled(tag_grad):
+            tmp0 = model()
+            if constraint_penalty is None:
+                loss = tmp0
+            else:
+                fval,constraint = tmp0
+                if isinstance(constraint, torch.Tensor):
+                    constraint_square = _get_constraint_square(constraint)
+                elif isinstance(constraint, list|tuple):
+                    constraint_square = sum(_get_constraint_square(x) for x in constraint)
+                elif isinstance(constraint, dict):
+                    constraint_square = sum(_get_constraint_square(x) for x in constraint.values())
+                else:
+                    raise TypeError(f'constraint should be torch.Tensor, list, or dict, but got "{type(constraint)}"')
+                loss = fval + constraint_penalty * constraint_square**(constraint_p/2)
         if tag_grad:
-            loss = model()
             for x in parameter_sorted:
                 if x.grad is not None:
                     x.grad.zero_()
@@ -54,11 +83,15 @@ def hf_model_wrapper(model):
                 loss.backward() #if no .grad_backward() method, it should be a normal torch.nn.Module
             # scipy.optimize.LBFGS does not support float32 @20221118
             grad = np.concatenate([x.grad.detach().cpu().numpy().reshape(-1).astype(theta.dtype) for x in parameter_sorted])
-        else:
-            with torch.no_grad():
-                loss = model()
-            grad = None
-        ret = (loss.item(),grad) if tag_grad else loss.item()
+        match (tag_grad,return_constraint):
+            case (False,False):
+                ret = loss.item()
+            case (False,True):
+                ret = loss.item(),constraint_square.item()
+            case (True,False):
+                ret = loss.item(),grad
+            case (True,True):
+                ret = loss.item(),grad,constraint_square.item()
         return ret
     return hf0
 
@@ -106,8 +139,11 @@ class MinimizeCallback:
                 print(f'[step={step}][time={t1-t0:.3f} seconds] loss={fval}')
         self.state['step'] += 1
 
-    def reset(self, save_history:bool=False):
+    def reset(self, save_history:bool=False, theta_optim=None):
         if save_history:
+            if theta_optim is not None:
+                self.state['optim_x'] = theta_optim.x.copy()
+                self.state['optim_fval'] = float(theta_optim.fun)
             self.history_state.append(self.state)
         tmp0 = {'step':0, 'fval':[], 'time':[]}
         if 'grad_norm' in self.extra_key:
@@ -191,7 +227,7 @@ def _get_hf_theta(np_rng, key=None):
 
 def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L-BFGS-B',
             print_every_round=1, maxiter=None, early_stop_threshold=None,
-            callback=None, seed=None):
+            constraint_penalty=None, constraint_p=None, constraint_threshold=None, callback=None, seed=None):
     r'''gradient-based optimization
 
     Parameters:
@@ -219,11 +255,15 @@ def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L
         print_every_round (int): print frequency for each round, non-positive means no print
         maxiter (int): maximum number of iterations, see scipy.optimize.minimize
         early_stop_threshold (float): if the loss is less than this value, the optimization will stop
+        constraint_penalty (None, float): if not None, the penalty term will be added to the loss
+        constraint_p (None, float): must be float when `constraint_penalty` is not None.
+        constraint_threshold (None, float): must be float when `constraint_penalty` is not None.
+                    The best result is selected from the results whose constraint squared is less than this value
         callback (None, MinimizeCallback): callback function, if None, MinimizeCallback(print_freq=print_freq) will be used
         seed (None, int): random seed
 
     Returns:
-        ret (scipy.optimize.OptimizeResult): the result of scipy.optimize.minimize
+        ret (scipy.optimize.OptimizeResult,None): the result of scipy.optimize.minimize, None if no result is found (only when penalty is used)
     '''
     if callback is not None:
         assert isinstance(callback, MinimizeCallback)
@@ -231,11 +271,16 @@ def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L
     if print_freq>=1:
         assert callback is None, 'print_freq and callback cannot be used at the same time'
         callback = MinimizeCallback(print_freq=print_freq)
+    if constraint_penalty is not None:
+        assert (constraint_penalty>0) and (constraint_p>0) and (constraint_threshold>0)
+        if callback is None: #if penalty is used, callback is necessary (for handling penalty threshold)
+            callback = MinimizeCallback(print_freq=print_freq)
     np_rng = np.random.default_rng(seed)
     hf_theta = _get_hf_theta(np_rng, theta0)
     num_parameter = len(get_model_flat_parameter(model))
-    hf_model = hf_model_wrapper(model)
+    hf_model = hf_model_wrapper(model, constraint_penalty, constraint_p)
     theta_optim_best = None
+    index_best = None
     kwargs = dict(tol=tol, method=method, jac=True)
     if maxiter is not None:
         kwargs['options'] = {'maxiter':maxiter}
@@ -243,17 +288,27 @@ def minimize(model, theta0=None, num_repeat=1, tol=1e-7, print_freq=0, method='L
         theta0 = hf_theta(num_parameter)
         hf_callback = callback.to_callable(hf_model) if (callback is not None) else None
         theta_optim = scipy.optimize.minimize(hf_model, theta0, callback=hf_callback, **kwargs)
-        if (theta_optim_best is None) or (theta_optim.fun<theta_optim_best.fun):
+        if (constraint_penalty is None) and ((theta_optim_best is None) or (theta_optim.fun<theta_optim_best.fun)):
             index_best = ind0
             theta_optim_best = theta_optim
+        elif constraint_penalty is not None:
+            tmp0 = hf_model(theta_optim.x, tag_grad=False, return_constraint=True) #loss,constraint_squared
+            loss_cur,constraint_square_cur = tmp0
+            if constraint_square_cur<constraint_threshold:
+                if (theta_optim_best is None) or (loss_cur<theta_optim_best.fun):
+                    index_best = ind0
+                    theta_optim_best = theta_optim
         if (print_every_round>0) and (ind0%print_every_round==0):
-            print(f'[round={ind0}] min(f)={theta_optim_best.fun}, current(f)={theta_optim.fun}')
+            tmp0 = 'None' if theta_optim_best is None else theta_optim_best.fun
+            tmp1 = '' if constraint_penalty is None else f', current(constraint^2)={constraint_square_cur}'
+            print(f'[round={ind0}] min(f)={tmp0}, current(f)={theta_optim.fun}{tmp1}')
         if callback is not None:
-            callback.reset(save_history=True)
-        if (early_stop_threshold is not None) and (theta_optim_best.fun<=early_stop_threshold):
+            callback.reset(save_history=True, theta_optim=theta_optim)
+        if (early_stop_threshold is not None) and (theta_optim_best is not None) and (theta_optim_best.fun<=early_stop_threshold):
             break
-    hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property
-    if callback is not None:
+    if theta_optim_best is not None:
+        hf_model(theta_optim_best.x, tag_grad=False) #set theta and model.property
+    if (callback is not None) and (index_best is not None):
         callback.state = callback.history_state[index_best]
     return theta_optim_best
 

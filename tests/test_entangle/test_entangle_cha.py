@@ -49,6 +49,6 @@ def test_convex_hull_approximation_iterative():
 
     ketA,ketB,lambda_,beta_history = history_info
     assert abs(lambda_.sum()-1) < 1e-6
-    ret_ = numqi.entangle.hf_interpolate_dm(dm0, beta=beta)
+    ret_ = numqi.utils.hf_interpolate_dm(dm0, beta=beta)
     ret0 = np.einsum(lambda_,[0],ketA,[0,1],ketA.conj(),[0,3],ketB,[0,2],ketB.conj(),[0,4],[1,2,3,4],optimize=True).reshape(dm0.shape)
     assert np.abs(ret_-ret0).max() < 1e-6

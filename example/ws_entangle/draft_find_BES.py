@@ -11,8 +11,8 @@ torch.set_num_threads(1)
 
 def quick_beta_boundary(dm0, dimA, dimB, kext=16):
     beta_l,beta_u = numqi.entangle.get_density_matrix_boundary(dm0)
-    dm_u = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u)
-    dm_l = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l)
+    dm_u = numqi.utils.hf_interpolate_dm(dm0, beta=beta_u)
+    dm_l = numqi.utils.hf_interpolate_dm(dm0, beta=beta_l)
     beta_ppt_l,beta_ppt_u = numqi.entangle.get_ppt_boundary(dm0, (dimA, dimB))
     model_svqc = numqi.entangle.PureBosonicExt(dimA, dimB, kext=kext)
     beta_svqc_u = model_svqc.get_boundary(dm_u, xtol=1e-4, threshold=1e-7, num_repeat=1, use_tqdm=True)

@@ -18,6 +18,7 @@ from .measure import (DensityMatrixGMEModel, get_gme_2qubit, get_linear_entropy_
                       get_relative_entropy_of_entanglement_pure)
 from .measure_seesaw import get_GME_pure_seesaw, get_GME_subspace_seesaw, get_GME_seesaw
 from .distillation import get_binegativity, get_PPT_entanglement_cost_bound, SearchMinimumBinegativityModel
+from ._3tangle import get_hyperdeterminant, get_3tangle_pure, ThreeTangleModel
 
 from . import upb
 from . import ppt
@@ -30,3 +31,4 @@ from . import _misc
 from . import measure
 from . import measure_seesaw
 from . import distillation
+from . import _3tangle

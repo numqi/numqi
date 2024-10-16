@@ -5,13 +5,13 @@ import numqi
 
 def hf_werner_beta2alpha(beta, dim):
     rho = numqi.state.Werner(dim, 1)
-    tmp0 = numqi.entangle.hf_interpolate_dm(rho, beta=beta)[0,0]
+    tmp0 = numqi.utils.hf_interpolate_dm(rho, beta=beta)[0,0]
     ret = (tmp0*dim*dim - 1) / (tmp0*dim-1)
     return ret
 
 def hf_isotropic_beta2alpha(beta, dim):
     rho = numqi.state.Isotropic(dim, 1)
-    tmp0 = numqi.entangle.hf_interpolate_dm(rho, beta=beta)[1,1]
+    tmp0 = numqi.utils.hf_interpolate_dm(rho, beta=beta)[1,1]
     ret = 1-tmp0*dim*dim
     return ret
 

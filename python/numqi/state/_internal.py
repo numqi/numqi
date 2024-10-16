@@ -487,3 +487,45 @@ def get_4qubit_special_state_gme(key:str, plist:float|np.ndarray):
     rho_list = rho*mask_diag + (rho*mask_offdiag)*plist.reshape(-1,1,1)
     ret = (rho_list[0], gme[0]) if isone else (rho_list, gme)
     return ret
+
+
+def maximally_coherent_state(dim:int, alpha:None|float=None):
+    r'''get the interpolation between the maximally coherent state and the maximally mixed state
+
+    reference: Maximally coherent states and coherence-preserving operations
+    [arxiv-link](https://arxiv.org/abs/1511.02576)
+
+    Parameters:
+        dim (int): the dimension of the state
+        alpha (None,float): the interpolation parameter, None for the maximally coherent state
+
+    Returns:
+        ret (np.ndarray): the maximally coherent state. when `alpha=None`, pure state shape=(dim,) is returned,
+                otherwise density matrix shape=(dim,dim) is returned
+    '''
+    assert dim>=1
+    if alpha is None:
+        ret = np.ones(dim, dtype=np.float64)/np.sqrt(dim)
+    else:
+        rho = np.ones((dim,dim), dtype=np.float64)/dim
+        ret = numqi.utils.hf_interpolate_dm(rho, alpha=alpha)
+    return ret
+
+
+def get_maximally_coherent_state_gmc(dim:int, alpha:float|np.ndarray):
+    r'''Get the geometric measure of coherence for the maximally coherent state (mcs) along the interpolation with maximally mixed state
+
+    reference: Numerical and analytical results for geometric measure of coherence and geometric measure of entanglement
+    [arxiv-link](https://arxiv.org/abs/1903.10944)
+
+    Parameters:
+        dim (int): the dimension of the state
+        alpha (float,np.ndarray): the interpolation parameter
+
+    Returns:
+        ret (float,np.ndarray): the coherence
+    '''
+    tmp0 = (dim-1) * np.sqrt(np.maximum(1-alpha, 0))
+    tmp1 = np.sqrt(np.maximum(1 + (dim-1)*alpha, 0))
+    ret = 1 - (tmp0 + tmp1)**2 / (dim*dim)
+    return ret

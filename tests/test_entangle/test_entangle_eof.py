@@ -15,6 +15,14 @@ def test_eof_A_B():
     assert abs(ret0-ret1) < 1e-10
 
 
+## buggy
+# def test_concurrence_2qubit_pure():
+#     # http://dx.doi.org/10.1103/PhysRevA.86.042302
+#     psi = numqi.random.rand_haar_state(4)
+#     z0 = numqi.entangle.get_concurrence_pure(psi.reshape(2,2))
+#     assert abs(np.vdot(psi, np.kron(numqi.gate.Y, numqi.gate.Y) @ psi.conj())) < 1e-10
+
+
 def test_EntanglementFormationModel_separable():
     num_sample = 5
     for dimA,dimB in [(2,2),(3,4),(4,3)]:
@@ -62,20 +70,22 @@ def test_EntanglementFormationModel_werner():
 
 
 def test_2qubits_Concurrence_EntanglementFormation():
+    np_rng = np.random.default_rng(seed=234)
     dimA = 2
     dimB = 2
     for _ in range(5):
-        rho = numqi.random.rand_density_matrix(dimA*dimB)
+        rho = numqi.random.rand_density_matrix(dimA*dimB, seed=np_rng)
         ret_ = numqi.entangle.get_concurrence_2qubit(rho)
         model = numqi.entangle.ConcurrenceModel(dimA, dimB, num_term=3*dimA*dimB, rank=dimA*dimB)
         model.set_density_matrix(rho)
-        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=5, tol=1e-10, print_every_round=0)
+        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=5, tol=1e-10, print_every_round=0, seed=np_rng)
         assert abs(theta_optim.fun-ret_) < 1e-5 #seems cannot converge to 0 quite well for SEP
 
         ret_ = numqi.entangle.get_eof_2qubit(rho)
         model = numqi.entangle.EntanglementFormationModel(dimA, dimB, num_term=3*dimA*dimB, rank=dimA*dimB)
         model.set_density_matrix(rho)
-        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0)
+        theta_optim = numqi.optimize.minimize(model, theta0='uniform', num_repeat=3, tol=1e-10, print_every_round=0, seed=np_rng)
+        print(theta_optim.fun)
         assert abs(theta_optim.fun-ret_) < 1e-5
 
 

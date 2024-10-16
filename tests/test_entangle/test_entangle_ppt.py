@@ -139,7 +139,7 @@ def test_get_ppt_boundary():
         assert beta_l<0
         assert beta_u>0
         for beta in [beta_l,beta_u]:
-            tmp0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta, dm_norm=x0)
+            tmp0 = numqi.utils.hf_interpolate_dm(dm0, beta=beta, dm_norm=x0)
             tmp0 = tmp0.reshape(dimA,dimB,dimA,dimB).transpose([0,3,2,1]).reshape(dimA*dimB,-1)
             assert np.linalg.eigvalsh(tmp0)[0] > -1e-7
 
@@ -150,11 +150,11 @@ def test_get_ppt_boundary_werner():
         beta_l,beta_u = numqi.entangle.get_ppt_boundary(dm0, (dim,dim), within_dm=True)
 
         ret_ = numqi.state.Werner(dim, alpha=-1)
-        ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l)
+        ret0 = numqi.utils.hf_interpolate_dm(dm0, beta=beta_l)
         assert np.abs(ret_-ret0).max() < 1e-10
 
         ret_ = numqi.state.Werner(dim, alpha=1/dim)
-        ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u)
+        ret0 = numqi.utils.hf_interpolate_dm(dm0, beta=beta_u)
         assert np.abs(ret_-ret0).max() < 1e-10
 
 
@@ -164,11 +164,11 @@ def test_get_ppt_boundary_isotropic():
         beta_l,beta_u = numqi.entangle.get_ppt_boundary(dm0, (dim,dim), within_dm=True)
 
         ret_ = numqi.state.Isotropic(dim, alpha=-1/(dim*dim-1))
-        ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_l)
+        ret0 = numqi.utils.hf_interpolate_dm(dm0, beta=beta_l)
         assert np.abs(ret_-ret0).max() < 1e-10
 
         ret_ = numqi.state.Isotropic(dim, alpha=1/(dim+1))
-        ret0 = numqi.entangle.hf_interpolate_dm(dm0, beta=beta_u)
+        ret0 = numqi.utils.hf_interpolate_dm(dm0, beta=beta_u)
         assert np.abs(ret_-ret0).max() < 1e-10
 
 

@@ -46,7 +46,7 @@ dm_tiles = numqi.entangle.load_upb('tiles', return_bes=True)[1]
 beta_dm = numqi.gellmann.dm_to_gellmann_norm(dm_tiles)
 kwargs = dict(dim=(3,3), kext=3, use_ppt=True, use_boson=True, return_info=True, use_tqdm=True)
 beta_kext,vecA,vecN = numqi.entangle.get_ABk_symmetric_extension_boundary(dm_tiles, **kwargs)
-dm_inner = numqi.entangle.hf_interpolate_dm(dm_tiles, beta=(beta_dm+beta_kext)/2)
+dm_inner = numqi.utils.hf_interpolate_dm(dm_tiles, beta=(beta_dm+beta_kext)/2)
 
 model = BESVolumeModel(3,3)
 model.set_density_matrix(dm_inner)

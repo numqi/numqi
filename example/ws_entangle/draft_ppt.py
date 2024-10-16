@@ -10,7 +10,7 @@ def demo_generalized_ppt():
     beta_dm = numqi.entangle.get_density_matrix_boundary(dm_tiles)[1]
     beta_list = np.linspace(0, beta_dm, 100)
 
-    dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_tiles,beta=x,dm_norm=dm_norm) for x in beta_list]
+    dm_target_list = [numqi.utils.hf_interpolate_dm(dm_tiles,beta=x,dm_norm=dm_norm) for x in beta_list]
 
     z0 = []
     for dm_target_i in dm_target_list:

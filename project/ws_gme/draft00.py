@@ -128,7 +128,7 @@ dim_list = [2]*num_part
 dm_ghz = get_ghz_state(num_part, return_dm=True)
 
 alpha_list = np.linspace(0, 1, 101)
-dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_ghz, alpha=x) for x in alpha_list]
+dm_target_list = [numqi.utils.hf_interpolate_dm(dm_ghz, alpha=x) for x in alpha_list]
 
 ret_list = []
 model = AutodiffCHAGMEModel(dim_list)

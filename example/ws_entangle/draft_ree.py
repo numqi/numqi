@@ -18,7 +18,7 @@ def demo_ree_gellmann_random_dm():
     dm_norm = numqi.gellmann.dm_to_gellmann_norm(dm_target)
     beta_u = numqi.entangle.get_density_matrix_boundary(dm_target)[1]
     beta_list = np.linspace(0, beta_u, 50)
-    dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_target,beta=x,dm_norm=dm_norm) for x in beta_list]
+    dm_target_list = [numqi.utils.hf_interpolate_dm(dm_target,beta=x,dm_norm=dm_norm) for x in beta_list]
 
     beta_ppt = numqi.entangle.get_ppt_boundary(dm_target, (dimA, dimB))[1]
 
@@ -81,9 +81,9 @@ def demo_werner_gellmann():
     dm_target = numqi.state.Isotropic(dim, 1)
     beta_u = numqi.entangle.get_density_matrix_boundary(dm_target)[1]
     beta_list = np.linspace(0, beta_u, 100)
-    # z0 = numqi.entangle.hf_interpolate_dm(dm_target, beta=beta_u)
-    numqi.entangle.is_ppt(numqi.entangle.hf_interpolate_dm(dm_target, beta=beta_u), (dim,dim))
-    dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_target, beta=x) for x in beta_list]
+    # z0 = numqi.utils.hf_interpolate_dm(dm_target, beta=beta_u)
+    numqi.entangle.is_ppt(numqi.utils.hf_interpolate_dm(dm_target, beta=beta_u), (dim,dim))
+    dm_target_list = [numqi.utils.hf_interpolate_dm(dm_target, beta=x) for x in beta_list]
 
     z0 = []
     for kext in kext_list:
@@ -123,7 +123,7 @@ def demo_cha_gellmann():
     dm0 = numqi.random.rand_density_matrix(dimA*dimB)
     beta_u = numqi.entangle.get_density_matrix_boundary(dm0)[1]
     beta_list = np.linspace(0, beta_u, 50)
-    dm_target_list = [numqi.entangle.hf_interpolate_dm(dm0, beta=x) for x in beta_list]
+    dm_target_list = [numqi.utils.hf_interpolate_dm(dm0, beta=x) for x in beta_list]
 
     z0 = []
     for num_state in num_state_list:
@@ -204,7 +204,7 @@ def demo_tiles_upb_bes():
     beta_dm = numqi.entangle.get_density_matrix_boundary(dm_target)[1]
     beta_list = np.linspace(0, beta_dm, 100, endpoint=False)
 
-    dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_target, beta=x, dm_norm=dm_norm) for x in beta_list]
+    dm_target_list = [numqi.utils.hf_interpolate_dm(dm_target, beta=x, dm_norm=dm_norm) for x in beta_list]
     beta_ppt = numqi.entangle.get_ppt_boundary(dm_target, (dimA, dimB))[1]
 
     model = numqi.entangle.AutodiffCHAREE((dimA, dimB), distance_kind='ree')
@@ -255,7 +255,7 @@ def demo_tiles_upb_pureb_ree():
     kext_list = [24,32,40]
     ree_pureb = []
     beta_pureb = []
-    dm_target_list = [numqi.entangle.hf_interpolate_dm(dm_target,beta=x) for x in beta_list]
+    dm_target_list = [numqi.utils.hf_interpolate_dm(dm_target,beta=x) for x in beta_list]
     kwargs = dict(num_repeat=1, print_every_round=0, tol=1e-10)
     for kext in kext_list:
         model = numqi.entangle.PureBosonicExt(dimA, dimB, kext=kext, distance_kind='ree')

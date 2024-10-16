@@ -805,11 +805,13 @@ def to_special_orthogonal_cayley(theta, dim:int, order:int=2):
 _hf_trace1_np = lambda x: x/np.trace(x)
 _hf_trace1_torch = lambda x: x/torch.trace(x)
 
-def symmetric_matrix_to_trace1PSD(matA):
+def symmetric_matrix_to_trace1PSD(matA, tag_full_eigen=False):
     r'''map symmetric matrix to a trace-1 positive semi-definite matrix
 
     Parameters:
         matA (np.ndarray,torch.Tensor): symmetric / Hermitian matrix, support batch dimensions
+        tag_full_eigen (bool): use `np.linalg.eigvalsh` or `scipy.sparse.linalg.eigsh` to compute the largest eigenvalue.
+                when highly degenerated, 'tag_full_eigen=True' could be faster
 
     Returns:
         ret (np.ndarray,torch.Tensor): real / complex trace-1 positive semi-definite matrix
@@ -824,7 +826,7 @@ def symmetric_matrix_to_trace1PSD(matA):
         ret = torch.ones_like(matA) if is_torch else np.ones_like(matA)
     else:
         tmp3 = matA.detach().cpu().numpy() if is_torch else matA
-        if N1<=5: #5 is chosen intuitively
+        if (N1<=5) or tag_full_eigen: #5 is chosen intuitively
             EVL = np.linalg.eigvalsh(tmp3)[:,-1]
         else:
             EVL = [scipy.sparse.linalg.eigsh(tmp3[x], k=1, which='LA', return_eigenvectors=False)[0] for x in range(N0)]
