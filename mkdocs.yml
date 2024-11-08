@@ -113,9 +113,10 @@ nav:
     - Quantum magic:
       - application/magic/stabilizer_purity.ipynb
     - Quantum error correction:
-      - application/qecc/basic.md
+      - application/qecc/basic.ipynb
       - application/qecc/varqecc.ipynb
       - application/qecc/qecc733.ipynb
+      - application/qecc/sdp-qec.ipynb
     - Quantum tomography:
       - application/tomography/state_tomography.ipynb
       - application/tomography/channel_tomography.ipynb
@@ -160,6 +161,7 @@ nav:
     - manifold: api/manifold.md
     - matrix-space: api/matrix_space.md
     - random: api/random.md
+    - qec: api/qec.md
     - simulator:
       - core: api/sim.md
       - state: api/sim_state.md
