@@ -114,7 +114,7 @@ class MishraBirdModel(torch.nn.Module):
 def test_MishraBirdModel():
     model = MishraBirdModel()
     # need large repeats to converge with high probability
-    theta_optim = numqi.optimize.minimize(model, num_repeat=100, tol=1e-15, method='L-BFGS-B',
+    theta_optim = numqi.optimize.minimize(model, num_repeat=500, tol=1e-15, method='L-BFGS-B',
                     constraint_penalty=10, constraint_p=1.1, constraint_threshold=1e-14)
     loss,constraint = model()
     assert abs(loss.item()+106.7645367) < 1e-5 #about 1e-7

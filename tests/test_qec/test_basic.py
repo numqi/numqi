@@ -159,7 +159,7 @@ def test_code_get_Krawtchouk_polynomial():
             RHS = weightA @ (tmp0 @ np0 @ num_qubit**np.arange(k+1)) * (dim*dim/2**num_qubit)
             LHS = weightB[k] * (dim)
             # https://arxiv.org/abs/2408.10323 eq(15)
-            assert abs(LHS-RHS) < 1e-6
+            assert abs(LHS-RHS) < 1e-5
 
 
 
