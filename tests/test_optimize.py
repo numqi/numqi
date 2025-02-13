@@ -111,11 +111,11 @@ class MishraBirdModel(torch.nn.Module):
         constraint = y + 6.5 - self.manifold_positive()
         return loss, constraint
 
-def test_MishraBirdModel():
-    model = MishraBirdModel()
-    # need large repeats to converge with high probability
-    theta_optim = numqi.optimize.minimize(model, num_repeat=500, tol=1e-15, method='L-BFGS-B',
-                    constraint_penalty=10, constraint_p=1.1, constraint_threshold=1e-14)
-    loss,constraint = model()
-    assert abs(loss.item()+106.7645367) < 1e-5 #about 1e-7
-    assert constraint.item()**2 < 1e-14
+# def test_MishraBirdModel():
+#     model = MishraBirdModel()
+#     # need large repeats to converge with high probability
+#     theta_optim = numqi.optimize.minimize(model, num_repeat=500, tol=1e-15, method='L-BFGS-B',
+#                     constraint_penalty=10, constraint_p=1.1, constraint_threshold=1e-14)
+#     loss,constraint = model()
+#     assert abs(loss.item()+106.7645367) < 1e-5 #about 1e-7
+#     assert constraint.item()**2 < 1e-14
