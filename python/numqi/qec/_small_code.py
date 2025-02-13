@@ -91,7 +91,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     '''
     # TODO carbon code https://errorcorrectionzoo.org/c/carbon
     if key is None:
-        tmp0 = '442stab 523 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic 883 shor'
+        tmp0 = '442stab 523 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic 883 shor surface17'
         # 723graph
         print('Available key:', tmp0)
     info = dict()
@@ -183,6 +183,8 @@ def get_code_subspace(key:str|None=None, **kwargs):
             'qweA': np.array([1, 0, 0.5+0.5*tmp0, 0.5-0.5*tmp0, 11.5-0.5*tmp0, 15.5+0.5*tmp0, 3]), #by numerical fitting
             'qweB': np.array([1, 0, 0.5+0.5*tmp0, 23+tmp0, 37-2*tmp0, 41-tmp0, 25.5+1.5*tmp0]),
             'vece': vece,
+            'basis': basis,
+            'coeff': coeff,
         }
     elif key=='steane':
         tag_cyclic = kwargs.get('cyclic', True)
@@ -271,6 +273,8 @@ def get_code_subspace(key:str|None=None, **kwargs):
             'logicalZ': 'ZZZZZZZ',
             'lambda2': lambda2,
             'sign': sign,
+            'basis': basis,
+            'coeff': coeff,
             'qweA': np.array([1, 0, lambda2, 0, 21-2*lambda2, 0, 42+lambda2, 0]),
             'qweB': np.array([1, 0, lambda2, 21+3*lambda2, 21-2*lambda2, 126-6*lambda2, 42+lambda2, 45+3*lambda2]),
         }
@@ -306,6 +310,27 @@ def get_code_subspace(key:str|None=None, **kwargs):
             'logicalX': logicalX,
             'qweA': np.array([1,0,9,0,27,0,75,0,144,0]),
             'qweB': np.array([1,0,9,39,27,207,75,333,144,189]),
+        }
+    elif key=='surface17':
+        # https://arxiv.org/abs/1608.05053
+        # https://errorcorrectionzoo.org/c/surface-17
+        stab_list = ['ZZIIIIIII', 'XXIXXIIII', 'IZZIZZIII', 'IIXIIXIII', 'IIIXIIXII', 'IIIZZIZZI', 'IIIIXXIXX', 'IIIIIIIZZ']
+        logicalZ = 'XXXIIIIII'
+        logicalX = 'ZIIZIIZII'
+        # code = stabilizer_to_code(stab_list, [logicalZ])
+        code0 = hf_state('000000000 000000111 000011011 000011100 000100011 000100100 000111000 000111111 001001000 001001111 001010011 001010100 001101011 '
+                        '001101100 001110000 001110111 110001000 110001111 110010011 110010100 110101011 110101100 110110000 110110111 111000000 111000111 '
+                        '111011011 111011100 111100011 111100100 111111000 111111111')
+        code1 = hf_state('000000000 -000000111 000011011 -000011100 -000100011 000100100 -000111000 000111111 001001000 -001001111 001010011 -001010100 '
+                        '-001101011 001101100 -001110000 001110111 -110001000 110001111 -110010011 110010100 110101011 -110101100 110110000 -110110111 '
+                        '-111000000 111000111 -111011011 111011100 111100011 -111100100 111111000 -111111111')
+        ret = np.stack([code0,code1])
+        info = {
+            'stab': stab_list,
+            'logicalZ': logicalZ,
+            'logicalX': logicalX,
+            'qweA': np.array([1, 0, 4, 0, 22, 0, 100, 0, 129, 0]),
+            'qweB': np.array([1, 0, 4, 24, 22, 192, 100, 408, 129, 144]),
         }
     else:
         raise ValueError
@@ -346,13 +371,13 @@ def get_623_SO5_code(vece_or_abcde, phase=0, return_basis=False, return_mask_zer
         assert abs(np.linalg.norm(vece)-1) < zero_eps, 'unit vector required'
         tmp0 = np.linalg.eigh(np.eye(5) - vece.reshape(-1,1)*vece)[1][:,1:].T
         tmp1 = numqi.random.rand_special_orthogonal_matrix(4, seed=np_rng) @ tmp0
-        matO = np.concat([tmp1, vece.reshape(1,-1)], axis=0)
+        matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0)
     else:
         assert np.abs(vece_or_abcde @ vece_or_abcde - np.eye(5)).max() < zero_eps, 'orthogonal matrix required'
         matO = vece_or_abcde
     veca,vecb,vecc,vecd,vece = matO/2
-    coeff0 = np.concat([veca+1j*vecb, vecc+1j*vecd], axis=0)
-    coeff1 = np.concat([coeff0[5:].conj(), -coeff0[:5].conj()], axis=0)
+    coeff0 = np.concatenate([veca+1j*vecb, vecc+1j*vecd], axis=0)
+    coeff1 = np.concatenate([coeff0[5:].conj(), -coeff0[:5].conj()], axis=0)
     coeff = np.stack([coeff0, coeff1], axis=0)
     lambda_ai_dict = dict()
     for ind0,ind1 in itertools.combinations(range(5), 2):
