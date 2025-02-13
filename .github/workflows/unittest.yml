@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
 
       - name: Upgrade pip
         run: python3 -m pip install --upgrade pip
@@ -36,13 +36,13 @@ jobs:
         run: OMP_NUM_THREADS=1 python3 -m pytest -n auto --cov=python/numqi --durations=10 tests/
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       # TODO
       # - name: Upload coverage report
-      #   uses: codecov/codecov-action@v3
+      #   uses: codecov/codecov-action@v5
       #   with:
       #     token: ${{ secrets.CODECOV_TOKEN }}
       #     fail_ci_if_error: false
