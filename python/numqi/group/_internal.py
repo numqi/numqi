@@ -139,13 +139,14 @@ def _reduce_group_representation_get_matH(np0, zero_eps=1e-4):
     return ret
 
 
-def reduce_group_representation(np0:np.ndarray, zero_eps:float=1e-7):
+def reduce_group_representation(np0:np.ndarray, zero_eps:float=1e-7, tagI:bool=False):
     r'''Reduce group representation to irreducible representations
     [sheaves-blog](https://sheaves.github.io/Representation-Theory-Decomposing-Representations/)
 
     Parameters:
         np0 (np.ndarray): shape=(N0,dim,dim)
         zero_eps (float): zero threshold
+        tagI (bool): tag to indicate whether contain identity representation, if True, put at the first position
 
     Returns:
         ret (list): list of np.ndarray, shape=(N0,dim_irrep,dim_irrep)
@@ -165,7 +166,7 @@ def reduce_group_representation(np0:np.ndarray, zero_eps:float=1e-7):
         for x in ind_list:
             tmp0 = z0[:,x,x]
             if tmp0.shape[1]>1:
-                z1 += reduce_group_representation(tmp0)
+                z1 += reduce_group_representation(tmp0, tagI=False)
             else:
                 z1.append(tmp0)
         hf0 = lambda x: x.shape[1]
@@ -180,6 +181,11 @@ def reduce_group_representation(np0:np.ndarray, zero_eps:float=1e-7):
                 tmp2 = np.abs(tmp1 @ tmp1.T.conj())/tmp1.shape[1]
                 tmp3 = list(set(tuple(sorted(np.nonzero(x)[0].tolist())) for x in np.abs(tmp2-1)<zero_eps))
                 ret += [tmp0[x[0]] for x in tmp3]
+    if tagI:
+        tmp0 = [i for i,x in enumerate(ret) if (x.shape[1]==1) and np.all(np.abs(x-1)<1e-10)]
+        assert len(tmp0)==1
+        tmp1 = ret.pop(tmp0[0])
+        ret.insert(0, tmp1)
     return ret
 
 
@@ -237,12 +243,13 @@ def matrix_block_diagonal(*np_list):
     return ret
 
 
-def get_character_and_class(irrep_list, zero_eps=1e-7):
+def get_character_and_class(irrep_list, zero_eps=1e-7, tagIFirst=False):
     r'''get character table and conjugacy class from irredicible representation
 
     Parameters:
         irrep_list (list): list of np.ndarray, shape=(N0,dim_irrep,dim_irrep)
         zero_eps (float): zero threshold
+        tagIFirst (bool): if True, put the identity class at the first column
 
     Returns:
         character (np.ndarray): shape=(N0,N0), np.complex128
@@ -255,6 +262,16 @@ def get_character_and_class(irrep_list, zero_eps=1e-7):
     tmp1 = {tuple(np.nonzero(np.abs(x)>(zero_eps*N0))[0].tolist()) for x in tmp0}
     class_list = sorted(tmp1, key=lambda x: (len(x),x))
     character_table = character[:,[x[0] for x in class_list]]
+    if tagIFirst:
+        dim_irrep = np.array([x.shape[1] for x in irrep_list], dtype=np.int64)
+        tmp0 = np.nonzero(np.abs(character_table - dim_irrep.reshape(-1,1)).max(axis=0)<1e-10)[0]
+        assert len(tmp0)==1
+        tmp0 = tmp0[0]
+        if tmp0!=0:
+            class_list[tmp0],class_list[0] = class_list[0],class_list[tmp0]
+            tmp1 = character_table[:,tmp0].copy()
+            character_table[:,tmp0] = character_table[:,0]
+            character_table[:,0] = tmp1
     return character, class_list, character_table
 
 
