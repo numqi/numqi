@@ -5,7 +5,7 @@ import numqi.utils
 import numqi.manifold
 import numqi.sim
 
-from ._internal import knill_laflamme_inner_product
+from ._grad import knill_laflamme_inner_product, knill_laflamme_hermite_mul
 
 def knill_laflamme_loss(inner_product, kind='L2'):
     assert kind in {'L1','L2'}
@@ -50,32 +50,102 @@ class QECCEqualModel(torch.nn.Module):
         loss = N0 - torch.vdot(tmp0, tmp0).real
         return loss
 
+
 class VarQECUnitary(torch.nn.Module):
-    def __init__(self, num_qubit, num_logical_dim, error_list, loss_type='L2'):
+    def __init__(self, num_qubit:int, num_logical_dim:int, error_torch:torch.tensor):
+        r'''Variational method to find a quantum error correcting code.
+
+        Parameters:
+            num_qubit (int): number of qubits.
+            num_logical_dim (int): number of logical qubits.
+            error_torch (torch.tensor): error tensor of shape `(N0, 2**num_qubit, 2**num_qubit)` or `(N0*2**num_qubit, 2**num_qubit)`.
+                    Recommend to use `numqi.qec.make_pauli_error_list_sparse` to generate sparse torch tensor for performance.
+        '''
         super().__init__()
         self.num_logical_dim = num_logical_dim
-        self.num_logical_dim_ceil = 2**numqi.utils.hf_num_state_to_num_qubit(num_logical_dim, kind='ceil')
         self.num_qubit = num_qubit
-        self.error_list = error_list
-        # self.error_list_torch = [[(y0,torch.tensor(y1,dtype=torch.complex128)) for y0,y1 in x] for x in error_list]
-        assert loss_type in {'L1','L2'}
-        self.loss_type = loss_type
-        self.manifold = numqi.manifold.Stiefel(2**num_qubit, rank=self.num_logical_dim_ceil, dtype=torch.complex128)
-        self.q0_torch = None
+        self.error_torch = error_torch.clone().to(torch.complex128)
+        self.manifold = numqi.manifold.Stiefel(2**num_qubit, rank=self.num_logical_dim, dtype=torch.complex128)
+        self.ind_triu = torch.triu_indices(num_logical_dim, num_logical_dim, offset=1)
+        self.lambda_target = None
 
-    def forward(self):
-        q0_torch = self.manifold().T
-        self.q0_torch = q0_torch.detach()
-        tmp0 = knill_laflamme_inner_product(q0_torch, self.error_list)
-        inner_product = tmp0[:,:self.num_logical_dim,:self.num_logical_dim]
-        loss = knill_laflamme_loss(inner_product, self.loss_type)
-        return loss
+    def set_lambda_target(self, x:None|str|float|np.ndarray):
+        r'''Set the target of the lambda.
 
-    def get_code(self):
-        with torch.no_grad():
-            self()
-        ret = self.q0_torch.cpu()[:self.num_logical_dim].numpy().reshape(-1, 2**self.num_qubit).copy()
+        Parameters:
+            x (None|str|float|np.ndarray): the objective function depends on the lambda. if `lambda` is
+                - None: the objective function is to satisfy the Knill-Laflamme condition only (just search for a code).
+                - 'min': minimize the lambda^2 while satisfying the Knill-Laflamme condition.
+                - 'max': maximize the lambda^2 while satisfying the Knill-Laflamme condition.
+                - float: minimize the difference between lambda^2 and the target while satisfying the Knill-Laflamme condition.
+                        Be careful, the input is the square of the lambda, not the lambda itself (different from the code in `QEC-and-RDM`).
+                - np.ndarray: search for a code with the given lambda vector.
+        '''
+        if x is None:
+            self.lambda_target = None
+        elif isinstance(x, str):
+            assert x in ['min', 'max']
+            self.lambda_target = x
+        else: #float
+            self.lambda_target = torch.tensor(x, dtype=torch.float64).reshape(-1)
+
+    def forward(self, return_info:bool=False):
+        q0 = self.manifold()
+        lambda_aij = knill_laflamme_hermite_mul(self.error_torch, q0)
+        # lambda_aij = q0.T.conj() @ (self.error_torch @ q0).reshape(-1, *q0.shape) #equivalent but much slower
+        lambda_ai = torch.diagonal(lambda_aij, dim1=1, dim2=2).real
+        lambda_a = lambda_ai.mean(dim=1)
+        constraint = [
+            lambda_aij[:,self.ind_triu[0],self.ind_triu[1]],
+            lambda_ai - lambda_a.reshape(-1,1),
+        ]
+        lambda2 = torch.dot(lambda_a, lambda_a)
+        loss = None
+        if self.lambda_target == 'min':
+            loss = lambda2
+        elif self.lambda_target == 'max':
+            loss = -lambda2
+        elif isinstance(self.lambda_target, torch.Tensor):
+            constraint.append(lambda2-self.lambda_target)
+
+        if loss is None:
+            loss = sum([torch.vdot(x.reshape(-1), x.reshape(-1)).real for x in constraint])
+            constraint = []
+        if return_info:
+            info = dict(q0=q0.detach().numpy().copy(), lambda_aij=lambda_aij.detach().numpy().copy(), lambda2=lambda2.item())
+            ret = (loss, info) if (len(constraint)==0) else (loss,constraint,info)
+        else:
+            ret = loss if (len(constraint)==0) else (loss,constraint)
         return ret
+
+
+## TODO replace with Stiefel manifold
+# class VarQECUnitary(torch.nn.Module):
+#     def __init__(self, num_qubit, num_logical_dim, error_list, loss_type='L2'):
+#         super().__init__()
+#         self.num_logical_dim = num_logical_dim
+#         self.num_logical_dim_ceil = 2**numqi.utils.hf_num_state_to_num_qubit(num_logical_dim, kind='ceil')
+#         self.num_qubit = num_qubit
+#         self.error_list = error_list
+#         # self.error_list_torch = [[(y0,torch.tensor(y1,dtype=torch.complex128)) for y0,y1 in x] for x in error_list]
+#         assert loss_type in {'L1','L2'}
+#         self.loss_type = loss_type
+#         self.manifold = numqi.manifold.Stiefel(2**num_qubit, rank=self.num_logical_dim_ceil, dtype=torch.complex128)
+#         self.q0_torch = None
+
+#     def forward(self):
+#         q0_torch = self.manifold().T
+#         self.q0_torch = q0_torch.detach()
+#         tmp0 = knill_laflamme_inner_product(q0_torch, self.error_list)
+#         inner_product = tmp0[:,:self.num_logical_dim,:self.num_logical_dim]
+#         loss = knill_laflamme_loss(inner_product, self.loss_type)
+#         return loss
+
+#     def get_code(self):
+#         with torch.no_grad():
+#             self()
+#         ret = self.q0_torch.cpu()[:self.num_logical_dim].numpy().reshape(-1, 2**self.num_qubit).copy()
+#         return ret
 
 class VarQEC(torch.nn.Module):
     def __init__(self, circuit, num_logical_dim, error_list, loss_type='L2'):

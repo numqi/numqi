@@ -23,7 +23,7 @@ def test_get_code_subspace_523():
     tmp0 = scipy.linalg.block_diag(np.eye(2), matU)
     code623a = np.einsum(code623.reshape(-1,4), [0,1], tmp0, [3,1], [0,3], optimize=True).reshape(2,-1)
     tmp1 = code623.reshape(-1, 4)
-    tmp2 = np.concat([tmp1[:,:2], tmp1[:,2:] @ matU.T], axis=1).reshape(2, -1)
+    tmp2 = np.concatenate([tmp1[:,:2], tmp1[:,2:] @ matU.T], axis=1).reshape(2, -1)
     assert np.abs(tmp2 - code623a).max() < 1e-12
     z0 = code623a.conj() @ (op_list @ code623a.T)
     assert np.abs(z0[:,0,1]).max() < 1e-12
@@ -182,7 +182,7 @@ def test_723_cyclic_code_weight_enumerator():
         assert np.abs(weightB-info['qweB']).max() < 1e-10
 
     code523,info = numqi.qec.get_code_subspace('523')
-    code723 = np.concat([code523.reshape(2,32,1), np.zeros((2,32,3))], axis=2).reshape(2,128)
+    code723 = np.concatenate([code523.reshape(2,32,1), np.zeros((2,32,3))], axis=2).reshape(2,128)
     weightA,weightB = numqi.qec.get_weight_enumerator(code723, wt_to_pauli_dict=wt_to_pauli_dict)
     weightA_ = np.array([1,2,1,0,15,30,15,0])
     weightB_ = np.array([1,2,1,30,75,78,51,18])
