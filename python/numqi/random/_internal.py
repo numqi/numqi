@@ -2,7 +2,7 @@ import math
 import itertools
 import numpy as np
 import scipy.linalg
-
+import scipy.special
 
 from numqi.gellmann import gellmann_basis_to_matrix
 from numqi.manifold import to_special_orthogonal_exp, to_stiefel_polar
@@ -18,27 +18,34 @@ def _random_complex(*size, seed=None):
     return ret
 
 
-def rand_haar_state(dim, tag_complex=True, seed=None):
+def rand_haar_state(dim, tag_complex=True, batch_size:int|None=None, seed=None):
     r'''Return a random state vector from the Haar measure on the unit sphere in $\mathbb{C}^{d}$.
 
     $$\left\{ |\psi \rangle \in \mathbb{C} ^d\,\,: \left\| |\psi \rangle \right\| _2=1 \right\}$$
 
+    reference: [qetlab/RandomStateVector](http://www.qetlab.com/RandomStateVector)
+
     Parameters:
         dim (int): The dimension of the Hilbert space that the state should be sampled from.
         tag_complex (bool): If True, use complex normal distribution. If False, use real normal distribution.
+        batch_size (int,None): If None, return a single state vector. If int, return a batch of state vectors.
         seed ([None], int, numpy.RandomState): If int or RandomState, use it for RNG. If None, use default RNG.
 
     Returns:
         ret (numpy.ndarray): shape=(`dim`,), dtype=np.complex128
     '''
-    # http://www.qetlab.com/RandomStateVector
-    ret = _random_complex(dim, seed=seed)
+    isone = (batch_size is None)
+    if isone:
+        batch_size = 1
     if tag_complex:
-        ret = _random_complex(dim, seed=seed)
+        ret = _random_complex(dim*batch_size, seed=seed)
     else:
         np_rng = get_numpy_rng(seed)
-        ret = np_rng.normal(size=dim)
-    ret /= np.linalg.norm(ret)
+        ret = np_rng.normal(size=dim*batch_size)
+    ret = ret.reshape(batch_size, dim)
+    ret /= np.linalg.norm(ret, ord=2, axis=1, keepdims=True)
+    if isone:
+        ret = ret[0]
     return ret
 
 
@@ -538,6 +545,27 @@ def rand_Stiefel_matrix(dim:int, rank:int, iscomplex:bool=False, batch_size:None
     np_rng = get_numpy_rng(seed)
     theta = np_rng.normal(size=(batch_size, (2*dim*rank if iscomplex else dim*rank)))
     ret = to_stiefel_polar(theta, dim, rank)
+    if isone:
+        ret = ret[0]
+    return ret
+
+def rand_discrete_probability(dim:int, batch_size:None|int=None, seed=None):
+    r'''Generate random discrete probability distribution
+
+    Parameters:
+        dim (int): number of outcomes
+        batch_size (None, int): If None, return a single distribution. If int, return a batch of distributions.
+        seed (int,None,numpy.RandomState): random seed
+
+    Returns:
+        ret (numpy.ndarray): shape=(`batch_size`,`dim`), dtype=np.float64
+    '''
+    isone = (batch_size is None)
+    if isone:
+        batch_size = 1
+    np_rng = get_numpy_rng(seed)
+    theta = np_rng.normal(size=(batch_size,dim))
+    ret = scipy.special.softmax(theta, axis=-1)
     if isone:
         ret = ret[0]
     return ret
