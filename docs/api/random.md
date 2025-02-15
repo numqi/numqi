@@ -81,3 +81,23 @@ This module use random seed widely, most likely you will get different results. 
 ::: numqi.random.get_numpy_rng
     options:
       heading_level: 3
+
+::: numqi.random.rand_discrete_probability
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_n_sphere
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_n_ball
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_adjacent_matrix
+    options:
+      heading_level: 3
+
+::: numqi.random.rand_povm
+    options:
+      heading_level: 3

@@ -120,6 +120,8 @@ nav:
       - application/qecc/varqecc.ipynb
       - application/qecc/qecc733.ipynb
       - application/qecc/sdp-qec.ipynb
+    - Quantum resource:
+      - application/resource/pure-state-decomp.ipynb
     - Quantum tomography:
       - application/tomography/state_tomography.ipynb
       - application/tomography/channel_tomography.ipynb

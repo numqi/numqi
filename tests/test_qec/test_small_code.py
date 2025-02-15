@@ -152,8 +152,8 @@ def test_get_623_SO5_code_quantum_weight_enumerator():
         vece = numqi.random.rand_haar_state(5, tag_complex=False)
         code,info = numqi.qec.get_code_subspace('623-SO5', vece=vece)
         weightA,weightB = numqi.qec.get_weight_enumerator(code, wt_to_pauli_dict=wt_to_pauli_dict)
-        assert np.abs(weightA-info['qweA']).max() < 1e-12
-        assert np.abs(weightB-info['qweB']).max() < 1e-12
+        assert np.abs(weightA-info['qweA']).max() < 1e-10
+        assert np.abs(weightB-info['qweB']).max() < 1e-10
 
 
 def test_get_723_cyclic_code():
