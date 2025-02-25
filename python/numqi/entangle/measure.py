@@ -7,7 +7,7 @@ from tqdm.auto import tqdm
 import numqi.manifold
 
 from .symext import _check_input_rho_SDP
-from .eof import get_concurrence_2qubit
+from .concurrence import get_concurrence_2qubit
 
 
 def get_relative_entropy_of_entanglement_pure(psi:np.ndarray, dimA:int, dimB:int, return_SEP:bool=False, zero_eps:float=1e-10)->float:

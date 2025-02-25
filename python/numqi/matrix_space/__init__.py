@@ -21,6 +21,7 @@ from ._hierarchy import (get_antisymmetric_basis, get_symmetric_basis, project_t
     has_rank_hierarchical_method, permutation_with_antisymmetric_factor,
     project_nd_tensor_to_antisymmetric_basis, project_to_symmetric_basis,
     project_nd_tensor_to_symmetric_basis, is_ABC_completely_entangled_subspace)
+from ._concurrence import SubspaceGeneralizedConcurrenceModel
 # for unittest only
 from ._hierarchy import naive_antisym_sym_projector, naive_tensor2d_project_to_sym_antisym_basis
 
@@ -30,3 +31,5 @@ from . import _gradient
 from . import _clebsch_gordan
 from . import _numerical_range
 from . import _geometric_measure
+from . import _concurrence
+from . import _public

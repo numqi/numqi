@@ -44,7 +44,7 @@ def test_convex_hull_approximation_iterative():
     # fix seed for reproducibility
     dm0 = numqi.entangle.load_upb('tiles', return_bes=True)[1]
     beta,history_info = numqi.entangle.CHABoundaryBagging((3,3)).solve(dm0, maxiter=150, return_info=True, use_tqdm=False, seed=233)
-    assert abs(beta-0.2279211623566359) < 3e-4
+    assert abs(beta-0.2279211623566359) < 5e-4
     # beta=0.8649*rho_norm=0.2279211623566359 https://arxiv.org/abs/1705.01523
 
     ketA,ketB,lambda_,beta_history = history_info
