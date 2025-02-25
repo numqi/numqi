@@ -12,13 +12,13 @@ from .pureb_quantum import QuantumPureBosonicExt
 from .symext import (SymmetricExtABkIrrepModel, is_ABk_symmetric_ext, is_ABk_symmetric_ext_naive,
                 get_ABk_symmetric_extension_ree, get_ABk_symmetric_extension_boundary,
                 get_ABk_extension_numerical_range)
-from .eof import (get_concurrence_2qubit, get_concurrence_pure, get_eof_pure, get_eof_2qubit,
-                EntanglementFormationModel, ConcurrenceModel)
+from .eof import get_eof_pure, get_eof_2qubit, EntanglementFormationModel
 from .measure import (DensityMatrixGMEModel, get_gme_2qubit, get_linear_entropy_entanglement_ppt, DensityMatrixLinearEntropyModel,
                       get_relative_entropy_of_entanglement_pure)
 from .measure_seesaw import get_GME_pure_seesaw, get_GME_subspace_seesaw, get_GME_seesaw
 from .distillation import get_binegativity, get_PPT_entanglement_cost_bound, SearchMinimumBinegativityModel
 from ._3tangle import get_hyperdeterminant, get_3tangle_pure, ThreeTangleModel
+from .concurrence import get_generalized_concurrence_pure, get_concurrence_2qubit, get_concurrence_pure, ConcurrenceModel
 
 from . import upb
 from . import ppt
@@ -32,3 +32,4 @@ from . import measure
 from . import measure_seesaw
 from . import distillation
 from . import _3tangle
+from . import concurrence

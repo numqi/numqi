@@ -162,16 +162,25 @@ def get_dicke_number(num_qudit:int, dim:int):
 
 # old name: qudit_partial_trace_AC_to_AB
 def partial_trace_ABk_to_AB(state, dicke_Bij):
+    r'''return partial trace of qudit Dicke state
+
+    Parameters:
+        state (np.ndarray or torch.Tensor): input state, shape (dimA, dimBk)
+        dicke_Bij (list): list of tuples, each tuple contains two lists of int and one np.ndarray of float64
+
+    Returns:
+        ret (np.ndarray or torch.Tensor): partial trace result, shape (dimA*dimB, dimA*dimB)
+    '''
     assert state.ndim==2
-    dimA,dimBk = state.shape
+    dimA, dimBk = state.shape
     dimB = int(np.sqrt(len(dicke_Bij)))
-    assert len(dicke_Bij)==dimB*dimB
+    assert len(dicke_Bij) == dimB * dimB
     ret = []
     state_conj = state.conj()
-    for ind0,ind1,value in dicke_Bij:
-        ret.append((state[:,ind0] * value) @ state_conj[:,ind1].T)
+    for ind0, ind1, value in dicke_Bij:
+        ret.append((state[:, ind0] * value) @ state_conj[:, ind1].T)
     if isinstance(state, torch.Tensor):
-        ret = torch.stack(ret, dim=2).reshape(dimA,dimA,dimB,dimB).transpose(1,2).reshape(dimA*dimB,dimA*dimB)
+        ret = torch.stack(ret, dim=2).reshape(dimA, dimA, dimB, dimB).transpose(1, 2).reshape(dimA * dimB, dimA * dimB)
     else:
-        ret = np.stack(ret, axis=2).reshape(dimA,dimA,dimB,dimB).transpose(0,2,1,3).reshape(dimA*dimB,dimA*dimB)
+        ret = np.stack(ret, axis=2).reshape(dimA, dimA, dimB, dimB).transpose(0, 2, 1, 3).reshape(dimA * dimB, dimA * dimB)
     return ret
