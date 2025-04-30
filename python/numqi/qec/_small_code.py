@@ -45,7 +45,7 @@ def stabilizer_to_code(stab_list:list[str], logicalZ_list:list[str], tag_print:b
     TODO: add logicalX_list for fix the phase of code subspace
 
     Parameters:
-        stab_list (list[str]): list of Pauli string for stabilizer, e.g. ['XZZXI', 'IXZZX', 'XIXZZ', 'ZXIXZ']
+        stab_list (list[str]): list of Pauli string for stabilizer generator, e.g. ['XZZXI', 'IXZZX', 'XIXZZ', 'ZXIXZ']
         logicalZ_list (list[str]): logical Z operator list, e.g. ['ZZZZZ']
         tag_print (bool): whether to print the code subspace
 

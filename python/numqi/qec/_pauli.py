@@ -8,6 +8,8 @@ from tqdm.auto import tqdm
 
 import numqi.gate
 
+
+# TODO sparse for performance
 def hf_pauli(x:str):
     r'''convert Pauli string to matrix, should NOT be used in performance-critical code
 
@@ -26,18 +28,8 @@ def hf_pauli(x:str):
 _pauli_hf0 = hf_pauli #TODO delete
 
 
-def get_pauli_with_weight_sparse(num_qubit:int, weight:int, tag_neighbor:bool=False):
-    r'''get pauli operator with given ewight
-
-    Parameters:
-        num_qubit (int): number of qubit
-        weight (int): weight of pauli operator
-        tag_neighbor (bool): if True, the qubit is connected in a ring
-
-    Returns:
-        str_list (list[str]): list of string of pauli operator
-        error_list (scipy.sparse.csr_array): pauli operator of shape `(N0*2**num_qubit, 2**num_qubit)`, where `N0` is the number of pauli operator with given weight
-    '''
+@functools.lru_cache
+def _get_pauli_with_weight_sparse_hf0(num_qubit, weight, tag_neighbor=False):
     assert (num_qubit>=1) and (weight>=0) and (weight<=num_qubit)
     if weight==0:
         ret = ['I'*num_qubit, scipy.sparse.eye(2**num_qubit, dtype=np.complex128, format='csr')]
@@ -68,6 +60,21 @@ def get_pauli_with_weight_sparse(num_qubit:int, weight:int, tag_neighbor:bool=Fa
         error_list = scipy.sparse.vstack(error_list, format='csr')
         ret = str_list, error_list
     return ret
+
+
+def get_pauli_with_weight_sparse(num_qubit:int, weight:int, tag_neighbor:bool=False):
+    r'''get pauli operator with given ewight
+
+    Parameters:
+        num_qubit (int): number of qubit
+        weight (int): weight of pauli operator
+        tag_neighbor (bool): if True, the qubit is connected in a ring
+
+    Returns:
+        str_list (list[str]): list of string of pauli operator
+        error_list (scipy.sparse.csr_array): pauli operator of shape `(N0*2**num_qubit, 2**num_qubit)`, where `N0` is the number of pauli operator with given weight
+    '''
+    return _get_pauli_with_weight_sparse_hf0(int(num_qubit), int(weight), bool(tag_neighbor))
 
 
 def pauli_csr_to_kind(x0:scipy.sparse.csr_array, kind:str):

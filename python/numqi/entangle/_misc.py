@@ -156,6 +156,8 @@ def check_reduction_witness(rho:np.ndarray, dim:tuple[int], eps:float=-1e-7):
 
     weaker than PPT
 
+    same as SEP for dA*dB<=6
+
     TODO, can positive linear map be parameterized
 
     Parameters:

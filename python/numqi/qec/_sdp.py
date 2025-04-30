@@ -225,6 +225,12 @@ def get_Krawtchouk_polynomial(q:int, k:int):
     return ret
 
 
+def _get_Shor_weight_enumerator_dual_map(n:int, dimK:int):
+    sx = sympy.symbols('x')
+    sy = sympy.symbols('y')
+    ret = dimK*_MacWilliams_transform((sx+3*sy)/2, (sx-sy)/2, sx, sy, n)
+    return ret
+
 
 def is_code_feasible_linear_programming(num_qubit:int, dimK:int, distance:int):
     r'''check if a quantum code is feasible using linear programming
