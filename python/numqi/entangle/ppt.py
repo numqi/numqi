@@ -300,6 +300,23 @@ def cvx_matrix_mlogx(cvxX, sqrt_order=3, pade_order=3):
 
 
 def get_ppt_ree(rho, dimA, dimB, return_info=False, sqrt_order=3, pade_order=3, use_tqdm=True):
+    r'''get the relative entropy of entanglement (REE) using positive partial transpose (PPT) criterion.
+    It is a semi-definite programming (SDP) problem and solved using cvxpy. Matrix logarithm is approximated using the Pade approximation.
+    Refer to [github/cvxquad](https://github.com/hfawzi/cvxquad) and [doi-link](https://doi.org/10.1007/s10208-018-9385-0) for more details.
+
+    Parameters:
+        rho (np.ndarray): density matrix, must be Hermitian, `shape=(dimA*dimB, dimA*dimB)` if single item, or `shape=(n, dimA*dimB, dimA*dimB)` if batch of items
+        dimA (int): dimension of subsystem A
+        dimB (int): dimension of subsystem B
+        return_info (bool): if `True`, then return the dual variable and the objective value
+        sqrt_order (int): order of the square root approximation, must be >=2
+        pade_order (int): order of the Pade approximation, must be >=2
+        use_tqdm (bool): if `True`, then use tqdm to show the progress bar
+
+    Returns:
+        ree (float,np.ndarray): relative entropy of entanglement, `float` if `rho` is a single item, or `np.ndarray` if `rho` is a batch of items
+        info (dict,list[dict]): if `return_info=True`, then return a dictionary containing the dual variable and the objective value.
+    '''
     rho,is_single_item,dimA,dimB,use_tqdm = _check_input_rho_SDP(rho, (dimA,dimB), use_tqdm)
     dim = dimA * dimB
     cvxX = cvxpy.Variable((dim,dim), hermitian=True)
