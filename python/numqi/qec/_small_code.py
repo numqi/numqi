@@ -373,7 +373,7 @@ def get_623_SO5_code(vece_or_abcde, phase=0, return_basis=False, return_mask_zer
         tmp1 = numqi.random.rand_special_orthogonal_matrix(4, seed=np_rng) @ tmp0
         matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0)
     else:
-        assert np.abs(vece_or_abcde @ vece_or_abcde - np.eye(5)).max() < zero_eps, 'orthogonal matrix required'
+        assert np.abs(vece_or_abcde @ vece_or_abcde.T - np.eye(5)).max() < zero_eps, 'orthogonal matrix required'
         matO = vece_or_abcde
     veca,vecb,vecc,vecd,vece = matO/2
     coeff0 = np.concatenate([veca+1j*vecb, vecc+1j*vecd], axis=0)
