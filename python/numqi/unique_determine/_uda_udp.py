@@ -334,8 +334,7 @@ def find_optimal_UD(kind:str, num_round:int, mat_list:np.ndarray|list, num_repea
     else:
         # https://github.com/pytorch/pytorch/wiki/Autograd-and-Fork
         with concurrent.futures.ProcessPoolExecutor(max_workers=num_worker, mp_context=multiprocessing.get_context('spawn')) as executor:
-
-            job_list = [executor.submit(_find_optimal_UD_one, **kwargs, np_rng=x) for x in range(np_rng.spawn(num_round))]
+            job_list = [executor.submit(_find_optimal_UD_one, **kwargs, np_rng=x) for x in np_rng.spawn(num_round)]
             time_start = time.time()
             for ind0,job_i in enumerate(concurrent.futures.as_completed(job_list)):
                 ret_i = job_i.result()

@@ -26,7 +26,7 @@ class FindStateWithOpModel(torch.nn.Module):
             self.manifold = numqi.manifold.Sphere(op_list.shape[1], dtype=self.cdtype)
         self.op_list = torch.tensor(op_list, dtype=self.cdtype)
         self.expectation = None
-        self.state = None
+        self.state:None|torch.Tensor = None
 
     def set_expectation(self, x:np.ndarray):
         r'''set the expectation values of the operators
