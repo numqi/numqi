@@ -2,6 +2,7 @@ import functools
 import numpy as np
 import scipy.linalg
 import scipy.special
+import torch
 
 def angle_to_su2(alpha:float|np.ndarray, beta:float|np.ndarray, gamma:float|np.ndarray):
     r'''Convert Euler angles to SU(2) matrix
@@ -295,3 +296,164 @@ def get_rational_orthogonal2_matrix(m:int, n:int):
     ct = b/c
     ret = np.array([[ct,st],[-st,ct]])
     return ret
+
+
+_local_constant = dict()
+def _getX(key:str):
+    if len(_local_constant) == 0:
+        X = np.array([[0,1], [1,0]], dtype=np.float64)
+        Y = np.array([[0,-1j], [1j,0]], dtype=np.complex128)
+        Z = np.array([[1,0], [0,-1]], dtype=np.float64)
+        S = np.array([[1,0], [0,1j]])
+        H = np.array([[1,1], [1,-1]])/np.sqrt(2)
+        _local_constant['I'] = np.eye(2, dtype=np.float64)
+        _local_constant['X'] = X
+        _local_constant['Y'] = Y
+        _local_constant['Z'] = Z
+        _local_constant['S'] = S
+        _local_constant['H'] = H
+        _local_constant['XX'] = np.kron(X, X)
+        _local_constant['YY'] = np.kron(Y, Y)
+        _local_constant['ZZ'] = np.kron(Z, Z)
+        _local_constant['magic'] = np.array([[1,0,0,1j], [0,1j,1,0], [0,1j,-1,0], [1,0,0,-1j]])/np.sqrt(2)
+        _local_constant['gamma'] = np.array([[1,1,-1,1], [1,1,1,-1], [1,-1,-1,-1], [1,-1,1,1]], dtype=np.float64)
+        _local_constant['gammaT'] = _local_constant['gamma'].T.copy()
+    return _local_constant[key]
+
+
+def su2su2_to_so4_magic(np0:np.ndarray, np1:np.ndarray):
+    # https://arxiv.org/abs/quant-ph/0507171v1 eq(12)
+    magic = _getX('magic')
+    ret = (magic.T.conj() @ np.kron(np0, np1.conj()) @ magic).real
+    return ret
+
+
+def su2_to_so3_magic(np0:np.ndarray):
+    # https://arxiv.org/abs/quant-ph/0507171v1 eq(11)
+    magic = _getX('magic')
+    ret = (magic.T.conj() @ np.kron(np0, np0.conj()) @ magic)[1:, 1:].real
+    return ret
+
+
+def so3_to_su2_magic(np0:np.ndarray, zero_eps:float=1e-10):
+    # https://arxiv.org/abs/quant-ph/0507171v1 eq(11)
+    tmp0 = np.concatenate([np.array([[1,0,0,0]]), np.concatenate([np.zeros((3,1)), np0], axis=1)], axis=0)
+    magic = _getX('magic')
+    tmp1 = magic @ tmp0 @ magic.T.conj()
+    U,S,V = np.linalg.svd(tmp1.reshape(2,2,2,2).transpose(0,2,1,3).reshape(4,4))
+    assert (abs(S[0]-2) < zero_eps) and (S[1] < zero_eps)
+    abcd = U[:,0].reshape(2,2) * np.sqrt(2)
+    det = abcd[0,0]*abcd[1,1] - abcd[0,1]*abcd[1,0]
+    assert (abs(det)-1) < zero_eps
+    abcd *= np.exp(-1j*np.angle(det)/2)
+    return abcd
+
+
+def _sort_kx_ky_kz(A0,A1,B0,B1,vecK):
+    ind0 = np.argsort(vecK[1:])[::-1]
+    if np.any(ind0!=np.array([0,1,2])):
+        tmp0 = _getX('I') if (ind0[0]==0) else (_getX('S') if (ind0[0]==1) else _getX('H'))
+        (ind0[0]!=2) and (ind0[2]!=2)
+        if (ind0[1]==2) or (ind0[2]==1):
+            tmp0 = tmp0 @ _getX('H') @ _getX('S') @ _getX('H')
+        A0,A1,B0,B1 = A0 @ tmp0, A1 @ tmp0, tmp0.T.conj()@B0, tmp0.T.conj()@B1
+        vecK[1:] = vecK[1:][ind0]
+    return A0,A1,B0,B1,vecK
+
+
+def get_su4_kak_decomposition(np0:np.ndarray):
+    magic = _getX('magic')
+    gamma = _getX('gamma')
+    Qleft, diag, Qright = diagonalize_unitary_using_two_orthogonals(magic.T.conj() @ np0 @ magic)
+    A0,A1 = so4_to_su2su2_magic(Qleft)
+    A1 = A1.conj()
+    B0,B1 = so4_to_su2su2_magic(Qright.T)
+    B1 = B1.conj()
+    vecK = gamma.T @ np.angle(diag) / 4
+    ## reduce vecK to range [0,pi/2)
+    I,X,Y,Z = _getX('I'), _getX('X'), _getX('Y'), _getX('Z')
+    ind0 = np.floor(vecK[1:]/(np.pi/2)).astype(np.int64)
+    tmp0 = (X if (ind0[0]%2==1) else I) @ (Y if (ind0[1]%2==1) else I) @ (Z if (ind0[2]%2==1) else I)
+    A0,A1 = A0 @ tmp0, A1 @ tmp0
+    A0 *= (1j)**(ind0.sum())
+    vecK[1:] -= ind0 * np.pi/2
+    ## sort vecK[1:] in descending order
+    A0,A1,B0,B1,vecK = _sort_kx_ky_kz(A0,A1,B0,B1,vecK)
+    ## make sure kx+ky<=pi/2
+    if vecK[1]+vecK[2]>np.pi/2:
+        tmp0 = _getX('S') # swap X,Y
+        vecK[[1,2]] = vecK[[2,1]].copy()
+        # A0,A1,B0,B1 = A0 @ tmp0, A1 @ tmp0, tmp0.T.conj()@B0, tmp0.T.conj()@B1
+        A0,B0 = A0@_getX('Z'), _getX('Z') @ B0 #reverse X,Y
+        vecK[[1,2]] = -vecK[[2,1]]
+        ind0 = np.floor(vecK[1:3]/(np.pi/2)).astype(np.int64) #shift X,Y
+        tmp0 = (X if (ind0[0]%2==1) else I) @ (Y if (ind0[1]%2==1) else I)
+        A0,A1 = A0 @ tmp0, A1 @ tmp0
+        A0 *= (1j)**(ind0.sum())
+        vecK[1:3] -= ind0 * np.pi/2
+        A0,A1,B0,B1,vecK = _sort_kx_ky_kz(A0,A1,B0,B1,vecK)
+    # if vecK[3]==0: #skip, determining zero is numerically unstable
+    return A0, A1, B0, B1, vecK, diag
+
+
+@functools.lru_cache
+def _get_kak_kernel_torch(dtype):
+    gamma = torch.tensor(_getX('gamma')[:,1:], dtype=dtype)
+    if dtype==torch.float32:
+        magic = torch.tensor(_getX('magic'), dtype=torch.complex64)
+    else:
+        magic = torch.tensor(_getX('magic'), dtype=torch.complex128)
+    return gamma, magic
+
+def get_kak_kernel(vecK:np.ndarray|torch.Tensor):
+    istorch = isinstance(vecK, torch.Tensor)
+    assert vecK.shape==(3,)
+    if istorch:
+        gamma,magic = _get_kak_kernel_torch(vecK.dtype)
+        tmp0 = torch.exp(1j*(gamma @ vecK))
+        ret = (magic * tmp0) @ magic.T.conj()
+    else:
+        tmp0 = np.exp(1j*(_getX('gamma')[:,1:] @ vecK))
+        magic = _getX('magic')
+        ret = (magic*tmp0) @ magic.T.conj()
+        # tmp0 = scipy.linalg.expm(1j*(vecK[1]*XX + vecK[2]*YY + vecK[3]*ZZ)) * np.exp(1j*vecK[0])
+    return ret
+
+
+def diagonalize_unitary_using_two_orthogonals(u:np.ndarray):
+    """Decomposes u into L @ np.diag(D) @ R.T where L and R are real orthogonal.
+    """
+    # https://scicomp.stackexchange.com/a/33400
+    diag_r, diag_i, left, right = scipy.linalg.qz(u.real, u.imag)
+    diag = np.diagonal(diag_r) + np.diagonal(diag_i) * 1j
+    if np.linalg.det(left) < 0: #make sure SO
+        left[:,0] *= -1
+        diag[0] *= -1
+    if np.linalg.det(right) < 0: #make sure SO
+        right[:,0] *= -1
+        diag[0] *= -1
+    return left, diag, right
+
+
+# def diagonalize_two_matrix_Eckart_Young():
+#     # TODO may scipy.linalg.qz
+#     pass
+
+
+def so4_to_su2su2_magic(np0:np.ndarray, zero_eps:float=1e-10):
+    # https://arxiv.org/abs/quant-ph/0507171v1 eq(12)
+    magic = _getX('magic')
+    tmp1 = magic @ np0 @ magic.T.conj()
+    U,S,V = np.linalg.svd(tmp1.reshape(2,2,2,2).transpose(0,2,1,3).reshape(4,4))
+    assert (abs(S[0]-2) < zero_eps) and (S[1] < zero_eps)
+
+    abcd0 = U[:,0].reshape(2,2) * np.sqrt(2)
+    det = abcd0[0,0]*abcd0[1,1] - abcd0[0,1]*abcd0[1,0]
+    assert (abs(det)-1) < zero_eps
+    abcd0 *= np.exp(-1j*np.angle(det)/2)
+
+    abcd1 = V[0].conj().reshape(2,2) * np.sqrt(2)
+    det = abcd1[0,0]*abcd1[1,1] - abcd1[0,1]*abcd1[1,0]
+    assert (abs(det)-1) < zero_eps
+    abcd1 *= np.exp(-1j*np.angle(det)/2)
+    return abcd0, abcd1
