@@ -14,6 +14,7 @@ from ._internal import (
     get_index_cayley_table,
     group_algebra_product,
     pretty_print_character_table,
+    get_complete_group
 )
 
 from ._lie import (angle_to_su2, angle_to_so3, so3_to_angle, su2_to_angle,
