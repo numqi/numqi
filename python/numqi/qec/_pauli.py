@@ -1,3 +1,4 @@
+import sympy
 import functools
 import itertools
 import numpy as np
@@ -7,7 +8,9 @@ import torch
 from tqdm.auto import tqdm
 
 import numqi.gate
+import numqi._internal
 
+from .gf4 import str_to_gf4, gf4_to_str
 
 # TODO sparse for performance
 def hf_pauli(x:str):
@@ -25,10 +28,7 @@ def hf_pauli(x:str):
     for x0 in x[1:]:
         ret = np.kron(ret, tmp0[x0])
     return ret
-_pauli_hf0 = hf_pauli #TODO delete
 
-
-@functools.lru_cache
 def _get_pauli_with_weight_sparse_hf0(num_qubit, weight, tag_neighbor=False):
     assert (num_qubit>=1) and (weight>=0) and (weight<=num_qubit)
     if weight==0:
@@ -74,7 +74,16 @@ def get_pauli_with_weight_sparse(num_qubit:int, weight:int, tag_neighbor:bool=Fa
         str_list (list[str]): list of string of pauli operator
         error_list (scipy.sparse.csr_array): pauli operator of shape `(N0*2**num_qubit, 2**num_qubit)`, where `N0` is the number of pauli operator with given weight
     '''
-    return _get_pauli_with_weight_sparse_hf0(int(num_qubit), int(weight), bool(tag_neighbor))
+    key = f'pauli_csr01_n{num_qubit}_wt{weight}_neighbor{int(tag_neighbor)}'
+    if numqi._internal.is_key_in_disk(key):
+        np_list = numqi._internal.load_from_disk(key)
+        str_list = numqi._internal.load_from_disk(key+'_str').astype(str).tolist()
+    else:
+        str_list,np_list = _get_pauli_with_weight_sparse_hf0(int(num_qubit), int(weight), bool(tag_neighbor))
+        numqi._internal.save_to_disk(key, np_list)
+        tmp0 = np.array(str_list, dtype=f'|S{num_qubit}')
+        numqi._internal.save_to_disk(key+'_str', tmp0, overwrite=True)
+    return str_list,np_list
 
 
 def pauli_csr_to_kind(x0:scipy.sparse.csr_array, kind:str):
@@ -216,40 +225,6 @@ def make_asymmetric_error_set(num_qubit, distance, weight_z=1):
     return ret
 
 
-# # TODO rename get_qwe
-# # TODO add docs
-# def quantum_weight_enumerator(code, use_tqdm=False):
-#     # https://arxiv.org/abs/quant-ph/9610040
-#     assert code.ndim==2
-#     num_qubit = numqi.utils.hf_num_state_to_num_qubit(code.shape[1], kind='exact')
-#     num_logical_dim = code.shape[0]
-#     num_logical_qubit = numqi.utils.hf_num_state_to_num_qubit(num_logical_dim, kind='ceil')
-#     if 2**num_logical_qubit > num_logical_dim:
-#         code = np.pad(code, [(0,2**num_logical_qubit-num_logical_dim),(0,0)], mode='constant', constant_values=0)
-#     code_conj = code.conj()
-#     op_list = [numqi.gate.X, numqi.gate.Y, numqi.gate.Z]
-#     retA = np.array([num_logical_dim**2]+[0]*num_qubit, dtype=np.float64)
-#     retB = np.array([num_logical_dim]+[0]*num_qubit, dtype=np.float64)
-#     for ind0 in range(num_qubit):
-#         weight = ind0 + 1
-#         tmp0 = itertools.combinations(range(num_qubit), r=weight)
-#         index_gate_generator = ((x,y) for x in tmp0 for y in itertools.product(op_list, repeat=weight))
-#         if use_tqdm:
-#             total = len(op_list)**weight * int(round(scipy.special.binom(num_qubit,weight)))
-#             index_gate_generator = tqdm(index_gate_generator, desc=f'weight={weight}', total=total)
-#         for index_qubit,gate in index_gate_generator:
-#             gate_list = [([x+num_logical_qubit],y) for x,y in zip(index_qubit,gate)]
-#             q0 = code.reshape(-1)
-#             for ind_op,op_i in gate_list:
-#                 q0 = numqi.sim.state.apply_gate(q0, op_i, ind_op)
-#             tmp0 = code_conj.reshape(-1, 2**num_qubit) @ q0.reshape(-1, 2**num_qubit).T
-#             retA[ind0+1] += abs(np.trace(tmp0).item())**2
-#             retB[ind0+1] += np.vdot(tmp0.reshape(-1), tmp0.reshape(-1)).real.item()
-#     retA /= num_logical_dim**2
-#     retB /= num_logical_dim
-#     return retA, retB
-
-
 def _get_weight_enumerator_circuit(code, index, use_tqdm, tagB):
     num_qubit = numqi.utils.hf_num_state_to_num_qubit(code.shape[1], kind='exact')
     num_logical_dim = code.shape[0]
@@ -342,32 +317,113 @@ def get_weight_enumerator(code, wt_to_pauli_dict:dict|None=None, index:int|list[
         ret = (ret[0].item(), ret[1].item()) if tagB else ret.item()
     return ret
 
-# def get_quantum_weight_enumerator(code:np.ndarray, weight:None|int=None, use_circuit:bool=False, use_tqdm:bool=False):
-#     r'''get Shor-Lafamme quantum weight enumerator'''
-#     #
-#     dim,num_state = code.shape
-#     num_qubit = numqi.utils.hf_num_state_to_num_qubit(num_state, kind='exact')
-#     assert num_qubit>1
-#     if weight is None:
-#         weight = list(range(0,num_qubit+1))
-#     isone = not hasattr(weight, '__len__')
-#     if isone:
-#         weight = [weight]
-#     retA = []
-#     retB = []
-#     for wt_i in weight:
-#         if wt_i==0:
-#             retA.append(1)
-#             retB.append(1)
-#         else:
-#             _,pauli = get_pauli_with_weight_sparse(num_qubit, wt_i)
-#             tmp0 = code.conj().reshape(dim,1,1,num_state) @ (pauli @ code.T).reshape(-1,num_state,dim)
-#             tmp0 = tmp0.transpose(1,0,2,3).reshape(-1,dim,dim)
-#             tmp1 = np.diagonal(tmp0, axis1=1, axis2=2).real.sum(axis=1)
-#             retA.append(np.dot(tmp1, tmp1)/(dim*dim))
-#             retB.append(np.linalg.norm(tmp0.reshape(-1))**2/dim)
-#     if isone:
-#         ret = retA[0], retB[0]
-#     else:
-#         ret = np.array(retA), np.array(retB)
-#     return ret
+
+@functools.lru_cache
+def _get_weight_enumerator_transform_matrix_hf0(n:int):
+    binom = functools.lru_cache(lambda n,k: (sympy.binomial(n,k) if k<=n else 0))
+    pow3 =  functools.lru_cache(lambda n: 3**n)
+
+    matM = sympy.Matrix([[sum(binom(n-j, i-l) * binom(j, l) * ((-1)**l) * pow3(i-l)
+                    for l in range(max(0,i+j-n), min(i,j)+1))/2**n for j in range(n+1)] for i in range(n+1)]) #M eq(7)
+    matMprime = sympy.Matrix([[1 if (i+j==n) else 0 for j in range(n+1)] for i in range(n+1)]) #M1 eq(8)
+    matMtilde = sympy.Matrix([[(-1)**(n+i) if (i==j) else 0 for j in range(n+1)] for i in range(n+1)]) #M2 eq(9)
+
+    matTprime = sympy.Matrix([[(2**(n-i))*binom(n-j,n-i)/binom(n,i) for j in range(n+1)] for i in range(n+1)]) # T1 eq(29)
+    matTprime_inv = sympy.Matrix([[(binom(n,j)*binom(n-j,n-i)*(-1)**(i+j))/2**(n-j) for j in range(n+1)] for i in range(n+1)]) # iT1 eq(30)
+
+    matTtilde = sympy.Matrix([[sum(binom(n-j,i-l)*binom(j,l)*((-1)**(j-l))*pow3(i-l)
+        for l in range(max(0,i+j-n),min(i,j)+1))/2**n for j in range(n+1)] for i in range(n+1)]) # T2 eq(39)
+    matTtilde_inv = sympy.Matrix([[sum(binom(n-j,i-l)*binom(j,l)*((-1)**(i-l))*pow3(i-l)
+        for l in range(max(0,i+j-n),min(i,j)+1))/2**n for j in range(n+1)] for i in range(n+1)]) # iT2 eq(73)
+
+    matTptilde = sympy.Matrix([[sum(binom(n-j,i-l)*binom(j,l)*((-1)**(j-l))
+        for l in range(max(0,i+j-n),min(i,j)+1))*binom(n,j)/2**n for j in range(n+1)] for i in range(n+1)]) # T3 eq(A1)
+    matTptilde_inv = sympy.Matrix([[sum(binom(n-j,i-l)*binom(j,l)*((-1)**(i-l))
+        for l in range(max(0,i+j-n),min(i,j)+1))/binom(n,i) for j in range(n+1)] for i in range(n+1)]) # iT3 eq(A2)
+    ret = dict(M=matM, M1=matMprime, M2=matMtilde, T1=matTprime, iT1=matTprime_inv,
+                T2=matTtilde, iT2=matTtilde_inv, T3=matTptilde, iT3=matTptilde_inv)
+    return ret
+
+def get_weight_enumerator_transform_matrix(n:int, kind:str='sympy'):
+    r'''get the transform matrix for various quantum weight enumerator
+
+    reference: [arxiv-link](https://arxiv.org/abs/2408.16914) Experimental measurement and a physical interpretation of quantum shadow enumerators.
+    also see package `qsalto`
+
+    Parameters:
+        n (int): number of qubits
+        kind (str): kind of output, 'sympy', 'numpy'. If 'sympy', return sympy.Matrix, if 'numpy', return numpy.ndarray
+
+    Returns:
+        ret (dict): dictionary of transform matrix, keys are 'M', 'M1', 'M2', 'T1', 'iT1', 'T2', 'iT2', 'T3', 'iT3'
+    '''
+    assert kind in ['sympy','numpy']
+    ret = _get_weight_enumerator_transform_matrix_hf0(int(n))
+    if kind=='numpy':
+        ret = {k: np.array([[float(y) for y in x] for x in v.tolist()], dtype=np.float64) for k,v in ret.items()}
+    return ret
+
+
+@functools.lru_cache
+def _get_knill_laflamme_matrix_indexing_over_vector_hf0(num_qubit:int, distance:int):
+    str_d_list = []
+    for weight in range(distance): #include weight=0
+        for index_qubit in itertools.combinations(range(num_qubit), r=weight):
+            for index_gate in itertools.product([0,1,2], repeat=weight):
+                tmp2 = ['I']*num_qubit
+                for x,y in zip(index_qubit,index_gate):
+                    tmp2[x] = 'XYZ'[y]
+                str_d_list.append(''.join(tmp2))
+
+    N0 = sum([scipy.special.comb(num_qubit, x, exact=True)*(3**x) for x in range(distance//2+1)])
+    str_d2_list = str_d_list[:N0]
+
+    tmp0 = str_to_gf4(str_d2_list)
+    tmp1 = gf4_to_str(((tmp0.reshape(-1, 1, 2*num_qubit) + tmp0) % 2).reshape(-1, 2*num_qubit))
+    tmp2 = {x:i for i,x in enumerate(str_d_list)}
+    index = np.array([tmp2[x] for x in tmp1], dtype=np.int64)
+    index.setflags(write=False)
+    return index
+
+
+def get_knill_laflamme_matrix_indexing_over_vector(num_qubit:int, distance:int):
+    assert (distance%2)==1
+    ret = _get_knill_laflamme_matrix_indexing_over_vector_hf0(int(num_qubit), int(distance))
+    return ret
+
+
+def get_qweA_kernel(basis0, basis1, tag_real_coeff, zero_eps=1e-10):
+    assert (basis0.ndim==2) and (basis0.shape==basis1.shape)
+    num_qubit = numqi.utils.hf_num_state_to_num_qubit(basis0.shape[1], kind='exact')
+    wt_to_pauli_dict = {x:get_pauli_with_weight_sparse(num_qubit, weight=x)[1] for x in range(num_qubit+1)}
+    N0 = len(basis0)
+    mask = np.triu(np.ones((N0,N0), dtype=np.int64) * 2, 1) + np.eye(N0, dtype=np.int64)
+    qweA_kernel_dict = dict()
+    for wt in range(1, num_qubit+1):
+        pauli = wt_to_pauli_dict[wt]
+        z0 = basis0.conj() @ (pauli @ basis0.T).reshape(-1,2**7,N0) + basis1.conj() @ (pauli @ basis1.T).reshape(-1,2**7,N0)
+        tmp0 = np.einsum(z0, [0,1,2], z0, [0,3,4], [1,3,2,4], optimize=True) / 4
+        tmp0 = (tmp0 + tmp0.transpose(1,0,2,3)) / 2
+        tmp0 = (tmp0 + tmp0.transpose(0,1,3,2)) / 2
+        tmp0 = tmp0 * mask.reshape(N0,N0,1,1) * mask.reshape(1,1,N0,N0)
+        if tag_real_coeff:
+            tmp1 = dict()
+            for i0 in np.stack(np.nonzero(np.abs(tmp0)>zero_eps), axis=1).tolist():
+                i1 = tuple(sorted(i0))
+                tmp1[i1] = tmp0[tuple(i0)] + tmp1.get(i1, 0)
+            tmp1 = list(tmp1.items())
+            key = np.array([x[0] for x in tmp1]).T
+            value = np.array([x[1] for x in tmp1])
+            tmp0 = np.zeros_like(tmp0)
+            if len(key):
+                tmp0[key[0], key[1], key[2], key[3]] = value
+        if np.abs(tmp0.imag).max() < zero_eps:
+            tmp0 = tmp0.real
+        if (not np.iscomplexobj(tmp0)) and (np.abs(tmp0 - np.around(tmp0).astype(np.int64)).max() < zero_eps):
+            tmp0 = np.around(tmp0).astype(np.int64)
+        qweA_kernel_dict[wt] = tmp0
+    # A2_kernel = qweA_kernel_dict[2]
+    # hf0 = lambda x: '{' + f'{x[0]+1},{x[1]+1},{x[2]+1},{x[3]+1},{x[4]}' + '}'
+    # x0 = [hf0(tuple(i)+(A2_kernel[tuple(i)],)) for i in np.stack(np.nonzero(A2_kernel), axis=1)]
+    # ','.join(x0)
+    return qweA_kernel_dict

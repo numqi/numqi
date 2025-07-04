@@ -6,6 +6,8 @@ import scipy.special
 import sympy
 import cvxpy
 
+from ._pauli import get_weight_enumerator_transform_matrix
+
 # https://arxiv.org/abs/2408.10323v1 SDP bounds for quantum codes
 
 def get_ijtp_range(n:int):
@@ -51,16 +53,6 @@ def get_alpha_dict(ijtp_list, ak_list):
     # "t-a-p+g" seems to be always positive
     ret = {(i,j,t,p,a,k):(beta_dict.get((i-a,j-a,k-a,n-a,t-a), 0) * (3**((i+j)/2-t)) * (2**(shift[(a,t,p)])) * tmp0[(a,t,p)]) for i,j,t,p,a,k in key_list if (t>=a)}
     # still a lots of zero
-    return ret
-
-
-def _MacWilliams_transform(expr0, expr1, sx, sy, num_qubit):
-    ret = []
-    for j in range(num_qubit+1):
-        expr2 = sympy.poly((expr0**(num_qubit-j)) * (expr1**j), [sx,sy], domain=sympy.RR)
-        tmp0 = {y:float(x) for x,y in zip(expr2.coeffs(), expr2.monoms())}
-        ret.append([tmp0.get((num_qubit-y,y), 0) for y in range(num_qubit+1)])
-    ret = np.ascontiguousarray(np.array(ret).T)
     return ret
 
 
@@ -124,11 +116,10 @@ def get_code_feasible_constraint(num_qubit:int, dimK:int, distance:int):
         cvxX[k] = cvxX[v]
     ## cvxA and cvxB are in the convention with SDP-paper
     cvxA = cvxpy.hstack([gamma_dict[(i,0,0,0)]*cvxX[(i,0,0,0)] for i in range(num_qubit+1)])
-    sx = sympy.symbols('x')
-    sy = sympy.symbols('y')
-    cvxB = _MacWilliams_transform((sx+3*sy)/2, (sx-sy)/2, sx, sy, num_qubit) @ cvxA
+    tmp0 = get_weight_enumerator_transform_matrix(num_qubit, kind='numpy')
+    cvxB = tmp0['M'] @ cvxA
     # cvxpy.sum(cvxA)==(2**num_qubit/dimK) #this is equal to K*B0=A0
-    cvxS = _MacWilliams_transform((sx+3*sy)/2, (sy-sx)/2, sx, sy, num_qubit) @ cvxA
+    cvxS = tmp0['T2'] @ cvxA
     constraint = [
         dimK*cvxB[:distance]==cvxA[:distance],
         dimK*cvxB[distance:]>=cvxA[distance:],
@@ -225,13 +216,6 @@ def get_Krawtchouk_polynomial(q:int, k:int):
     return ret
 
 
-def _get_Shor_weight_enumerator_dual_map(n:int, dimK:int):
-    sx = sympy.symbols('x')
-    sy = sympy.symbols('y')
-    ret = dimK*_MacWilliams_transform((sx+3*sy)/2, (sx-sy)/2, sx, sy, n)
-    return ret
-
-
 def is_code_feasible_linear_programming(num_qubit:int, dimK:int, distance:int):
     r'''check if a quantum code is feasible using linear programming
 
@@ -251,10 +235,9 @@ def is_code_feasible_linear_programming(num_qubit:int, dimK:int, distance:int):
     # https://arxiv.org/abs/2408.10323
     assert distance <= num_qubit
     cvxA = cvxpy.Variable(num_qubit+1)
-    sx = sympy.symbols('x')
-    sy = sympy.symbols('y')
-    cvxB = dimK*_MacWilliams_transform((sx+3*sy)/2, (sx-sy)/2, sx, sy, num_qubit) @ cvxA
-    cvxS = (dimK*dimK)*_MacWilliams_transform((sx+3*sy)/2, (sy-sx)/2, sx, sy, num_qubit) @ cvxA
+    tmp0 = get_weight_enumerator_transform_matrix(num_qubit, kind='numpy')
+    cvxB = tmp0['M'] @ cvxA
+    cvxS = tmp0['T2'] @ cvxA
     if dimK==1:
         constraint = [
             cvxA[0]==1,
@@ -269,8 +252,9 @@ def is_code_feasible_linear_programming(num_qubit:int, dimK:int, distance:int):
             cvxA[0]==1,
             cvxA>=0,
             cvxS>=0,
-            cvxB[:distance]==cvxA[:distance],
-            (cvxB-cvxA)[distance:]>=0,
+            cvxpy.sum(cvxA)==2**num_qubit/dimK,
+            (dimK*cvxB[:distance])==cvxA[:distance],
+            (dimK*cvxB)[distance:]>=cvxA[distance:],
         ]
     prob = cvxpy.Problem(cvxpy.Minimize(0), constraint)
     prob.solve()

@@ -1,42 +1,11 @@
-import itertools
 import numpy as np
 
-from ._pauli import hf_pauli
-
 import numqi.dicke
-import numqi.random
 
-def hf_state(x:str):
-    r'''convert state string to vector, should NOT be used in performance-critical code
-
-    Parameters:
-        x (str): state string, e.g. '0000 1111', supporting sign "+-i", e.g. '0000 -i1111'
-
-    Returns:
-        ret (np.ndarray): shape=(2**n,), state vector
-    '''
-    tmp0 = x.strip().split(' ')
-    tmp1 = []
-    for x in tmp0:
-        if x.startswith('-i'):
-            tmp1.append((-1j, x[2:]))
-        elif x.startswith('i'):
-            tmp1.append((1j, x[1:]))
-        elif x.startswith('-'):
-            tmp1.append((-1, x[1:]))
-        else:
-            x = x[1:] if x.startswith('+') else x
-            tmp1.append((1, x))
-    tmp1 = sorted(tmp1, key=lambda x:x[1])
-    num_qubit = len(tmp1[0][1])
-    assert all(len(x[1])==num_qubit for x in tmp1)
-    index = np.array([int(x[1],base=2) for x in tmp1], dtype=np.int64)
-    coeff = np.array([x[0] for x in tmp1])
-    coeff = coeff/np.linalg.norm(coeff, ord=2)
-    ret = np.zeros(2**num_qubit, dtype=coeff.dtype)
-    ret[index] = coeff
-    return ret
-_state_hf0 = hf_state
+from ._pauli import hf_pauli
+from .q623 import get_SO5_code
+from .q723 import get_cyclic_code
+from ._internal import hf_state
 
 
 def stabilizer_to_code(stab_list:list[str], logicalZ_list:list[str], tag_print:bool=True):
@@ -176,16 +145,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     elif key=='623-SO5':
         # https://arxiv.org/abs/2410.07983
         vece = kwargs.get('vece', np.array([1,1,1,1,1])/np.sqrt(5))
-        coeff,_,basis = get_623_SO5_code(vece, return_basis=True)
-        ret = coeff @ basis
-        tmp0 = (vece**4).sum()
-        info = {
-            'qweA': np.array([1, 0, 0.5+0.5*tmp0, 0.5-0.5*tmp0, 11.5-0.5*tmp0, 15.5+0.5*tmp0, 3]), #by numerical fitting
-            'qweB': np.array([1, 0, 0.5+0.5*tmp0, 23+tmp0, 37-2*tmp0, 41-tmp0, 25.5+1.5*tmp0]),
-            'vece': vece,
-            'basis': basis,
-            'coeff': coeff,
-        }
+        coeff,info = get_SO5_code(vece, return_info=True)
     elif key=='steane':
         tag_cyclic = kwargs.get('cyclic', True)
         if tag_cyclic: #[0,1,3,2,5,6,4] cyclic symmetry
@@ -266,7 +226,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     elif key=='723cyclic':
         lambda2 = kwargs.get('lambda2', 6)
         sign = kwargs.get('sign', '++')
-        coeff, _, basis = get_723_cyclic_code(lambda2, sign)
+        coeff, _, basis = get_cyclic_code(lambda2, sign)
         ret = coeff @ basis
         info = {
             'logicalX': 'XXXXXXX',
@@ -335,129 +295,3 @@ def get_code_subspace(key:str|None=None, **kwargs):
     else:
         raise ValueError
     return ret, info
-
-
-def get_623_SO5_code_basis(phase=0, tag_kron=True, seed=None):
-    np_rng = numqi.random.get_numpy_rng(seed)
-    if phase is None:
-        expia = np.exp(1j*np_rng.uniform(0, 2*np.pi, size=5))
-    else:
-        phase = np.asarray(phase).reshape(-1)
-        assert len(phase) in {1,5}
-        if len(phase)==1:
-            expia = np.exp(1j*phase*np.ones(5))
-        else:
-            expia = np.exp(1j*phase)
-    # hf0 = lambda x: [int(y,base=2) for y in x.split(' ')]
-    # ind0 = hf0('00001 00010 00100 01000 10000')
-    # ind1 = hf0('11110 11101 11011 10111 01111')
-    ind0,ind1 = [1,2,4,8,16], [30,29,27,23,15]
-    basisA = np.zeros((5,32), dtype=np.float64)
-    basisA[np.arange(5), ind0] = 1/np.sqrt(2)
-    basisB = np.zeros((5,32), dtype=np.float64)
-    basisB[np.arange(5), ind1] = 1/np.sqrt(2)
-    basis = basisA + expia.reshape(5,1)*basisB
-    if tag_kron:
-        basis = np.kron(np.eye(2), basis)
-    return basis
-
-
-def get_623_SO5_code(vece_or_abcde, phase=0, return_basis=False, return_mask_zero=False, seed=None, zero_eps=1e-10):
-    np_rng = numqi.random.get_numpy_rng(seed)
-    vece_or_abcde = np.asarray(vece_or_abcde)
-    assert vece_or_abcde.shape in {(5,), (5,5)}
-    if vece_or_abcde.shape==(5,):
-        vece = vece_or_abcde
-        assert abs(np.linalg.norm(vece)-1) < zero_eps, 'unit vector required'
-        tmp0 = np.linalg.eigh(np.eye(5) - vece.reshape(-1,1)*vece)[1][:,1:].T
-        tmp1 = numqi.random.rand_special_orthogonal_matrix(4, seed=np_rng) @ tmp0
-        matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0)
-    else:
-        assert np.abs(vece_or_abcde @ vece_or_abcde.T - np.eye(5)).max() < zero_eps, 'orthogonal matrix required'
-        matO = vece_or_abcde
-    veca,vecb,vecc,vecd,vece = matO/2
-    coeff0 = np.concatenate([veca+1j*vecb, vecc+1j*vecd], axis=0)
-    coeff1 = np.concatenate([coeff0[5:].conj(), -coeff0[:5].conj()], axis=0)
-    coeff = np.stack([coeff0, coeff1], axis=0)
-    lambda_ai_dict = dict()
-    for ind0,ind1 in itertools.combinations(range(5), 2):
-        tmp0 = ['I']*6
-        tmp0[5-ind0] = 'X'
-        tmp0[5-ind1] = 'X'
-        lambda_ai_dict[''.join(tmp0)] = -2*vece[ind0]*vece[ind1]
-        tmp0[5-ind0] = 'Y'
-        tmp0[5-ind1] = 'Y'
-        lambda_ai_dict[''.join(tmp0)] = -2*vece[ind0]*vece[ind1]
-        tmp0[5-ind0] = 'Z'
-        tmp0[5-ind1] = 'Z'
-        lambda_ai_dict[''.join(tmp0)] = 2*vece[ind0]*vece[ind0] + 2*vece[ind1]*vece[ind1]
-    ret = coeff, lambda_ai_dict
-    if return_basis:
-        ret = ret + (get_623_SO5_code_basis(phase, seed=np_rng),)
-    if return_mask_zero:
-        # error_str_list = make_pauli_error_list_sparse(num_qubit=6, distance=3)[0]
-        # mask_zero = np.array([(x not in lambda_ai_dict) for x in error_str_list], dtype=np.bool_)
-        mask_zero = np.ones(153, dtype=np.bool_)
-        mask_zero[[63,67,71,72,76,80,81,85,89,90,94,98,99,103,107,108,112,116,117,121,125,126,130,134,135,139,143,144,148,15]] = False
-        ret = ret + (mask_zero,)
-    return ret
-
-
-def get_723_cyclic_code(lambda2:float, sign:str='++'):
-    assert (lambda2>=0) and (lambda2<=7)
-    assert sign in {'++', '+-', '-+', '--'} #sign of c1 and c3
-    x = np.sqrt(lambda2).item()
-    s7 = np.sqrt(7)
-    assert np.all(0<=x) and np.all(x<=s7)
-    c0 = np.sqrt(s7*x+8)/8
-    c1 = (7**(1/4))*np.sqrt(x)/8 * (1 if sign[0]=='+' else -1)
-    tmp0 = 0.4*np.sqrt(max(7*c0*c0-15*s7*x/64,0)) * (1 if sign[1]=='+' else -1)
-    c3 = 0.4*s7*c0 + tmp0
-    c2 = -2*c3 + s7*c0
-    c4 = -np.sqrt(3)*c1
-    coeff = np.array([c0,c1,c2,c3,c4])
-    basis = get_723_cyclic_code_basis()
-    lambda_ai_dict = dict()
-    for ind0,ind1 in itertools.combinations(range(7), 2):
-        tmp0 = ['I']*7
-        tmp0[ind0] = 'X'
-        tmp0[ind1] = 'X'
-        lambda_ai_dict[''.join(tmp0)] = x/(3*np.sqrt(7))
-        tmp0[ind0] = 'Y'
-        tmp0[ind1] = 'Y'
-        lambda_ai_dict[''.join(tmp0)] = x/(3*np.sqrt(7))
-        tmp0[ind0] = 'Z'
-        tmp0[ind1] = 'Z'
-        lambda_ai_dict[''.join(tmp0)] = x/(3*np.sqrt(7))
-    return coeff, lambda_ai_dict, basis
-
-
-def get_723_cyclic_code_basis():
-    # equivalent construction but not efficient
-    # tmp0 = '''0000000
-    #     0000011 0000110 0001100 0011000 0110000 1100000 1000001
-    #     0000101 0001010 0010100 0101000 1010000 0100001 1000010
-    #     0001001 0010001 0010010 0100010 0100100 1000100 1001000
-    #     0001111 0011110 0111100 1111000 1110001 1100011 1000111
-    #     0011011 0110110 1101100 1011001 0110011 1100110 1001101
-    #     0011101 0111010 1110100 1101001 1010011 0100111 1001110
-    #     0101011 1010110 0101101 1011010 0110101 1101010 1010101
-    #     0010111 0101110 1011100 0111001 1110010 1100101 1001011
-    #     1111110 1111101 1111011 1110111 1101111 1011111 0111111'''
-    # tmp1 = [_state_hf0(x.strip()) for x in tmp0.strip().split('\n')]
-    # basis = np.stack([tmp1[0], (tmp1[1]+tmp1[2]+tmp1[3])/np.sqrt(3), tmp1[8],
-    #                     (tmp1[4]+tmp1[5]+tmp1[6]+tmp1[7])/2, tmp1[9]], axis=0)
-    # Xseven = _pauli_hf0('X'*7)
-    # basis_not = basis @ Xseven
-    ret = np.zeros((2,5,128), dtype=np.float64)
-    ret[0,0,0] = 1
-    ret[0,1,[3,5,6,9,10,12,17,18,20,24,33,34,36,40,48,65,66,68,72,80,96]] = 1/np.sqrt(21)
-    ret[0,2,[23,46,57,75,92,101,114]] = 1/np.sqrt(7)
-    ret[0,3,[15,27,29,30,39,43,45,51,53,54,58,60,71,77,78,83,85,86,89,90,99,102,105,106,108,113,116,120]] = 1/np.sqrt(28)
-    ret[0,4,[63,95,111,119,123,125,126]] = 1/np.sqrt(7)
-    ret[1,0,127] = 1
-    ret[1,1,[31,47,55,59,61,62,79,87,91,93,94,103,107,109,110,115,117,118,121,122,124]] = 1/np.sqrt(21)
-    ret[1,2,[13,26,35,52,70,81,104]] = 1/np.sqrt(7)
-    ret[1,3,[7,11,14,19,21,22,25,28,37,38,41,42,44,49,50,56,67,69,73,74,76,82,84,88,97,98,100,112]] = 1/np.sqrt(28)
-    ret[1,4,[1,2,4,8,16,32,64]] = 1/np.sqrt(7)
-    return ret
