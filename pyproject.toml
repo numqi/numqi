@@ -25,6 +25,9 @@ dependencies = [
     'torch',
     'cvxpy',
     'matplotlib',
+    'galois',
+    'platformdirs',
+    'h5py',
 ]
 dynamic = ["version"]
 
