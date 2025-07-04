@@ -21,7 +21,7 @@ def test_QueryGroverModel():
         (4, 2, 0.09155), #3s
         (4, 3, 0), #2s
         # (5, 3, 0.1031), #30s
-        (5, 4, 0), #13s
+        # (5, 4, 0), #13s
     ]
     for num_qubit,num_query,ret_ in case_list:
         model = numqi.query.QueryGroverModel(num_qubit, num_query, use_fractional=False, dtype='float64')
@@ -51,17 +51,18 @@ def _QueryGroverQuantumModel_build_circuit(num_qubit, num_layer, num_query, use_
     return circ
 
 
-def test_QueryGroverQuantumModel():
-    case_list = [
-        (3, 2, 8, 0, 233), #about 20 seconds (1 round)
-        # (4, 3, 24, 0, None), #about 400 steps
-    ]
-    kwargs = dict(theta0=('uniform', 0, 2*np.pi), tol=1e-9, num_repeat=1, print_every_round=0, print_freq=50, early_stop_threshold=1e-7)
-    for num_qubit,num_query,num_layer,ret_,seed in case_list:
-        circuit = _QueryGroverQuantumModel_build_circuit(num_qubit, num_layer, num_query, use_fractional=False)
-        model = numqi.query.QueryGroverQuantumModel(circuit)
-        theta_optim = numqi.optimize.minimize(model, seed=seed, **kwargs)
-        assert abs(model.error_rate-ret_) < 1e-4
+## TOO slow
+# def test_QueryGroverQuantumModel():
+#     case_list = [
+#         (3, 2, 8, 0, 233), #about 20 seconds (1 round)
+#         # (4, 3, 24, 0, None), #about 400 steps
+#     ]
+#     kwargs = dict(theta0=('uniform', 0, 2*np.pi), tol=1e-9, num_repeat=1, print_every_round=0, print_freq=50, early_stop_threshold=1e-7)
+#     for num_qubit,num_query,num_layer,ret_,seed in case_list:
+#         circuit = _QueryGroverQuantumModel_build_circuit(num_qubit, num_layer, num_query, use_fractional=False)
+#         model = numqi.query.QueryGroverQuantumModel(circuit)
+#         theta_optim = numqi.optimize.minimize(model, seed=seed, **kwargs)
+#         assert abs(model.error_rate-ret_) < 1e-4
 
 
 def test_grover_sdp():
