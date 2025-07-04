@@ -67,3 +67,48 @@ def test_get_qubit_dicke_partial_trace():
         ret0[1,1] = np.diag(a11)
         ret_ = numqi.dicke.get_partial_trace_ABk_to_AB_index(num_qubit, dim=2, return_tensor=True)
         assert np.abs(ret0-ret_).max() < 1e-10
+
+
+def test_get_qubit_dicke_rdm_tensor():
+    case_list = [(1,x) for x in range(2,8)] + [(2,x) for x in range(3,8)]
+    for rdm,n in case_list:
+        Tabrs = numqi.dicke.get_qubit_dicke_rdm_tensor(n, rdm)
+        basis = numqi.dicke.get_dicke_basis(n, 2)[::-1]
+        coeff = numqi.random.rand_haar_state(n+1)
+        tmp0 = (coeff @ basis).reshape(2**rdm, -1)
+        tmp1 = numqi.dicke.get_dicke_basis(rdm, 2)[::-1]
+        ret_ = tmp1 @ np.einsum(tmp0, [0,1], tmp0.conj(), [2,1], [0,2], optimize=True) @ tmp1.T
+        ret0 = np.einsum(Tabrs, [0,1,2,3], coeff, [0], coeff.conj(), [1], [2,3], optimize=True)
+        assert np.abs(ret_-ret0).max() < 1e-10
+
+
+def test_get_qubit_dicke_rdm_pauli_tensor():
+    for n,rdm in [(7,2), (7,4), (8,3)]:
+        Tuab_list,factor_list,pauli_str_list,weight_count = numqi.dicke.get_qubit_dicke_rdm_pauli_tensor(n, rdm)
+        basis = numqi.dicke.get_dicke_basis(n, 2)[::-1]
+        coeff = numqi.random.rand_haar_state(n+1)
+        tmp0 = np.cumsum([0] + [weight_count[x] for x in range(1,rdm)])
+        ind0_list = {(i+1):slice(x,y) for i,(x,y) in enumerate(zip(tmp0,tmp0[1:]))}
+        for wt,ind0 in ind0_list.items():
+            Tuab = Tuab_list[ind0]
+            pauli_str = pauli_str_list[ind0]
+            ret0 = np.einsum(Tuab, [0,1,2], coeff, [1], coeff.conj(), [2], [0], optimize=True).real
+            tmp0 = (coeff @ basis).reshape(2**wt, -1)
+            rho_rdm = np.einsum(tmp0, [0,1], tmp0.conj(), [2,1], [0,2], optimize=True)
+            ret_ = np.array([np.trace(numqi.qec.hf_pauli(x)@rho_rdm) for x in pauli_str])
+            assert np.abs(ret_-ret0).max() < 1e-10
+
+
+def test_u2_to_dicke():
+    for ncopy in [1,2,3,4]:
+        np0 = numqi.random.rand_haar_unitary(2)
+        basis = numqi.dicke.get_dicke_basis(ncopy, 2)[::-1]
+        np1 = np0
+        for _ in range(ncopy-1):
+            np1 = np.kron(np1, np0)
+        ret_ = basis @ np1 @ basis.T
+        ret0 = numqi.dicke.u2_to_dicke(np0, ncopy)
+        assert np.abs(ret_-ret0).max() < 1e-12
+        tmp0 = torch.tensor(np0,dtype=torch.complex128,requires_grad=True)
+        ret1 = numqi.dicke.u2_to_dicke(tmp0, ncopy).detach().numpy()
+        assert np.abs(ret_-ret1).max() < 1e-12

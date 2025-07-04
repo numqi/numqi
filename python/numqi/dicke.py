@@ -1,7 +1,11 @@
+import functools
+import math
 import itertools
 import numpy as np
 import scipy.special
+import scipy.sparse
 import torch
+import opt_einsum
 
 
 def _dicke_hf0(klist, base, dim, num_qudit):
@@ -45,16 +49,22 @@ def get_dicke_basis(num_qudit:int, dim:int):
         ret (np.ndarray): shape (binom{num_qudit+dim-1}{num_qudit}, dim**num_qudit) float64
     '''
     # use this in unittest only, it's slow and memory consuming
-    assert dim>=2
-    assert num_qudit>=1
-    klist = get_dicke_klist(num_qudit, dim)
-    # ret = np.zeros((len(klist), dim**num_qudit), dtype=np.float64)
-    base = dim**(np.arange(num_qudit)[::-1])
-    ret = np.stack([_dicke_hf0(x, base, dim, num_qudit) for x in klist])
-    # for ind0,ki in enumerate(klist):
-    #     tmp0 = [int(x) for x,y in enumerate(ki) for _ in range(y)]
-    #     tmp1 = np.unique(np.array(list(itertools.permutations(tmp0)), dtype=np.int64), axis=0)
-    #     ret[ind0, tmp1 @ base] = 1/np.sqrt(len(tmp1))
+    assert (dim>=2) and (num_qudit>=1)
+    if dim==2: #just for speed
+        if num_qudit==1:
+            ret = 1-np.eye(2, dtype=np.float64)
+        else:
+            base = 2**(np.arange(num_qudit)[::-1])
+            ret = np.zeros((num_qudit+1, 2**num_qudit), dtype=np.float64)
+            ret[0,-1] = 1 #1111 first
+            ret[-1,0] = 1
+            for ind0 in range(1, num_qudit):
+                ind1 = base[np.array(list(itertools.combinations(range(num_qudit), num_qudit-ind0)))].sum(axis=1)
+                ret[ind0, ind1] = 1/np.sqrt(scipy.special.binom(num_qudit, ind0))
+    else:
+        klist = get_dicke_klist(num_qudit, dim)
+        base = dim**(np.arange(num_qudit)[::-1])
+        ret = np.stack([_dicke_hf0(x, base, dim, num_qudit) for x in klist])
     return ret
 
 
@@ -183,4 +193,111 @@ def partial_trace_ABk_to_AB(state, dicke_Bij):
         ret = torch.stack(ret, dim=2).reshape(dimA, dimA, dimB, dimB).transpose(1, 2).reshape(dimA * dimB, dimA * dimB)
     else:
         ret = np.stack(ret, axis=2).reshape(dimA, dimA, dimB, dimB).transpose(0, 2, 1, 3).reshape(dimA * dimB, dimA * dimB)
+    return ret
+
+
+def get_qubit_dicke_rdm_tensor(n:int, rdm:int):
+    assert 1<=rdm<n
+    hf0 = lambda x: np.sqrt(1-np.arange(x)/x)
+    hf0a = lambda x: np.concatenate([np.diag(hf0(x)), np.zeros((1,x))], axis=0)
+    hf1 = lambda x: np.sqrt(np.arange(1,x+1)/x)
+    hf1a = lambda x: np.concatenate([np.zeros((1,x)), np.diag(hf1(x))], axis=0)
+    hf2 = lambda x: np.einsum(x, [0,1], x, [2,3], [0,2,1,3], optimize=True)
+    ret = hf2(hf0a(rdm+1)) + hf2(hf1a(rdm+1))
+    for x in range(rdm+1, n):
+        tmp0 = hf2(hf0a(x+1)) + hf2(hf1a(x+1))
+        ret = np.einsum(ret, [0,1,2,3], tmp0, [4,5,0,1], [4,5,2,3], optimize=True)
+    return ret
+
+
+def get_qubit_dicke_rdm_pauli_tensor(n:int, rdm:int, kind:str='numpy'):
+    assert 1<=rdm<n
+    assert kind in {'numpy', 'torch', 'scipy-csr0', 'scipy-csr01', 'torch-csr0', 'torch-csr01'}
+    _pauli_dict = {'X':np.array([[0,1],[1,0]]), 'Y':np.array([[0,-1j],[1j,0]]), 'Z':np.array([[1,0],[0,-1]])}
+    Tuab_list = []
+    factor_list = []
+    pauli_str_list = []
+    for wt in range(1, rdm+1):
+        Tabrs = get_qubit_dicke_rdm_tensor(n, wt)
+        basis = get_dicke_basis(wt, 2)[::-1].reshape([-1]+[2]*wt) #TODO, skip creating this tensor
+        factor_common = scipy.special.binom(n, wt)
+        pauli_str_list.append([''.join(x) for x in itertools.combinations_with_replacement('XYZ', wt)])
+        for xyz in pauli_str_list[-1]:
+            tmp0 = [sum(1 for x in xyz if s==x) for s in 'XYZ']
+            factor_list.append(math.factorial(wt)//(math.factorial(tmp0[0])*math.factorial(tmp0[1])*math.factorial(tmp0[2]))*factor_common)
+            tmp1 = [(_pauli_dict[x], 4+2*i, 5+2*i) for i,x in enumerate(xyz)]
+            tmp2 = [2]+[x[2] for x in tmp1]
+            tmp3 = [3] + [x[1] for x in tmp1]
+            tmp4 = [y for x in tmp1 for y in (x[0], (x[1],x[2]))]
+            Tuab_list.append(np.einsum(Tabrs, [0,1,2,3], basis, tmp2, basis, tmp3, *tmp4, [0,1], optimize=True))
+    Tuab_list = np.stack(Tuab_list, axis=0)
+    factor_list = np.array(factor_list, dtype=np.float64)
+    weight_count = {(i+1):len(x) for i,x in enumerate(pauli_str_list)}
+    pauli_str_list = [y for x in pauli_str_list for y in x]
+    if kind=='torch':
+        Tuab_list = torch.tensor(Tuab_list, dtype=torch.complex128)
+        factor_list = torch.tensor(factor_list, dtype=torch.float64)
+    elif kind in ('scipy-csr0', 'scipy-csr01', 'torch-csr0', 'torch-csr01'):
+        shape = (Tuab_list.shape[0], (n+1)**2) if kind[-1]=='0' else (Tuab_list.shape[0]*(n+1), n+1)
+        Tuab_list = scipy.sparse.csr_array(Tuab_list.reshape(shape))
+        if kind in ('torch-csr0', 'torch-csr01'):
+            factor_list = torch.tensor(factor_list, dtype=torch.float64)
+            tmp0 = torch.tensor(Tuab_list.indptr, dtype=torch.int64)
+            tmp1 = torch.tensor(Tuab_list.indices, dtype=torch.int64)
+            tmp2 = torch.tensor(Tuab_list.data, dtype=torch.complex128)
+            Tuab_list = torch.sparse_csr_tensor(tmp0, tmp1, tmp2, dtype=torch.complex128)
+    return Tuab_list, factor_list, pauli_str_list, weight_count
+
+
+@functools.lru_cache
+def _u2_to_dicke_info(n:int, tag_torch:bool):
+    zero_n_int = np.arange(n+1, dtype=np.int64)
+    I = zero_n_int.reshape(-1,1,1)
+    J = zero_n_int.reshape(1,-1,1)
+    M = zero_n_int.reshape(1,1,-1)
+    tmp0 = np.sqrt(scipy.special.binom(n, zero_n_int))
+    binom_nij = tmp0 / tmp0.reshape(-1,1)
+    pascal = scipy.linalg.pascal(n+1, kind='lower', exact=False)
+    tmp0 = binom_nij.reshape(n+1,n+1,1) * (pascal * pascal[n-J, np.maximum(I-M,0)])
+    ret = {'binom':tmp0, 'mask':(J>=M)[0], 'ind0':np.clip(n-J-I+M,0,n), 'ind12':np.maximum((J-M)[0],0)}
+    if tag_torch:
+        tmp0 = {'binom':torch.float64, 'mask':torch.bool, 'ind0':torch.int64, 'ind12':torch.int64}
+        ret = {k:torch.tensor(v, dtype=tmp0[k]) for k,v in ret.items()}
+    return ret
+
+def u2_to_dicke_info(n:int, tag_torch:bool=False):
+    assert n>=2
+    ret = _u2_to_dicke_info(int(n), bool(tag_torch))
+    return ret
+
+_torch_cdtype = {torch.float32:torch.complex64, torch.complex64:torch.complex64,
+                 torch.float64:torch.complex128, torch.complex128:torch.complex128}
+
+def u2_to_dicke(np0:np.ndarray|torch.Tensor, n:int, _info:dict|None=None):
+    assert (np0.shape==(2,2)) and (n>=1)
+    if n==1:
+        ret = np0
+    else:
+        is_torch = isinstance(np0, torch.Tensor)
+        if _info is None:
+            _info = u2_to_dicke_info(n, is_torch)
+        else:
+            assert is_torch == isinstance(_info['binom'], torch.Tensor)
+        if is_torch:
+            cdtype = _torch_cdtype[np0.dtype]
+            det_factor = torch.sqrt((np0[0,0]*np0[1,1] - np0[0,1]*np0[1,0]).to(cdtype))
+            tmp0 = (np0/det_factor).reshape(4,1) #CAUTION: d(x^n)/dx is bad defined when (x=0,n=1)
+            tmp1 = torch.concat([tmp0, tmp0**torch.arange(2,n+1, dtype=torch.int64)], axis=1)
+            # tmp0 = (np0/det_factor).reshape(4,1)**torch.arange(1,n+1, dtype=torch.int64)
+            abcd = torch.concat([torch.ones(4,1,dtype=cdtype),tmp1], axis=1)
+        else:
+            det_factor = np.sqrt(np.complex128(np0[0,0]*np0[1,1] - np0[0,1]*np0[1,0]))
+            tmp0 = (np0/det_factor).reshape(4,1)**np.arange(1,n+1, dtype=np.int64)
+            abcd = np.concatenate([np.ones((4,1)),tmp0], axis=1)
+        # ijm
+        term2 = abcd[0][_info['ind0']]
+        term3 = (abcd[1][_info['ind12']] * _info['mask'])
+        term4 = (abcd[2][_info['ind12']] * _info['mask'])
+        ret = opt_einsum.contract(_info['binom'], [0,1,2], term2, [0,1,2], term3, [1,2], term4, [0,2], abcd[3], [2], [0,1])
+        ret = ret * (det_factor**n)
     return ret
