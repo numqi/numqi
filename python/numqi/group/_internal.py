@@ -379,3 +379,24 @@ def pretty_print_character_table(character_table:np.ndarray, class_list:list):
         tmp1 = ' | '.join(character_table_str[ind0])
         tmp2 = '{' + str(ind0) + '}'
         print(f'| $A_{tmp2}$ | {tmp1} |')
+
+
+def get_complete_group(np_list, zero_eps=1e-5, tag_print=False):
+    np_list = np.stack(np_list, axis=0)
+    assert (np_list.ndim==3) and (np_list.shape[1]==np_list.shape[2])
+    ret = np.stack([np_list[0]], axis=0)
+    hf0 = lambda np1: np.any(np.abs(np1 - ret).max(axis=(1,2)) < zero_eps)
+    for x in np_list[1:]:
+        if not hf0(x):
+            ret = np.append(ret,x[np.newaxis], axis=0)#numpy out-of-place append
+    check_list = [(x,y) for x in range(len(ret)) for y in range(len(ret))]
+    while len(check_list):
+        ind0,ind1 = check_list.pop(0)
+        np1 = ret[ind0] @ ret[ind1]
+        if not hf0(np1):
+            ret = np.append(ret,np1[np.newaxis], axis=0)
+            if tag_print:
+                print(f'{len(ret)}')
+            check_list += [(x,len(ret)-1) for x in range(len(ret))]
+            check_list += [(len(ret)-1,x) for x in range(len(ret))]
+    return ret

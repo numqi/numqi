@@ -22,5 +22,6 @@ from . import coherence
 
 # mainly for debug
 from . import _torch_op
+from . import _internal
 
 from ._version import __version__, __version_tuple__

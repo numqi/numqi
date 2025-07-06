@@ -1,11 +1,40 @@
-import itertools
 import numpy as np
 
-import torch
+# import numqi.utils
+# import numqi.sim
 
-import numqi.gate
-import numqi.utils
-import numqi.sim
+def hf_state(x:str):
+    r'''convert state string to vector, should NOT be used in performance-critical code
+
+    Parameters:
+        x (str): state string, e.g. '0000 1111', supporting sign "+-i", e.g. '0000 -i1111'
+
+    Returns:
+        ret (np.ndarray): shape=(2**n,), state vector
+    '''
+    tmp0 = x.strip().split(' ')
+    tmp1 = []
+    for x in tmp0:
+        if x.startswith('-i'):
+            tmp1.append((-1j, x[2:]))
+        elif x.startswith('i'):
+            tmp1.append((1j, x[1:]))
+        elif x.startswith('-'):
+            tmp1.append((-1, x[1:]))
+        else:
+            x = x[1:] if x.startswith('+') else x
+            tmp1.append((1, x))
+    tmp1 = sorted(tmp1, key=lambda x:x[1])
+    num_qubit = len(tmp1[0][1])
+    assert all(len(x[1])==num_qubit for x in tmp1)
+    index = np.array([int(x[1],base=2) for x in tmp1], dtype=np.int64)
+    coeff = np.array([x[0] for x in tmp1])
+    coeff = coeff/np.linalg.norm(coeff, ord=2)
+    ret = np.zeros(2**num_qubit, dtype=coeff.dtype)
+    ret[index] = coeff
+    return ret
+_state_hf0 = hf_state
+
 
 # def degeneracy(code_i):
 #     # only works for d=3

@@ -14,10 +14,13 @@ from ._internal import (
     get_index_cayley_table,
     group_algebra_product,
     pretty_print_character_table,
+    get_complete_group
 )
 
 from ._lie import (angle_to_su2, angle_to_so3, so3_to_angle, su2_to_angle,
-        so3_to_su2, su2_to_so3, get_su2_irrep, get_rational_orthogonal2_matrix)
+        so3_to_su2, su2_to_so3, get_su2_irrep, get_rational_orthogonal2_matrix,
+        su2su2_to_so4_magic, so3_to_su2_magic, su2_to_so3_magic, get_su4_kak_decomposition, get_kak_kernel,
+        diagonalize_unitary_using_two_orthogonals, so4_to_su2su2_magic)
 
 from ._symmetric import (
     get_symmetric_group_cayley_table,
