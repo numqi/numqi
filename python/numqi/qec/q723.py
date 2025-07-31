@@ -4,9 +4,9 @@ import scipy.linalg
 
 import numqi.gate
 
-from ._pauli import hf_pauli
+from ._pauli import hf_pauli, make_pauli_error_list_sparse
 
-def get_cyclic_code(lambda2:float, sign:str='++'):
+def get_cyclic_code(lambda2:float, sign:str='++', return_info=False):
     assert (lambda2>=0) and (lambda2<=7)
     assert sign in {'++', '+-', '-+', '--'} #sign of c1 and c3
     x = np.sqrt(lambda2).item()
@@ -20,19 +20,27 @@ def get_cyclic_code(lambda2:float, sign:str='++'):
     c4 = -np.sqrt(3)*c1
     coeff = np.array([c0,c1,c2,c3,c4])
     basis = get_723_cyclic_code_basis()
-    lambda_ai_dict = dict()
-    for ind0,ind1 in itertools.combinations(range(7), 2):
-        tmp0 = ['I']*7
-        tmp0[ind0] = 'X'
-        tmp0[ind1] = 'X'
-        lambda_ai_dict[''.join(tmp0)] = x/(3*np.sqrt(7))
-        tmp0[ind0] = 'Y'
-        tmp0[ind1] = 'Y'
-        lambda_ai_dict[''.join(tmp0)] = x/(3*np.sqrt(7))
-        tmp0[ind0] = 'Z'
-        tmp0[ind1] = 'Z'
-        lambda_ai_dict[''.join(tmp0)] = x/(3*np.sqrt(7))
-    return coeff, lambda_ai_dict, basis
+    code = coeff @ basis
+    if return_info:
+        qweA = np.array([1, 0, lambda2, 0, 21-2*lambda2, 0, 42+lambda2, 0])
+        qweB = np.array([1, 0, lambda2, 21+3*lambda2, 21-2*lambda2, 126-6*lambda2, 42+lambda2, 45+3*lambda2])
+        lambda_ai = dict()
+        for ind0,ind1 in itertools.combinations(range(7), 2):
+            tmp0 = ['I']*7
+            tmp0[ind0] = 'X'
+            tmp0[ind1] = 'X'
+            lambda_ai[''.join(tmp0)] = x/(3*np.sqrt(7))
+            tmp0[ind0] = 'Y'
+            tmp0[ind1] = 'Y'
+            lambda_ai[''.join(tmp0)] = x/(3*np.sqrt(7))
+            tmp0[ind0] = 'Z'
+            tmp0[ind1] = 'Z'
+            lambda_ai[''.join(tmp0)] = x/(3*np.sqrt(7))
+        error_str_list = make_pauli_error_list_sparse(num_qubit=7, distance=3, kind='scipy-csr01')[0]
+        lambda_ai = np.array([lambda_ai.get(x,0) for x in error_str_list], dtype=np.float64)
+        info = dict(logicalX='X'*7, logicalZ='Z'*7, lambda2=lambda2, sign=sign,
+                    basis=basis, coeff=coeff, qweA=qweA, qweB=qweB, lambda_ai=lambda_ai)
+    return code,info
 
 
 def get_723_cyclic_code_basis():

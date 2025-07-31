@@ -13,7 +13,7 @@ def test_get_transversal_gate623():
     # vece = np.array([1,0,0,0,0])
     code = numqi.qec.q623.get_SO5_code(vece)
     logical_list = numqi.qec.get_transversal_group(code, num_round=20, tag_print=False)
-    assert len(logical_list)==8 #BD_2
+    assert len(logical_list)==8 #BD4
     # info = numqi.qec.get_transversal_group_info([x[0] for x in logical_list])
 
     a,b,c = np_rng.normal(size=3)
@@ -45,60 +45,19 @@ def test_get_transversal_gate623():
     # tmp1 = np.stack([code523,code523*0], axis=2).reshape(2,-1)
     # code623 = np.einsum(tmp1.reshape(-1,4), [0,1], tmp0, [3,1], [0,3], optimize=True).reshape(2,-1)
     # logical_list = numqi.qec.get_transversal_group(code623, num_round=20, tag_print=True)
-    # assert len(logical_list)==8 #BD8
+    # assert len(logical_list)==8 #BD4
 
 
 def test_623SO5_transversal_group_BD4():
     tmp0 = np_rng.normal(size=(2))
-    r,s = tmp0/np.linalg.norm(tmp0)
-    matO = 0.5*np.array([[-s,s,-s,s,2*r], [r,-r,r,-r,2*s], [1,1,1,1,0], [1,-1,-1,1,0], [1,1,-1,-1,0]])
-    veca,vecb,vecc,vecd,vece = matO.T/2
-    basis = numqi.qec.q623.get_SO5_code_basis()
-    coeff0 = np.concatenate([veca+1j*vecb, vecc+1j*vecd], axis=0)
-    coeff1 = np.concatenate([coeff0[5:].conj(), -coeff0[:5].conj()], axis=0)
-    code = np.stack([coeff0, coeff1], axis=0) @ basis
-
-    basisS = basis.reshape(10,2,32)[:5,0]
-    tmp0 = np.array([[-s,0], [r,0], [1j,0], [0,1], [0,1j]]) @ numqi.gate.H
-    q0 = (tmp0.T @ basisS).reshape(-1) / (2*np.exp(1j*np.pi/4))
-    assert np.abs(q0 - code[0]).max() < 1e-10
-    tmp0 = np.array([[0,-1j*s], [0,1j*r], [0,1], [-1j,0], [-1,0]]) @ numqi.gate.H
-    q1 = (tmp0.T @ basisS).reshape(-1) / (2*np.exp(1j*np.pi/4))
-    assert np.abs(q1 - code[1]).max() < 1e-10
-
-    X,Y,Z,I = numqi.gate.X, numqi.gate.Y, numqi.gate.Z, numqi.gate.I
-    s3 = np.sqrt(3)
-    tmp0 = np.stack([2*Y, s3*X+Y, X-s3*Y, s3*X+Y, X-s3*Y, X-s3*Y], axis=0) * 0.5j
-    logicalX = code.conj() @ hf_kron(*tmp0) @ code.T
-    assert np.abs(logicalX - X).max() < 1e-10
-    tmp0 = np.stack([1j*X, 1j*Z, 1j*Z, I, I, I], axis=0)
-    logicalZ = code.conj() @ hf_kron(*tmp0) @ code.T
-    assert np.abs(1j*logicalZ - Z).max() < 1e-10
-
+    code,info = numqi.qec.q623.get_SO5_code_with_transversal_gate(tmp0/np.linalg.norm(tmp0))
+    assert np.abs(code.conj() @ hf_kron(*info['su2X']) @ code.T - numqi.gate.X).max() < 1e-10
+    assert np.abs(code.conj() @ hf_kron(*info['su2Z']) @ code.T - numqi.gate.Z).max() < 1e-10
 
 def test_623SO5_transversal_group_C4():
     tmp0 = np_rng.normal(size=3)
-    r,s,t = tmp0/np.linalg.norm(tmp0)
-    alpha = np.arccos(t/np.sqrt(t*t+1)) + np.arctan(s/r)
-    beta = -np.arccos(t/np.sqrt(t*t+1)) + np.arctan(s/r)
-    a1 = np.sqrt(t*t+1)*np.cos(alpha)
-    a2 = np.sqrt(t*t+1)*np.sin(alpha)
-    b1 = np.sqrt(t*t+1)*np.cos(beta)
-    b2 = np.sqrt(t*t+1)*np.sin(beta)
-    a3 = -(a1*r + a2*s)/t
-    matO = 0.5*np.array([[a1,b1,a1,b1,2*r], [a2,b2,a2,b2,2*s], [a3,a3,a3,a3,2*t], [1,-1,-1,1,0], [1,1,-1,-1,0]]).T
-    assert np.abs(matO@matO.T - np.eye(5)).max() < 1e-10
-
-    veca,vecb,vecc,vecd,vece = matO/2
-    basis = numqi.qec.q623.get_SO5_code_basis()
-    coeff0 = np.concatenate([veca+1j*vecb, vecc+1j*vecd], axis=0)
-    coeff1 = np.concatenate([coeff0[5:].conj(), -coeff0[:5].conj()], axis=0)
-    code = np.stack([coeff0, coeff1], axis=0) @ basis
-
-    X,Y,Z,I = numqi.gate.X, numqi.gate.Y, numqi.gate.Z, numqi.gate.I
-    tmp0 = np.stack([1j*X, 1j*Z, 1j*Z, I, I, I], axis=0)
-    logicalZ = code.conj() @ hf_kron(*tmp0) @ code.T
-    assert np.abs(1j*logicalZ - Z).max() < 1e-10
+    code,info = numqi.qec.q623.get_SO5_code_with_transversal_gate(tmp0/np.linalg.norm(tmp0))
+    assert np.abs(code.conj() @ hf_kron(*info['su2']) @ code.T - numqi.gate.Z).max() < 1e-10
 
 
 def test_623stab_code():

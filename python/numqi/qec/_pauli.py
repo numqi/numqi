@@ -62,6 +62,7 @@ def _get_pauli_with_weight_sparse_hf0(num_qubit, weight, tag_neighbor=False):
     return ret
 
 
+# it takes around 4GB to save all 9-qubits Pauli
 def get_pauli_with_weight_sparse(num_qubit:int, weight:int, tag_neighbor:bool=False):
     r'''get pauli operator with given ewight
 

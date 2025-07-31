@@ -43,31 +43,42 @@ OPENBLAS="$(brew --prefix openblas)" pip install scs
 conda can create isolated Python environment to install package. If you have any problems install `numqi` using the above `pip install` command, please try following conda commands [miniconda-documentation](https://docs.conda.io/en/latest/miniconda.html)
 
 ```bash
-# for win/linux users without naivdia-GPU, nocuda is the environment name (you can change it what you like)
-conda create -y -n nocuda
-conda install -y -n nocuda -c conda-forge pytorch ipython pytest matplotlib scipy tqdm cvxpy
-conda activate nocuda
-pip install numqi
-
-# for win/linux users with nvidia-GPU, cuda118 is the environment name
-conda create -y -n cuda118
-conda install -y -n cuda118 -c conda-forge ipython pytest matplotlib scipy tqdm cvxpy
-conda install -y -n cuda118 -c pytorch pytorch
-conda activate cuda118
-pip install numqi
-
 # for macOS user, metal is the environment name
 conda create -y -n metal
-conda install -y -n metal cython ipython pytest matplotlib h5py pandas pylint jupyterlab pillow scipy tqdm opt_einsum cvxpy scs pytest-xdist pytest-cov seaborn pytorch sympy galois mkdocs ipywidgets mkdocs-material mkdocs-jupyter pymdown-extensions mkdocstrings twine platformdirs
+conda install -y -n metal -c conda-forge cython ipython pytest matplotlib h5py pandas pylint jupyterlab pillow scipy tqdm opt_einsum cvxpy scs pytest-xdist pytest-cov seaborn pytorch sympy galois mkdocs ipywidgets mkdocs-material mkdocs-jupyter pymdown-extensions mkdocstrings twine platformdirs
 # conda install -y -n metal -c MOSEK MOSEK
 conda activate metal
 ## scs-macos issue, see https://www.cvxgrp.org/scs/install/python.html
 # brew install openblas
 # OPENBLAS="$(brew --prefix openblas)" pip install scs
 pip install numqi
-```
 
-(PS) notice some weird problems if installed `conda-forge/numpy` on ubuntu, then use `pip install --force-reinstall numpy` instead.
+# for linux users with nvidia-GPU, cuda128 is the environment name
+conda create -y -n cuda129
+conda install -y -n cuda129 -c conda-forge cuda-version=12.9 cython ipython pytest matplotlib h5py pandas pylint jupyterlab pillow scipy tqdm opt_einsum cvxpy scs pytest-xdist pytest-cov "pytorch=*=*cuda129_generic*" sympy mkdocs ipywidgets mkdocs-material mkdocs-jupyter pymdown-extensions mkdocstrings twine platformdirs numba=0.61 numpy=2.2
+# conda install -y -n metal -c MOSEK MOSEK
+conda activate cuda129
+pip install galois
+pip install numqi
+# OMP_NUM_THREADS=1 pytest -n 8 --durations=10 --cov=python/numqi
+
+# windows-user
+conda create -y -n cuda129
+conda install -y -n cuda129 -c conda-forge cuda-version=12.9 cython ipython pytest matplotlib h5py pandas pylint jupyterlab pillow scipy=1.16 tqdm opt_einsum cvxpy scs pytest-xdist pytest-cov pytorch sympy mkdocs ipywidgets mkdocs-material mkdocs-jupyter pymdown-extensions mkdocstrings twine platformdirs numba=0.61 numpy=2.2
+# conda install -y -n metal -c MOSEK MOSEK
+conda activate cuda129
+pip install galois
+pip install numqi
+# $env:MKL_NUM_THREADS="1"
+# $env:OMP_NUM_THREADS="1"
+# pytest -n 8 --durations=10 --cov=python/numqi
+
+# (deprecated) for win/linux users without naivdia-GPU, nocuda is the environment name
+conda create -y -n nocuda
+conda install -y -n nocuda -c conda-forge pytorch ipython pytest matplotlib scipy tqdm cvxpy
+conda activate nocuda
+pip install numqi
+```
 
 ## Guide for contributors
 

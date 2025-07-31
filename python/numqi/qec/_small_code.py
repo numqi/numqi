@@ -5,7 +5,7 @@ import numqi.dicke
 from ._pauli import hf_pauli
 from .q623 import get_SO5_code
 from .q723 import get_cyclic_code
-from ._internal import hf_state
+from ._internal import hf_state, build_CWS_code
 
 
 def stabilizer_to_code(stab_list:list[str], logicalZ_list:list[str], tag_print:bool=True):
@@ -60,7 +60,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     '''
     # TODO carbon code https://errorcorrectionzoo.org/c/carbon
     if key is None:
-        tmp0 = '442stab 523 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic 883 shor surface17'
+        tmp0 = '442stab 523 562 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic 883 shor ((9,12,3)) surface17'
         # 723graph
         print('Available key:', tmp0)
     info = dict()
@@ -101,6 +101,17 @@ def get_code_subspace(key:str|None=None, **kwargs):
         }
         # circ = numqi.qec.generate_code523()['encode']
         # ret = np.stack([circ.apply_state(x) for x in np.eye(2, 32).astype(np.complex128)], axis=0)
+    elif key=='562':
+        adjacent = np.zeros((5,5), dtype=np.uint8)
+        ind1 = np.array([[0,1], [1,2], [2,3], [3,4], [4,0]])
+        adjacent[ind1[:,0], ind1[:,1]] = 1
+        adjacent[ind1[:,1], ind1[:,0]] = 1
+        tmp0 = '00000 11010 01101 10110 01011 10101'
+        codeword = np.array([[int(y) for y in x] for x in tmp0.split(' ')], dtype=np.uint8)
+        ret = build_CWS_code(adjacent, codeword)
+        qweA = np.array([1,0,0,0,5/3,8/3])
+        qweB = np.array([1,0,20,50,75,46])
+        info = dict(qweA=qweA, qweB=qweB)
     elif key=='623stab':
         # https://errorcorrectionzoo.org/c/stab_6_1_3
         # https://arxiv.org/abs/0803.1495
@@ -145,7 +156,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     elif key=='623-SO5':
         # https://arxiv.org/abs/2410.07983
         vece = kwargs.get('vece', np.array([1,1,1,1,1])/np.sqrt(5))
-        coeff,info = get_SO5_code(vece, return_info=True)
+        ret,info = get_SO5_code(vece, return_info=True)
     elif key=='steane':
         tag_cyclic = kwargs.get('cyclic', True)
         if tag_cyclic: #[0,1,3,2,5,6,4] cyclic symmetry
@@ -187,21 +198,15 @@ def get_code_subspace(key:str|None=None, **kwargs):
             'qweB': np.array([1,0,5,36,11,96,47,60]),
         }
     # elif key=='723graph':
-    #     np0 = np.zeros((7,7), dtype=np.uint8)
-    #     tmp0 = [[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,0]]
-    #     tmp0 += [[y,x] for x,y in tmp0]
-    #     tmp0 = np.array(tmp0).T
-    #     np0[tmp0[0], tmp0[1]] = 1
-    #     code0 = numqi.sim.build_graph_state(np0, return_stabilizer_circ=False)
-    #     circ = numqi.sim.Circuit()
-    #     for x in range(7):
-    #         circ.Z(x)
-    #     code1 = circ.apply_state(code0)
-    #     ret = np.stack([code0, code1], axis=0)
-    #     info = {
-    #         'qweA': np.array([1,0,0,0,21,0,42,0]),
-    #         'qweB': np.array([1,0,0,21,21,126,42,45]),
-    #     }
+    #     adjacent = np.zeros((7,7), dtype=np.uint8)
+    #     ind1 = np.array([[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,0]])
+    #     adjacent[ind1[:,0], ind1[:,1]] = 1
+    #     adjacent[ind1[:,1], ind1[:,0]] = 1
+    #     codeword = np.array([[0]*7, [1]*7], dtype=np.uint8)
+    #     ret = build_CWS_code(adjacent, codeword)
+    #     qweA = np.array([1,0,0,0,21,0,42,0])
+    #     qweB = np.array([1,0,0,21,21,126,42,45])
+    #     info = dict(qweA=qweA, qweB=qweB)
     elif key=='723permutation':
         # http://arxiv.org/abs/quant-ph/0304153v3
         # Permutationally Invariant Codes for Quantum Error Correction eq(62)
@@ -226,18 +231,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     elif key=='723cyclic':
         lambda2 = kwargs.get('lambda2', 6)
         sign = kwargs.get('sign', '++')
-        coeff, _, basis = get_cyclic_code(lambda2, sign)
-        ret = coeff @ basis
-        info = {
-            'logicalX': 'XXXXXXX',
-            'logicalZ': 'ZZZZZZZ',
-            'lambda2': lambda2,
-            'sign': sign,
-            'basis': basis,
-            'coeff': coeff,
-            'qweA': np.array([1, 0, lambda2, 0, 21-2*lambda2, 0, 42+lambda2, 0]),
-            'qweB': np.array([1, 0, lambda2, 21+3*lambda2, 21-2*lambda2, 126-6*lambda2, 42+lambda2, 45+3*lambda2]),
-        }
+        ret,info = get_cyclic_code(lambda2, sign, return_info=True)
     elif key=='883':
         # https://errorcorrectionzoo.org/c/stab_8_3_3
         # https://arxiv.org/abs/quant-ph/9605021 eq(25)
@@ -271,6 +265,22 @@ def get_code_subspace(key:str|None=None, **kwargs):
             'qweA': np.array([1,0,9,0,27,0,75,0,144,0]),
             'qweB': np.array([1,0,9,39,27,207,75,333,144,189]),
         }
+    elif key=='((9,12,3))':
+        # http://arxiv.org/abs/0704.2122v1
+        codeword = np.zeros((12, 9), dtype=np.uint8)
+        ind0 = [[], [2,6,7], [4,5,9], [2,3,6,8], [3,5,8,9], [2,3,4,5,6,7,8,9], [1,4,7],
+                [1,2,4,6], [1,5,7,9], [1,2,3,4,6,7,8], [1,3,4,5,7,8,9], [1,2,3,5,6,8,9]]
+        ind0 = [[y-1 for y in x] for x in ind0]
+        for i,x in enumerate(ind0):
+            codeword[i,x] = 1
+        adjacent = np.zeros((9,9), dtype=np.uint8)
+        ind1 = np.array([(x,(x+1)%9) for x in range(9)])
+        adjacent[ind1[:,0], ind1[:,1]] = 1
+        adjacent[ind1[:,1], ind1[:,0]] = 1
+        ret = build_CWS_code(adjacent, codeword)
+        qweA = np.array([1,0,0,0, 2/3, 0, 32/3, 64/3, 9, 0])
+        qweB = np.array([1,0,0,68, 242, 684, 1464, 1852, 1365, 468])
+        info = dict(adjacent=adjacent, codeword=codeword, qweA=qweA, qweB=qweB)
     elif key=='surface17':
         # https://arxiv.org/abs/1608.05053
         # https://errorcorrectionzoo.org/c/surface-17

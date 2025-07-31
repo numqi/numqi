@@ -60,11 +60,11 @@ def get_SO5_code(vece_or_abcde, phase=0, return_info=False, seed=None, zero_eps=
         assert abs(np.linalg.norm(vece)-1) < zero_eps, 'unit vector required'
         tmp0 = np.linalg.eigh(np.eye(5) - vece.reshape(-1,1)*vece)[1][:,1:].T
         tmp1 = numqi.random.rand_special_orthogonal_matrix(4, seed=np_rng) @ tmp0
-        matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0)
+        matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0).T
     else:
         assert np.abs(vece_or_abcde @ vece_or_abcde.T - np.eye(5)).max() < zero_eps, 'orthogonal matrix required'
         matO = vece_or_abcde
-    veca,vecb,vecc,vecd,vece = matO
+    veca,vecb,vecc,vecd,vece = matO.T
     coeff0 = np.concatenate([veca+1j*vecb, vecc+1j*vecd], axis=0)/2
     coeff1 = np.concatenate([coeff0[5:].conj(), -coeff0[:5].conj()], axis=0)
     coeff = np.stack([coeff0, coeff1], axis=0)
@@ -84,7 +84,7 @@ def get_SO5_code(vece_or_abcde, phase=0, return_info=False, seed=None, zero_eps=
             tmp0[5-ind0] = 'Z'
             tmp0[5-ind1] = 'Z'
             lambda_ai_dict[''.join(tmp0)] = vece[ind0]*vece[ind0]/2 + vece[ind1]*vece[ind1]/2
-        error_str_list = make_pauli_error_list_sparse(num_qubit=6, distance=3)[0]
+        error_str_list = make_pauli_error_list_sparse(num_qubit=6, distance=3, kind='scipy-csr01')[0]
         lambda_ai = np.array([lambda_ai_dict.get(x,0) for x in error_str_list], dtype=np.float64)
         tmp0 = (vece**4).sum()
         qweA = np.array([1, 0, 0.5+0.5*tmp0, 0.5-0.5*tmp0, 11.5-0.5*tmp0, 15.5+0.5*tmp0, 3]) #by numerical fitting
@@ -92,3 +92,32 @@ def get_SO5_code(vece_or_abcde, phase=0, return_info=False, seed=None, zero_eps=
         info = dict(coeff=coeff, basis=basis, phase=phase, vece=vece, matO=matO, lambda_ai=lambda_ai, qweA=qweA, qweB=qweB)
         ret = code, info
     return ret
+
+
+def get_SO5_code_with_transversal_gate(vece:np.ndarray):
+    assert (vece.ndim==1) and (vece.shape[0] in (2,3,4,5))
+    assert abs(np.dot(vece,vece)-1) < 1e-10, 'unit vector required'
+    X,Y,Z,I = numqi.gate.X, numqi.gate.Y, numqi.gate.Z, numqi.gate.I
+    if vece.shape[0]==2: #BD4
+        r,s = vece
+        matO = 0.5*np.array([[-s,s,-s,s,2*r], [r,-r,r,-r,2*s], [1,1,1,1,0], [1,-1,-1,1,0], [1,1,-1,-1,0]])
+        code,info = get_SO5_code(matO, return_info=True)
+        s3 = np.sqrt(3)
+        info['su2X'] = np.stack([2*Y, s3*X+Y, X-s3*Y, s3*X+Y, X-s3*Y, X-s3*Y], axis=0) * 0.5j
+        info['su2Z'] = np.stack([1j*X, 1j*Z, -Z, I, I, I], axis=0)
+    elif vece.shape[0]==3: #C4
+        r,s,t = vece
+        alpha = np.arccos(t/np.sqrt(t*t+1)) + np.arctan(s/r)
+        beta = -np.arccos(t/np.sqrt(t*t+1)) + np.arctan(s/r)
+        a1 = np.sqrt(t*t+1)*np.cos(alpha)
+        a2 = np.sqrt(t*t+1)*np.sin(alpha)
+        b1 = np.sqrt(t*t+1)*np.cos(beta)
+        b2 = np.sqrt(t*t+1)*np.sin(beta)
+        a3 = -(a1*r + a2*s)/t
+        matO = 0.5*np.array([[a1,b1,a1,b1,2*r], [a2,b2,a2,b2,2*s], [a3,a3,a3,a3,2*t], [1,-1,-1,1,0], [1,1,-1,-1,0]])
+        code,info = get_SO5_code(matO, return_info=True)
+        info['su2'] = np.stack([1j*X, 1j*Z, -Z, I, I, I], axis=0)
+    else:
+        tmp0 = np.concat([vece, np.zeros(5-vece.shape[0])])
+        code,info = get_SO5_code(tmp0, return_info=True) #no transversal gate
+    return code, info

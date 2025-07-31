@@ -178,3 +178,60 @@ def test_is_code_feasible_linear_programming():
         assert numqi.qec.is_code_feasible_linear_programming(n,1,d)[0]
     for n,d in fail_list:
         assert not numqi.qec.is_code_feasible_linear_programming(n,1,d)[0]
+
+
+def _build_graph_state_naive(adjacent):
+    assert (adjacent.ndim==2) and (adjacent.shape[0]==adjacent.shape[1])
+    assert (adjacent.dtype==np.uint8) and (adjacent.max()<=1)
+    N0 = adjacent.shape[0]
+    tmp0,tmp1 = np.nonzero(adjacent)
+    edge_list = sorted({((x,y) if x<y else (y,x)) for x,y in zip(tmp0.tolist(),tmp1.tolist())})
+    circ = numqi.sim.Circuit()
+    for ind0 in range(N0):
+        circ.H(ind0)
+    for ind0,ind1 in edge_list:
+        circ.cz(ind0,ind1)
+    psi = circ.apply_state(numqi.sim.new_base(N0)).real
+    return psi
+
+def test_build_graph_state():
+    for N0 in [3,5,7]:
+        adjacent = numqi.random.rand_adjacent_matrix(N0)
+        q0 = _build_graph_state_naive(adjacent)
+        q1 = numqi.qec.build_graph_state(adjacent)
+        assert np.abs(q0-q1).max() < 1e-10
+        # stabilizer
+        for ind0 in range(N0):
+            tmp0 = ['I']*N0
+            tmp0[ind0] = 'X'
+            for x in adjacent[ind0].nonzero()[0]:
+                tmp0[x] = 'Z'
+            assert np.abs(numqi.qec.hf_pauli(''.join(tmp0)) @ q1 - q1).max() < 1e-10
+        # all fundamentally different graph
+        # Number of graphs on n unlabeled nodes
+        # https://oeis.org/A000088
+        # https://qr.ae/pymd0r
+        # https://math.stackexchange.com/q/353053
+        # https://www.graphclasses.org/smallgraphs.html
+        # 1 1 2 4 11 34 156 1044 12346 274668
+
+
+def test_build_CWS_code():
+    adjacent = np.zeros((7,7), dtype=np.uint8)
+    ind1 = np.array([[0,1], [1,2], [2,3], [3,4], [4,5], [5,6], [6,0]])
+    adjacent[ind1[:,0], ind1[:,1]] = 1
+    adjacent[ind1[:,1], ind1[:,0]] = 1
+    codeword = np.array([[0]*7, [1]*7], dtype=np.uint8)
+    code = numqi.qec.build_CWS_code(adjacent, codeword)
+    qweA, qweB = numqi.qec.get_weight_enumerator(code)
+    qweA_ = np.array([1,0,0,0,21,0,42,0])
+    qweB_ = np.array([1,0,0,21,21,126,42,45])
+    assert np.abs(qweA - qweA_).max() < 1e-10
+    assert np.abs(qweB - qweB_).max() < 1e-10
+
+
+def test_562_code():
+    code,info = numqi.qec.get_code_subspace('562')
+    qweA, qweB = numqi.qec.get_weight_enumerator(code)
+    assert np.abs(qweA - info['qweA']).max() < 1e-10
+    assert np.abs(qweB - info['qweB']).max() < 1e-10

@@ -24,19 +24,16 @@ def test_steane_code():
 
 
 def test_get_723_cyclic_code():
-    error_str_list,op_list = numqi.qec.make_pauli_error_list_sparse(num_qubit=7, distance=3, kind='scipy-csr01')
+    op_list = numqi.qec.make_pauli_error_list_sparse(num_qubit=7, distance=3, kind='scipy-csr01')[1]
     lambda2 = np_rng.uniform(0, 7)
     for sign in ['++', '+-', '-+', '--']:
-        coeff,lambda_ai_dict,basis = numqi.qec.q723.get_cyclic_code(lambda2, sign=sign)
-        q0 = coeff @ basis
+        q0,info = numqi.qec.q723.get_cyclic_code(lambda2, sign=sign, return_info=True)
         z0 = q0.conj() @ (op_list @ q0.T).reshape(-1, 2**7, 2)
         assert np.abs(z0.imag).max() < 1e-12
         assert np.abs(z0[:,0,1]).max() < 1e-12
         assert np.abs(z0[:,1,0]).max() < 1e-12
         assert np.abs(z0[:,0,0] - z0[:,1,1]).max() < 1e-12
-        z0 = z0[:,0,0].real
-        z1 = np.array([lambda_ai_dict.get(x,0) for x in error_str_list])
-        assert np.abs(z0-z1).max() < 1e-12
+        assert np.abs(z0[:,0,0]-info['lambda_ai']).max() < 1e-12
 
 
 def test_723_cyclic_code_weight_enumerator():
