@@ -278,32 +278,6 @@ def test_teleportation():
     assert abs(abs(np.vdot(V[0], q0)) - 1) < 1e-7 #fidelity 1
 
 
-def test_build_graph_state():
-    for N0 in [3,5,7]:
-        adjacent_mat = numqi.random.rand_adjacent_matrix(N0)
-        q0, stabilizer_circ_list = numqi.sim.build_graph_state(adjacent_mat, return_stabilizer_circ=True)
-        z0 = np.array([np.vdot(q0, x.apply_state(q0)) for x in stabilizer_circ_list])
-        assert np.abs(z0-1).max() < 1e-10
-
-        tmp0 = sorted({tuple(x.tolist()) for x in numqi.random.rand_F2(8, N0)})[:4]
-        bit1_list = [tuple(z for z,y in enumerate(x) if y) for x in tmp0]
-        basis_list = []
-        for bit1_i in bit1_list:
-            circ = numqi.sim.Circuit()
-            for x in bit1_i:
-                circ.Z(x)
-            basis_list.append(circ.apply_state(q0))
-        basis_list = np.stack(basis_list)
-        assert np.abs(basis_list @ basis_list.T - np.eye(basis_list.shape[0])).max() < 1e-10
-        # all fundamentally different graph
-        # Number of graphs on n unlabeled nodes
-        # https://oeis.org/A000088
-        # https://qr.ae/pymd0r
-        # https://math.stackexchange.com/q/353053
-        # https://www.graphclasses.org/smallgraphs.html
-        # 1 1 2 4 11 34 156 1044 12346 274668
-
-
 def test_circuit_ParameterHolder():
     parameter = np_rng.uniform(0, 2*np.pi, size=3)
     tmp0 = np_rng.normal(size=8) + 1j*np_rng.normal(size=8)

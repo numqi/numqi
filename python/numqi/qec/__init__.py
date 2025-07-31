@@ -1,4 +1,4 @@
-from ._internal import generate_code_np, hf_state
+from ._internal import generate_code_np, hf_state, build_graph_state, build_CWS_code, get_all_non_isomorphic_graph
 
 from ._small_code import stabilizer_to_code, get_code_subspace
 
