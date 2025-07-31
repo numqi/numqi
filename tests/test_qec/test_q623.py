@@ -13,7 +13,7 @@ def test_get_transversal_gate623():
     # vece = np.array([1,0,0,0,0])
     code = numqi.qec.q623.get_SO5_code(vece)
     logical_list = numqi.qec.get_transversal_group(code, num_round=20, tag_print=False)
-    assert len(logical_list)==8 #BD_2
+    assert len(logical_list)==8 #BD4
     # info = numqi.qec.get_transversal_group_info([x[0] for x in logical_list])
 
     a,b,c = np_rng.normal(size=3)

@@ -60,7 +60,7 @@ def get_SO5_code(vece_or_abcde, phase=0, return_info=False, seed=None, zero_eps=
         assert abs(np.linalg.norm(vece)-1) < zero_eps, 'unit vector required'
         tmp0 = np.linalg.eigh(np.eye(5) - vece.reshape(-1,1)*vece)[1][:,1:].T
         tmp1 = numqi.random.rand_special_orthogonal_matrix(4, seed=np_rng) @ tmp0
-        matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0)
+        matO = np.concatenate([tmp1, vece.reshape(1,-1)], axis=0).T
     else:
         assert np.abs(vece_or_abcde @ vece_or_abcde.T - np.eye(5)).max() < zero_eps, 'orthogonal matrix required'
         matO = vece_or_abcde
