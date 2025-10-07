@@ -60,7 +60,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     '''
     # TODO carbon code https://errorcorrectionzoo.org/c/carbon
     if key is None:
-        tmp0 = '442stab 523 562 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic 883 shor ((9,12,3)) surface17'
+        tmp0 = '442stab 523 562 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic color832 883 shor ((9,12,3)) surface17'
         # 723graph
         print('Available key:', tmp0)
     info = dict()
@@ -232,6 +232,29 @@ def get_code_subspace(key:str|None=None, **kwargs):
         lambda2 = kwargs.get('lambda2', 6)
         sign = kwargs.get('sign', '++')
         ret,info = get_cyclic_code(lambda2, sign, return_info=True)
+    elif key=='color832':
+        # https://earltcampbell.com/2016/09/26/the-smallest-interesting-colour-code/
+        # https://errorcorrectionzoo.org/c/stab_8_3_2
+        hz_str = ['ZZZZIIII', 'ZZIIZZII', 'ZIZIZIZI', 'ZZZZZZZZ']
+        hx_str = ['XXXXXXXX']
+        lx_str = ['XXXXIIII', 'XXIIXXII', 'XIXIXIXI']
+        lz_str = ['ZIIIZIII', 'ZIZIIIII', 'ZZIIIIII']
+        # q0 = numqi.qec.stabilizer_to_code(stab_list=hz_str+hx_str, logicalZ_list=lz_str, tag_print=False)
+        q0 = np.zeros((8, 256), dtype=np.float64)
+        s12 = 1/np.sqrt(2)
+        q0[0, [0,255]] = s12
+        q0[1, [85,170]] = s12
+        q0[2, [51,204]] = s12
+        q0[3, [102,153]] = s12
+        q0[4, [15,240]] = s12
+        q0[5, [90,165]] = s12
+        q0[6, [60,195]] = s12
+        q0[7, [105,150]] = s12
+        # transversal CCZ gate: T Tdag Tdag T Tdag T T Tdag
+        qweA = np.array([1, 0, 0, 0, 14, 0, 0, 0, 17], dtype=np.float64)
+        qweB = np.array([1, 0, 28, 0, 182, 448, 700, 448, 241], dtype=np.float64)
+        info = dict(hx_str=hx_str, hz_str=hz_str, lx_str=lx_str, lz_str=lz_str, qweA=qweA, qweB=qweB)
+        ret = q0
     elif key=='883':
         # https://errorcorrectionzoo.org/c/stab_8_3_3
         # https://arxiv.org/abs/quant-ph/9605021 eq(25)
