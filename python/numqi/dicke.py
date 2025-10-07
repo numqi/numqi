@@ -7,7 +7,6 @@ import scipy.sparse
 import torch
 import opt_einsum
 
-
 def _dicke_hf0(klist, base, dim, num_qudit):
     ret = np.zeros(dim**num_qudit, dtype=np.float64)
     tmp0 = [int(x) for x,y in enumerate(klist) for _ in range(y)]
@@ -210,6 +209,7 @@ def get_qubit_dicke_rdm_tensor(n:int, rdm:int):
     return ret
 
 
+# TODO to be replaced with get_pauli_symmetrical_projection
 def get_qubit_dicke_rdm_pauli_tensor(n:int, rdm:int, kind:str='numpy'):
     assert 1<=rdm<n
     assert kind in {'numpy', 'torch', 'scipy-csr0', 'scipy-csr01', 'torch-csr0', 'torch-csr01'}
@@ -300,4 +300,83 @@ def u2_to_dicke(np0:np.ndarray|torch.Tensor, n:int, _info:dict|None=None):
         term4 = (abcd[2][_info['ind12']] * _info['mask'])
         ret = opt_einsum.contract(_info['binom'], [0,1,2], term2, [0,1,2], term3, [1,2], term4, [0,2], abcd[3], [2], [0,1])
         ret = ret * (det_factor**n)
+    return ret
+
+
+@functools.lru_cache
+def _get_qubit_dicke_Tabi_hf0(n:int):
+    tmp0 = np.arange(n+1, dtype=np.int64)
+    ret = np.zeros((n+2,n+1,2), dtype=np.float64)
+    ret[tmp0,tmp0,0] = np.sqrt((n+1 - tmp0)/(n+1))
+    ret[1+tmp0,tmp0,1] = np.sqrt((tmp0+1)/(n+1))
+    ret.flags.writeable = False
+    return ret
+
+
+def get_qubit_dicke_Tabi(n:int):
+    r'''tensor T_abi = < Dicke_a | ( |Dicke_b> \otimes |i>)
+
+    Parameters:
+        n (int): number of qubits
+
+    Returns:
+        ret (np.ndarray): tensor of shape (n+2, n+1, 2)
+    '''
+    assert n>=1
+    return _get_qubit_dicke_Tabi_hf0(int(n))
+
+
+def get_local_operator_symmetry_projection(matA:np.ndarray):
+    r'''Project tensor product of local operator to the symmetrical subspace
+
+    T_ab = <D^n_a | A | O^n_b>
+
+    Parameters:
+        matA (np.ndarray): The local operator, shape=(n, m, 2, 2) or (m, 2, 2) for `m` qubit, dimension `n` for batch size.
+
+    Returns:
+        ret (np.ndarray): the projected operator, shape=(m+1,m+1) or (n,m+1,m+1)
+    '''
+    assert (matA.ndim in (3,4)) and (matA.shape[-1]==2) and (matA.shape[-2]==2)
+    if matA.shape[-2]==1:
+        ret = matA #single qubit
+    else:
+        isone = matA.ndim==3
+        if isone:
+            matA = matA[np.newaxis]
+        ret = matA[:,0]
+        for i0 in range(1, matA.shape[1]):
+            Tabi = get_qubit_dicke_Tabi(i0)
+            ret = np.einsum(ret, [6,0,1], matA[:,i0], [6,2,3], Tabi, [4,0,2], Tabi, [5,1,3], [6,4,5], optimize=True)
+        if isone:
+            ret = ret[0]
+    return ret
+
+
+hf_multinomial = lambda *a: math.factorial(sum(a)) // math.prod([math.factorial(x) for x in a])
+
+@functools.lru_cache
+def _get_pauli_symmetrical_projection_hf0(num_qubit:int, wt:int):
+    I = np.eye(2)
+    X = np.array([[0,1],[1,0]])
+    Y = np.array([[0,-1j],[1j,0]])
+    Z = np.array([[1,0],[0,-1]])
+    nxyz = [(x,y,wt-x-y) for x in range(wt+1) for y in range(wt-x+1)]
+    tmp0 = np.stack([np.stack([X]*x + [Y]*y + [Z]*z + [I]*(num_qubit-wt)) for x,y,z in nxyz])
+    XYZ_tensor = get_local_operator_symmetry_projection(tmp0)
+    multiplicity = tuple(hf_multinomial(*x,num_qubit-wt) for x in nxyz)
+    return XYZ_tensor, multiplicity, nxyz
+
+def get_pauli_symmetrical_projection(num_qubit:int, index:int|list[int]=None):
+    assert num_qubit>=1
+    if index is None:
+        index = tuple(range(num_qubit+1))
+    elif not hasattr(index, '__len__'):
+        index = (index,)
+    index = tuple(int(x) for x in index)
+    assert all(0<=x<=num_qubit for x in index)
+    ret = dict()
+    for x in index:
+        tmp0 = _get_pauli_symmetrical_projection_hf0(int(num_qubit), x)
+        ret[x] = {'xyz':tmp0[0], 'multiplicity':tmp0[1], 'nxyz':tmp0[2]}
     return ret

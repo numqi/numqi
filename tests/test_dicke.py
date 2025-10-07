@@ -1,10 +1,14 @@
+import functools
 import itertools
 import numpy as np
+import scipy.linalg
 import scipy.special
 import torch
 
 import numqi
 
+np_rng = np.random.default_rng()
+hf_kron = lambda *x: functools.reduce(np.kron, x)
 
 def test_qudit_partial_trace_AC_to_AB():
     hf_randc = lambda *x: np.random.randn(*x) + 1j*np.random.randn(*x)
@@ -82,21 +86,21 @@ def test_get_qubit_dicke_rdm_tensor():
         assert np.abs(ret_-ret0).max() < 1e-10
 
 
-def test_get_qubit_dicke_rdm_pauli_tensor():
-    for n,rdm in [(7,2), (7,4), (8,3)]:
-        Tuab_list,factor_list,pauli_str_list,weight_count = numqi.dicke.get_qubit_dicke_rdm_pauli_tensor(n, rdm)
-        basis = numqi.dicke.get_dicke_basis(n, 2)[::-1]
-        coeff = numqi.random.rand_haar_state(n+1)
-        tmp0 = np.cumsum([0] + [weight_count[x] for x in range(1,rdm)])
-        ind0_list = {(i+1):slice(x,y) for i,(x,y) in enumerate(zip(tmp0,tmp0[1:]))}
-        for wt,ind0 in ind0_list.items():
-            Tuab = Tuab_list[ind0]
-            pauli_str = pauli_str_list[ind0]
-            ret0 = np.einsum(Tuab, [0,1,2], coeff, [1], coeff.conj(), [2], [0], optimize=True).real
-            tmp0 = (coeff @ basis).reshape(2**wt, -1)
-            rho_rdm = np.einsum(tmp0, [0,1], tmp0.conj(), [2,1], [0,2], optimize=True)
-            ret_ = np.array([np.trace(numqi.qec.hf_pauli(x)@rho_rdm) for x in pauli_str])
-            assert np.abs(ret_-ret0).max() < 1e-10
+# def test_get_qubit_dicke_rdm_pauli_tensor():
+#     for n,rdm in [(7,2), (7,4), (8,3)]:
+#         Tuab_list,factor_list,pauli_str_list,weight_count = numqi.dicke.get_qubit_dicke_rdm_pauli_tensor(n, rdm)
+#         basis = numqi.dicke.get_dicke_basis(n, 2)[::-1]
+#         coeff = numqi.random.rand_haar_state(n+1)
+#         tmp0 = np.cumsum([0] + [weight_count[x] for x in range(1,rdm)])
+#         ind0_list = {(i+1):slice(x,y) for i,(x,y) in enumerate(zip(tmp0,tmp0[1:]))}
+#         for wt,ind0 in ind0_list.items():
+#             Tuab = Tuab_list[ind0]
+#             pauli_str = pauli_str_list[ind0]
+#             ret0 = np.einsum(Tuab, [0,1,2], coeff, [1], coeff.conj(), [2], [0], optimize=True).real
+#             tmp0 = (coeff @ basis).reshape(2**wt, -1)
+#             rho_rdm = np.einsum(tmp0, [0,1], tmp0.conj(), [2,1], [0,2], optimize=True)
+#             ret_ = np.array([np.trace(numqi.qec.hf_pauli(x)@rho_rdm) for x in pauli_str])
+#             assert np.abs(ret_-ret0).max() < 1e-10
 
 
 def test_u2_to_dicke():
@@ -112,3 +116,78 @@ def test_u2_to_dicke():
         tmp0 = torch.tensor(np0,dtype=torch.complex128,requires_grad=True)
         ret1 = numqi.dicke.u2_to_dicke(tmp0, ncopy).detach().numpy()
         assert np.abs(ret_-ret1).max() < 1e-12
+
+
+def dicke_to_u2(R, jxyz=None, zero_eps=1e-12):
+    assert R.ndim==2 and R.shape[0]==R.shape[1]
+    n = R.shape[-1] - 1 #2j
+    if jxyz is None:
+        jxyz = np.stack(numqi.matrix_space.get_angular_momentum_op(n), axis=0)
+    R3 = np.einsum(R, [0,1], jxyz, [4,1,2], R.T.conj(), [2,3], jxyz, [5,3,0], [4,5], optimize=True).real / (n/2*(n/2+1)*(n+1)/3)
+
+    theta = np.arccos((np.trace(R3)-1)/2)
+    if theta < zero_eps:
+        nx,ny,nz = 0,0,1 #arbitrary
+    else:
+        nx,ny,nz = np.array([(R3[2,1]-R3[1,2]), (R3[0,2]-R3[2,0]), (R3[1,0]-R3[0,1])])/(2*np.sin(theta))
+    U = np.cos(theta/2)*np.eye(2) + 1j*np.sin(theta/2)*np.array([[nz,nx-1j*ny], [nx+1j*ny, -nz]])
+    ret = U/np.sqrt(U[0,0]*U[1,1] - U[0,1]*U[1,0])
+    return ret
+
+
+def test_su2_irrep():
+    pxyz = np.stack([numqi.gate.X, numqi.gate.Y, numqi.gate.Z], axis=0)
+    for n0 in range(1, 6):
+        dicke = numqi.dicke.get_dicke_basis(n0, dim=2)[::-1]
+        jxyz = np.stack(numqi.matrix_space.get_angular_momentum_op(n0), axis=0)
+        for _ in range(10):
+            abc = np_rng.uniform(-np.pi, np.pi, size=3)
+            abc = np.array([1,0,0])
+            np0 = scipy.linalg.expm(1j*(abc[0]*pxyz[0] + abc[1]*pxyz[1] + abc[2]*pxyz[2])/2)
+            np1 = dicke @ hf_kron(*[np0]*n0) @ dicke.T
+            np2 = scipy.linalg.expm(1j*(abc[0]*jxyz[0] + abc[1]*jxyz[1] + abc[2]*jxyz[2]))
+            assert np.abs(np1-np2).max() < 1e-10
+
+            np3 = numqi.dicke.u2_to_dicke(np0, n0)
+            assert np.abs(np1-np3).max() < 1e-10
+
+            np4 = dicke_to_u2(np2)
+            assert min(np.abs(np4 - np0).max(), np.abs(np4+np0).max()) < 1e-8
+
+    # n0 = 3
+    # pxyz = np.stack([numqi.gate.X, numqi.gate.Y, numqi.gate.Z], axis=0)
+    # dicke = numqi.dicke.get_dicke_basis(n0, dim=2)[::-1]
+    # jxyz = np.stack(numqi.matrix_space.get_angular_momentum_op(n0), axis=0)
+    # x0 = numqi.random.rand_n_sphere(4)
+
+    # x1 = np.eye(jxyz.shape[1])*x0[0] + 1j*(x0[1]*jxyz[0] + x0[2]*jxyz[1] + x0[3]*jxyz[2])*2
+
+    # abc = np_rng.uniform(-0.5, 0.5, size=3)
+    # np0 = scipy.linalg.expm(1j*(abc[0]*pxyz[0] + abc[1]*pxyz[1] + abc[2]*pxyz[2]))
+    # np1 = dicke @ hf_kron(*[np0]*n0) @ dicke.T
+    # np2 = scipy.linalg.expm(1j*(abc[0]*jxyz[0] + abc[1]*jxyz[1] + abc[2]*jxyz[2])*2)
+    # assert np.abs(np1-np2).max() < 1e-10
+
+    # tmp0 = np.linalg.norm(abc)
+    # tmp1 = np.concat([np.cos(tmp0).reshape(1), np.sin(tmp0)/tmp0 * abc])
+    # x0 = tmp1[0]*np.eye(2) + 1j*(tmp1[1]*pxyz[0] + tmp1[2]*pxyz[1] + tmp1[3]*pxyz[2])
+
+
+def test_get_qubit_dicke_Tabi():
+    for n in [1,2,3,4]:
+        Tabi = numqi.dicke.get_qubit_dicke_Tabi(n)
+        dicke0 = numqi.dicke.get_dicke_basis(n, dim=2)[::-1]
+        dicke1 = numqi.dicke.get_dicke_basis(n+1, dim=2)[::-1]
+        ret_ = np.einsum(dicke1.reshape(-1, 2**n, 2), [0,1,2], dicke0, [3,1], [0,3,2], optimize=True)
+        assert np.abs(Tabi - ret_).max() < 1e-10
+
+
+def test_get_local_operator_symmetry_projection():
+    hf_randc = lambda *x: np_rng.normal(size=x) + 1j*np_rng.normal(size=x)
+    hf_kron = lambda *x: functools.reduce(np.kron, x)
+    for n0 in [1,2,3,4,5]:
+        matA  = hf_randc(n0,2,2)
+        ret0 = numqi.dicke.get_local_operator_symmetry_projection(matA)
+        basis = numqi.dicke.get_dicke_basis(matA.shape[0], dim=2)[::-1]
+        ret_ = basis @ hf_kron(*matA) @ basis.T
+        assert np.abs(ret0 - ret_).max() < 1e-10

@@ -2,18 +2,18 @@ import numpy as np
 
 import numqi
 
-def test_permutation713code_beth():
+def test_permutation723code_beth():
     s = np.sqrt
     tmp0 = np.array([s(15), 0, -s(7), 0, s(21), 0, s(21), 0])/8
-    # tmp0 = np.array([s(15), s(7), s(21), -s(21)])/8
     coeff = np.stack([tmp0, tmp0[::-1]], axis=1)
-    Taij,factor_list,pauli_str_list,weight_count = numqi.dicke.get_qubit_dicke_rdm_pauli_tensor(7, 2, kind='scipy-csr01')
-    lambda_aij = coeff.T.conj() @ (Taij @ coeff).reshape(-1, coeff.shape[0], coeff.shape[1])
+    wt_to_pauli_dict = numqi.dicke.get_pauli_symmetrical_projection(7, index=(1,2))
+    lambda_aij = np.concat([coeff.T.conj() @ wt_to_pauli_dict[x]['xyz'] @ coeff for x in (1,2)], axis=0)
     assert np.abs(lambda_aij[:,0,1]).max() < 1e-12
     assert np.abs(lambda_aij[:,1,0]).max() < 1e-12
     assert np.abs(lambda_aij[:,0,0].imag).max() < 1e-12
     assert np.abs(lambda_aij[:,0,0] - lambda_aij[:,1,1]).max() < 1e-12
-    assert abs(np.dot(lambda_aij[:,0,0].real**2, factor_list) - 7) < 1e-10
+    lambda2 = np.dot(lambda_aij[:,0,0].real**2, np.concat([np.array(wt_to_pauli_dict[x]['multiplicity']) for x in (1,2)]))
+    assert abs(lambda2 - 7) < 1e-10
 
     np1 = coeff.T.conj() @ numqi.dicke.u2_to_dicke(numqi.gate.X, 7) @ coeff
     assert np.abs(np1-numqi.gate.X).max() < 1e-10
@@ -62,7 +62,7 @@ def test_permutation713code_beth():
     assert np.abs(np0-np1).max() < 1e-10
 
 
-def test_permutation713code_q212():
+def test_permutation723code_q212():
     # https://arxiv.org/pdf/2310.05358 eq(14) even-odd code
     # transversal group 2I
     s = np.sqrt

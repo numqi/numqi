@@ -22,7 +22,7 @@ from .transversal import (su2_finite_subgroup_gate_dict, get_su2_finite_subgroup
     get_transversal_group, get_transversal_group_info, pick_indenpendent_vector,
     get_chebshev_center_Axb, get_BD2m_submultiset, get_C2m_submultiset, search_veca_BD_group, search_veca_C_group)
 
-from .picode import get_bg_picode
+from .picode import get_bg_picode, get_picode_weight_enumerator
 
 from .gf4 import str_to_gf4, gf4_to_str, matmul_gf4, get_subspace_minus, get_logical_from_stabilizer
 
