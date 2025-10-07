@@ -120,3 +120,62 @@ def test_search_veca_BD_group():
     x1 = {(2,3,4,5,6,7,8),(2,3,4,8,11,12,13),(2,3,5,7,10,12,14),(2,4,5,6,10,11,15),
           (2,7,8,12,13,14,15),(3,6,8,11,13,14,16),(4,5,8,11,12,15,16),(4,6,7,10,13,15,16)}
     assert {tuple(y) for y in x0}==x1
+
+
+def test_ReedMuller_15_1_3_transversalT():
+    # import numft
+    # import stim
+    # code = numft.css.TetrahedralColorCode()
+    # tmp0 = np.concat([code.hx,0*code.hx], axis=1)
+    # tmp0 = [stim.PauliString(x) for x in (code.hx_str + code.hz_str + code.lz_str)]
+    # circ = stim.Tableau.from_stabilizers(tmp0).to_circuit()
+    # circ_str = circ
+    circ_str = ['H 0 1', 'CX 0 1 0 4 0 5 0 6 0 14', 'H 2 3',
+            ('CX 1 2 1 3 1 4 1 5 1 7 1 8 1 14 2 4 2 7 2 8 2 9 2 11 4 3 3 4 4 3 3 6 3 11 3 12 4 5 4 7 4 10 '
+            '4 13 7 5 5 7 7 5 5 9 5 10 6 12 7 6 7 12 7 13 14 8 8 14 14 8 8 14 14 9 9 14 14 9 9 11 9 14 11 '
+            '10 10 11 11 10 10 12 14 11 11 14 14 11 11 14 14 12 12 14 14 12 12 13 14 13 13 14 14 13')]
+    hx_str = 'XXXXXXXXIIIIIII IXXIXXIIXXIXXII IIXXIXXIIXXXIXI IIIIXXXXIIIXXXX'.split(' ')
+    hz_str = ('ZZZZIIIIIIIIIII ZZIIZIIZIIIIIII ZIIZIIZZIIIIIII IZZIZZIIIIIIIII IZZIIIIIZZIIIII IIZIIZIIIZIZIII '
+                    'IIIIZZIIIIIZZII IIZZIIIIIZZIIII IIIZIIZIIIZIIZI IIIIZIIZIIIIZIZ').split(' ')
+    lx_str = ['XXXXIIIIXXXIIII']
+    lz_str = ['ZZIIIIIIZIIIIII']
+    circ_state = numqi.sim.Circuit()
+    n = 15
+    for x0 in circ_str:
+        x0 = x0.split(' ')
+        x0 = x0[:1] + [int(x) for x in x0[1:]]
+        if x0[0]=='H':
+            for y in x0[1:]:
+                circ_state.H(y)
+        elif x0[0]=='CX':
+            for y0,y1 in zip(x0[1::2], x0[2::2]):
+                circ_state.cnot(y0, y1)
+        else:
+            raise NotImplementedError
+    q0 = np.zeros((2**n), dtype=np.complex128)
+    q0[0] = 1
+    logical0 = circ_state.apply_state(q0)
+    q0[0] = 0
+    q0[1] = 1
+    logical1 = circ_state.apply_state(q0)
+    code_state = np.stack([logical0,logical1], axis=0) #logical basis for CSS code are real
+
+    pauli_str,pauli = numqi.qec.make_pauli_error_list_sparse(n, distance=3, kind='scipy-csr01')
+    z0 = code_state.conj() @ (pauli @ code_state.T).reshape(-1, 2**n, 2)
+    assert np.abs(z0[:,0,1]).max() < 1e-10
+    assert np.abs(z0[:,1,0]).max() < 1e-10
+    assert np.abs(z0[:,0,0] - z0[:,1,1]).max() < 1e-10
+    assert np.abs(z0[:,0,0].imag).max() < 1e-10
+    assert np.abs(z0).max() < 1e-10 #[[15,1,3]] non-degenerate code
+
+    for x in hx_str+hz_str:
+        tmp0 = code_state.conj() @ (numqi.qec.hf_pauli(x,tag_csr=True) @ code_state.T)
+        assert np.abs(tmp0-np.eye(2)).max() < 1e-10
+    assert np.abs(code_state.conj() @ (numqi.qec.hf_pauli(lz_str[0],tag_csr=True) @ code_state.T) - np.array([[1,0],[0,-1]])).max() < 1e-10
+    assert np.abs(code_state.conj() @ (numqi.qec.hf_pauli(lx_str[0],tag_csr=True) @ code_state.T) - np.array([[0,1],[1,0]])).max() < 1e-10
+
+    Tdag_diag = np.array([1,np.exp(-1j*np.pi/4)], dtype=np.complex128)
+    Tdag_diag15 = Tdag_diag
+    for _ in range(14):
+        Tdag_diag15 = (Tdag_diag15.reshape(-1,1)*Tdag_diag).reshape(-1)
+    assert np.abs(code_state.conj() @ (code_state * Tdag_diag15).T - np.array([[1,0],[0,np.exp(1j*np.pi/4)]])).max() < 1e-10
