@@ -12,21 +12,27 @@ import numqi._internal
 
 from .gf4 import str_to_gf4, gf4_to_str
 
-# TODO sparse for performance
-def hf_pauli(x:str):
+def hf_pauli(x:str, tag_csr:bool=False):
     r'''convert Pauli string to matrix, should NOT be used in performance-critical code
 
     Parameters:
         x (str): Pauli string, e.g. 'IXYZ'
+        tag_csr (bool): if True, return scipy.sparse.csr_array
 
     Returns:
-        ret (np.ndarray): shape=(2**n,2**n), Pauli matrix
+        ret (np.ndarray,scipy.sparse.csr_array): shape=(2**n,2**n), Pauli matrix
     '''
     assert (len(x)>=1) and (set(x) <= {'I','X','Y','Z'})
     tmp0 = {'I':np.eye(2), 'X':numqi.gate.X, 'Y':numqi.gate.Y, 'Z':numqi.gate.Z}
-    ret = tmp0[x[0]]
-    for x0 in x[1:]:
-        ret = np.kron(ret, tmp0[x0])
+    if not tag_csr:
+        ret = tmp0[x[0]]
+        for x0 in x[1:]:
+            ret = np.kron(ret, tmp0[x0])
+    else:
+        tmp0 = {k:scipy.sparse.csr_array(v, dtype=np.complex128) for k,v in tmp0.items()}
+        ret = tmp0[x[0]]
+        for x0 in x[1:]:
+            ret = scipy.sparse.kron(ret, tmp0[x0], format='csr')
     return ret
 
 def _get_pauli_with_weight_sparse_hf0(num_qubit, weight, tag_neighbor=False):
