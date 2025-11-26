@@ -28,6 +28,7 @@ dependencies = [
     'galois',
     'platformdirs',
     'h5py',
+    'filelock',
 ]
 dynamic = ["version"]
 

@@ -3,6 +3,7 @@ import platformdirs
 import h5py
 import numpy as np
 import scipy.sparse
+import filelock
 
 # use hdf5 file to store data
 
@@ -20,11 +21,13 @@ def get_savepath():
 
 def _save_to_hdf5_enter(_save_func):
     def hf0(key, data, overwrite:bool=False):
-        with h5py.File(get_savepath(), 'a', libver='latest') as fid:
-            if (key not in fid.keys()) or overwrite:
-                if key in fid.keys():
-                    del fid[key]
-                _save_func(fid, key, data)
+        path = get_savepath()
+        with filelock.FileLock(path+'.lock'):
+            with h5py.File(path, 'a', libver='latest') as fid:
+                if (key not in fid.keys()) or overwrite:
+                    if key in fid.keys():
+                        del fid[key]
+                    _save_func(fid, key, data)
     return hf0
 
 
@@ -86,10 +89,11 @@ def load_from_disk(key:str):
     return ret
 
 
-def delete_from_disk(key:str):
-    assert isinstance(key, str), 'key must be a string'
-    with h5py.File(get_savepath(), 'a', libver='latest') as fid:
-        if key in fid.keys():
-            del fid[key]
-        else:
-            raise KeyError(f'Key {key} not found in disk')
+def delete_with_key_prefix(key_prefix:str):
+    assert isinstance(key_prefix, str), 'key_prefix must be a string'
+    filepath = get_savepath()
+    if os.path.exists(filepath):
+        with h5py.File(filepath, 'a', libver='latest') as fid:
+            keys_to_delete = [k for k in fid.keys() if k.startswith(key_prefix)]
+            for k in keys_to_delete:
+                del fid[k]
