@@ -60,7 +60,7 @@ def get_code_subspace(key:str|None=None, **kwargs):
     '''
     # TODO carbon code https://errorcorrectionzoo.org/c/carbon
     if key is None:
-        tmp0 = '442stab 523 562 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic color832 883 shor ((9,12,3)) surface17'
+        tmp0 = '442stab 523 562 623stab 623-SO5 642stab steane 723bare 723permutation 723cyclic color832 883 shor ((9,12,3)) surface17 ReedMuller15_1_3'
         # 723graph
         print('Available key:', tmp0)
     info = dict()
@@ -304,6 +304,26 @@ def get_code_subspace(key:str|None=None, **kwargs):
         qweA = np.array([1,0,0,0, 2/3, 0, 32/3, 64/3, 9, 0])
         qweB = np.array([1,0,0,68, 242, 684, 1464, 1852, 1365, 468])
         info = dict(adjacent=adjacent, codeword=codeword, qweA=qweA, qweB=qweB)
+    elif key=='ReedMuller15_1_3':
+        # https://errorcorrectionzoo.org/c/stab_15_1_3
+        # https://errorcorrectionzoo.org/c/tetrahedral_color
+        # tetrahedral code [[15,1,3]] with transversal T gate
+        # Fault-Tolerant Code Switching Protocols for Near-Term Quantum Processors
+        # https://arxiv.org/abs/2306.17686 (indexing see FIG3)
+        ind0 = [0,1935,6970,7349,10969,11606,12771,13932,18924,20067,21206,21849,25397,25786,30735,32640]
+        ind1 = [127,2032,6981,7370,10918,11561,12700,13843,18835,19996,21161,21798,25418,25797,30832,32767]
+        q0 = np.zeros((2,2**15), dtype=np.float64)
+        q0[0,ind0] = 1/4
+        q0[1,ind1] = 1/4
+        hx = 'XXXXXXXXIIIIIII IXXIXXIIXXIXXII IIXXIXXIIXXXIXI IIIIXXXXIIIXXXX'.split(' ')
+        hz = ('ZZZZIIIIIIIIIII ZZIIZIIZIIIIIII ZIIZIIZZIIIIIII IZZIZZIIIIIIIII IZZIIIIIZZIIIII IIZIIZIIIZIZIII '
+                        'IIIIZZIIIIIZZII IIZZIIIIIZZIIII IIIZIIZIIIZIIZI IIIIZIIZIIIIZIZ').split(' ')
+        lx = 'XXXXIIIIXXXIIII'
+        lz = 'ZZIIIIIIZIIIIII'
+        qweA = np.array([1,0,0,0,105,0,280,0,675,0,5208,0,8435,0,1680,0])
+        qweB = np.array([1,0,0,35,105,168,280,675,675,8680,5208,25305,8435,11760,1680,2529])
+        info = dict(hx=hx, hz=hz, lx=lx, lz=lz, qweA=qweA, qweB=qweB)
+        ret = q0
     elif key=='surface17':
         # https://arxiv.org/abs/1608.05053
         # https://errorcorrectionzoo.org/c/surface-17

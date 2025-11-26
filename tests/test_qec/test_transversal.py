@@ -122,7 +122,8 @@ def test_search_veca_BD_group():
     assert {tuple(y) for y in x0}==x1
 
 
-def test_ReedMuller_15_1_3_transversalT():
+# TODO numqi.qec._small_code.stabilizer_to_code_circuit
+def _get_ReedMuller_15_1_3_code_circuit():
     # import numft
     # import stim
     # code = numft.css.TetrahedralColorCode()
@@ -160,22 +161,26 @@ def test_ReedMuller_15_1_3_transversalT():
     logical1 = circ_state.apply_state(q0)
     code_state = np.stack([logical0,logical1], axis=0) #logical basis for CSS code are real
 
-    pauli_str,pauli = numqi.qec.make_pauli_error_list_sparse(n, distance=3, kind='scipy-csr01')
-    z0 = code_state.conj() @ (pauli @ code_state.T).reshape(-1, 2**n, 2)
+
+def test_ReedMuller_15_1_3_transversalT():
+    q0,info = numqi.qec.get_code_subspace('ReedMuller15_1_3', return_info=True)
+
+    pauli_str,pauli = numqi.qec.make_pauli_error_list_sparse(15, distance=3, kind='scipy-csr01')
+    z0 = q0.conj() @ (pauli @ q0.T).reshape(-1, 2**15, 2)
     assert np.abs(z0[:,0,1]).max() < 1e-10
     assert np.abs(z0[:,1,0]).max() < 1e-10
     assert np.abs(z0[:,0,0] - z0[:,1,1]).max() < 1e-10
     assert np.abs(z0[:,0,0].imag).max() < 1e-10
     assert np.abs(z0).max() < 1e-10 #[[15,1,3]] non-degenerate code
 
-    for x in hx_str+hz_str:
-        tmp0 = code_state.conj() @ (numqi.qec.hf_pauli(x,tag_csr=True) @ code_state.T)
+    for x in info['hx']+info['hz']:
+        tmp0 = q0.conj() @ (numqi.qec.hf_pauli(x,tag_csr=True) @ q0.T)
         assert np.abs(tmp0-np.eye(2)).max() < 1e-10
-    assert np.abs(code_state.conj() @ (numqi.qec.hf_pauli(lz_str[0],tag_csr=True) @ code_state.T) - np.array([[1,0],[0,-1]])).max() < 1e-10
-    assert np.abs(code_state.conj() @ (numqi.qec.hf_pauli(lx_str[0],tag_csr=True) @ code_state.T) - np.array([[0,1],[1,0]])).max() < 1e-10
+    assert np.abs(q0.conj() @ (numqi.qec.hf_pauli(info['lz'],tag_csr=True) @ q0.T) - np.array([[1,0],[0,-1]])).max() < 1e-10
+    assert np.abs(q0.conj() @ (numqi.qec.hf_pauli(info['lx'],tag_csr=True) @ q0.T) - np.array([[0,1],[1,0]])).max() < 1e-10
 
     Tdag_diag = np.array([1,np.exp(-1j*np.pi/4)], dtype=np.complex128)
     Tdag_diag15 = Tdag_diag
     for _ in range(14):
         Tdag_diag15 = (Tdag_diag15.reshape(-1,1)*Tdag_diag).reshape(-1)
-    assert np.abs(code_state.conj() @ (code_state * Tdag_diag15).T - np.array([[1,0],[0,np.exp(1j*np.pi/4)]])).max() < 1e-10
+    assert np.abs(q0.conj() @ (q0 * Tdag_diag15).T - np.array([[1,0],[0,np.exp(1j*np.pi/4)]])).max() < 1e-10
