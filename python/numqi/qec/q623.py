@@ -9,11 +9,14 @@ from ._pauli import make_pauli_error_list_sparse
 def get_C10(return_info=False):
     a = np.sqrt(1/10) #0.3162
     b = np.sqrt(1/15) #0.2582
-    p3 = np.exp(1j*np.pi/3)
-    p6 = p3*p3
+    p =  np.exp(2j*np.pi/3)
+    # ind0 = [int(x,base=2) for x in '000000 000011 011110 101110 110110 111010 001101 010101 011001 100101 101001 110001'.split(' ')]
+    ind0 = [0, 3, 30, 46, 54, 58, 13, 21, 25, 37, 41, 49]
+    # ind1 = [int(x,base=2) for x in '111111 111100 100001 010001 001001 000101 110010 101010 100110 011010 010110 001110'.split(' ')]
+    ind1 = [63, 60, 33, 17, 9, 5, 50, 42, 38, 26, 22, 14]
     code = np.zeros((2,64), dtype=np.complex128)
-    code[0, [0,3,13,21,25,30,37,41,46,49,54,58]] = np.array([a,-a,b,b*p6,b/p6,a,b*p3,b/p3,-a,-b,-a,-a])
-    code[1, [5,9,14,17,22,26,33,38,42,50,60,63]] = np.array([a,a,b,a,b/p6,b*p6,-a,b/p3,b*p3,-b,-a,a])
+    code[0,ind0] = np.array([a,a,a,a*p, a/p,a,b,b, b,b,b/p,b*p])
+    code[1,ind1] = np.array([a,a,-a,-a/p, -a*p,-a,-b,-b, -b,-b,-b*p,-b/p])
     ret = code
     if return_info:
         qweA = np.array([1, 0, 0.84, 0, 11.64, 15.36, 3.16])

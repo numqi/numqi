@@ -38,10 +38,10 @@ def hf_pauli(x:str, tag_csr:bool=False):
 def _get_pauli_with_weight_sparse_hf0(num_qubit, weight, tag_neighbor=False):
     assert (num_qubit>=1) and (weight>=0) and (weight<=num_qubit)
     if weight==0:
-        ret = ['I'*num_qubit, scipy.sparse.eye(2**num_qubit, dtype=np.complex128, format='csr')]
+        ret = ['I'*num_qubit, scipy.sparse.eye_array(2**num_qubit, dtype=np.complex128, format='csr')]
     else:
         pauli = [
-            scipy.sparse.eye(2, dtype=np.complex128, format='csr'),
+            scipy.sparse.eye_array(2, dtype=np.complex128, format='csr'),
             scipy.sparse.csr_array(([1,1], ([0,1], [1,0])), shape=(2,2), dtype=np.complex128),
             scipy.sparse.csr_array(([-1j,1j], ([0,1], [1,0])), shape=(2,2), dtype=np.complex128),
             scipy.sparse.csr_array(([1,-1], ([0,1], [0,1])), shape=(2,2), dtype=np.complex128),

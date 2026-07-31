@@ -21,6 +21,7 @@ def get_cyclic_code(lambda2:float, sign:str='++', return_info=False):
     coeff = np.array([c0,c1,c2,c3,c4])
     basis = get_723_cyclic_code_basis()
     code = coeff @ basis
+    ret = code
     if return_info:
         qweA = np.array([1, 0, lambda2, 0, 21-2*lambda2, 0, 42+lambda2, 0])
         qweB = np.array([1, 0, lambda2, 21+3*lambda2, 21-2*lambda2, 126-6*lambda2, 42+lambda2, 45+3*lambda2])
@@ -40,7 +41,8 @@ def get_cyclic_code(lambda2:float, sign:str='++', return_info=False):
         lambda_ai = np.array([lambda_ai.get(x,0) for x in error_str_list], dtype=np.float64)
         info = dict(logicalX='X'*7, logicalZ='Z'*7, lambda2=lambda2, sign=sign,
                     basis=basis, coeff=coeff, qweA=qweA, qweB=qweB, lambda_ai=lambda_ai)
-    return code,info
+        ret = code, info
+    return ret
 
 
 def get_723_cyclic_code_basis():
